@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import type { Database } from '@/types/database.types'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -9,7 +10,4 @@ if (!supabaseUrl || !supabaseAnonKey) {
   )
 }
 
-// TODO: una vez existan las migraciones del schema (Fase 1), generar los tipos
-// con `supabase gen types typescript --local > src/types/database.types.ts`
-// y tipar el cliente como createClient<Database>(...).
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
