@@ -10,6 +10,7 @@ export type NewTask = Pick<
   | 'category_id'
   | 'kanban_column_id'
   | 'parent_task_id'
+  | 'size'
 >
 
 export type TaskPatch = Partial<
@@ -23,8 +24,15 @@ export type TaskPatch = Partial<
     | 'kanban_column_id'
     | 'parent_task_id'
     | 'status'
+    | 'size'
   >
 >
+
+export async function fetchTaskById(id: string): Promise<Task | null> {
+  const { data, error } = await supabase.from('tasks').select('*').eq('id', id).maybeSingle()
+  if (error) throw error
+  return data
+}
 
 export async function fetchInboxTasks(): Promise<Task[]> {
   const { data, error } = await supabase

@@ -4,6 +4,8 @@
 
 export type TaskStatus = 'pending' | 'in_progress' | 'done'
 export type ProjectStatus = 'active' | 'archived'
+export type TaskSize = 'small' | 'medium' | 'large'
+export type QuestType = 'daily_triage' | 'daily_priority' | 'weekly_project'
 
 export interface Database {
   public: {
@@ -78,6 +80,8 @@ export interface Database {
           description: string | null
           deadline: string | null
           status: TaskStatus
+          size: TaskSize | null
+          xp_reward: number
           created_at: string
           completed_at: string | null
         }
@@ -92,10 +96,79 @@ export interface Database {
           description?: string | null
           deadline?: string | null
           status?: TaskStatus
+          size?: TaskSize | null
           created_at?: string
           completed_at?: string | null
         }
         Update: Partial<Database['public']['Tables']['tasks']['Insert']>
+        Relationships: []
+      }
+      user_category_xp: {
+        Row: {
+          id: string
+          user_id: string
+          category_id: string
+          current_xp: number
+          current_level: number
+        }
+        Insert: {
+          id?: string
+          user_id?: string
+          category_id: string
+          current_xp?: number
+          current_level?: number
+        }
+        Update: Partial<Database['public']['Tables']['user_category_xp']['Insert']>
+        Relationships: []
+      }
+      streaks: {
+        Row: {
+          id: string
+          user_id: string
+          current_streak_days: number
+          longest_streak: number
+          shields_available: number
+          last_active_date: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string
+          current_streak_days?: number
+          longest_streak?: number
+          shields_available?: number
+          last_active_date?: string | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['streaks']['Insert']>
+        Relationships: []
+      }
+      quests: {
+        Row: {
+          id: string
+          user_id: string
+          type: QuestType
+          period_start: string
+          project_id: string | null
+          task_id: string | null
+          xp_reward: number
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string
+          type: QuestType
+          period_start: string
+          project_id?: string | null
+          task_id?: string | null
+          xp_reward?: number
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['quests']['Insert']>
         Relationships: []
       }
     }
@@ -108,3 +181,6 @@ export type Category = Database['public']['Tables']['categories']['Row']
 export type Project = Database['public']['Tables']['projects']['Row']
 export type KanbanColumn = Database['public']['Tables']['kanban_columns']['Row']
 export type Task = Database['public']['Tables']['tasks']['Row']
+export type UserCategoryXp = Database['public']['Tables']['user_category_xp']['Row']
+export type Streak = Database['public']['Tables']['streaks']['Row']
+export type Quest = Database['public']['Tables']['quests']['Row']

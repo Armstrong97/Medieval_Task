@@ -5,9 +5,18 @@ import {
   fetchBoardTasks,
   fetchInboxTasks,
   fetchSubtasks,
+  fetchTaskById,
   fetchTasksInRange,
   updateTask,
 } from '@/features/tasks/api'
+
+export function useTaskById(id: string | null) {
+  return useQuery({
+    queryKey: ['tasks', 'by-id', id],
+    queryFn: () => fetchTaskById(id as string),
+    enabled: id !== null,
+  })
+}
 
 export function useInboxTasks() {
   return useQuery({
@@ -40,7 +49,11 @@ export function useTasksInRange(startIso: string, endIso: string) {
 
 function useInvalidateTasks() {
   const queryClient = useQueryClient()
-  return () => queryClient.invalidateQueries({ queryKey: ['tasks'] })
+  return () => {
+    queryClient.invalidateQueries({ queryKey: ['tasks'] })
+    // Completar/triar tareas dispara triggers de XP, racha y quests en la DB.
+    queryClient.invalidateQueries({ queryKey: ['gamification'] })
+  }
 }
 
 export function useCreateTask() {

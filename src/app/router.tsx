@@ -6,6 +6,7 @@ import { InboxPage } from '@/features/inbox/components/InboxPage'
 import { TriagePage } from '@/features/triage/components/TriagePage'
 import { KanbanPage } from '@/features/kanban/components/KanbanPage'
 import { CalendarPage } from '@/features/calendar/components/CalendarPage'
+import { ProgressPage } from '@/features/gamification/components/ProgressPage'
 
 export const router = createBrowserRouter([
   {
@@ -25,6 +26,7 @@ export const router = createBrowserRouter([
           { path: 'kanban', element: <KanbanPage /> },
           { path: 'kanban/:projectId', element: <KanbanPage /> },
           { path: 'calendario', element: <CalendarPage /> },
+          { path: 'progreso', element: <ProgressPage /> },
         ],
       },
     ],

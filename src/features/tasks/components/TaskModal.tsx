@@ -2,8 +2,19 @@ import { useState, type FormEvent } from 'react'
 import { Modal } from '@/components/ui/Modal'
 import { useCategories } from '@/features/projects/hooks'
 import { useCreateTask, useDeleteTask, useSubtasks, useUpdateTask } from '@/features/tasks/hooks'
+import {
+  useClearTodayPriority,
+  useSetTodayPriority,
+  useTodayQuests,
+} from '@/features/gamification/hooks'
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '@/utils/datetime'
-import type { Task } from '@/types/database.types'
+import type { Task, TaskSize } from '@/types/database.types'
+
+const SIZE_OPTIONS: { value: TaskSize; label: string; xp: number }[] = [
+  { value: 'small', label: 'Pequeña', xp: 10 },
+  { value: 'medium', label: 'Mediana', xp: 25 },
+  { value: 'large', label: 'Grande', xp: 50 },
+]
 
 export function TaskModal({
   task,
@@ -23,13 +34,21 @@ export function TaskModal({
   const updateTask = useUpdateTask()
   const deleteTask = useDeleteTask()
   const { data: subtasks } = useSubtasks(task?.id ?? null)
+  const { data: todayQuests } = useTodayQuests()
+  const setTodayPriority = useSetTodayPriority()
+  const clearTodayPriority = useClearTodayPriority()
 
   const [title, setTitle] = useState(task?.title ?? '')
   const [description, setDescription] = useState(task?.description ?? '')
   const [categoryId, setCategoryId] = useState(task?.category_id ?? defaultCategoryId ?? '')
   const [deadline, setDeadline] = useState(toDatetimeLocalValue(task?.deadline ?? null))
+  const [size, setSize] = useState<TaskSize | null>(task?.size ?? null)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+
+  const priorityQuest = todayQuests?.find((q) => q.type === 'daily_priority')
+  const isTodayPriority = !!task && priorityQuest?.task_id === task.id
+  const canBePriority = !!task && task.parent_task_id === null
 
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('')
   const [newSubtaskDeadline, setNewSubtaskDeadline] = useState('')
@@ -51,6 +70,7 @@ export function TaskModal({
             description: description.trim() || null,
             category_id: categoryId || null,
             deadline: fromDatetimeLocalValue(deadline),
+            size,
           },
         })
       } else {
@@ -61,6 +81,7 @@ export function TaskModal({
           deadline: fromDatetimeLocalValue(deadline),
           project_id: defaultProjectId,
           kanban_column_id: defaultKanbanColumnId,
+          size,
         })
       }
       onClose()
@@ -137,6 +158,43 @@ export function TaskModal({
             onChange={(e) => setDeadline(e.target.value)}
             className="flex-1 rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm text-neutral-900 outline-none focus:border-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
           />
+        </div>
+
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex gap-1">
+            {SIZE_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setSize(size === opt.value ? null : opt.value)}
+                title={`+${opt.xp} XP`}
+                className={`rounded-md border px-2 py-1 text-xs ${
+                  size === opt.value
+                    ? 'border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-900'
+                    : 'border-neutral-300 text-neutral-500 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-900'
+                }`}
+              >
+                {opt.label} <span className="opacity-60">+{opt.xp}</span>
+              </button>
+            ))}
+          </div>
+
+          {canBePriority && task && (
+            <button
+              type="button"
+              onClick={() =>
+                isTodayPriority ? clearTodayPriority.mutate() : setTodayPriority.mutate(task.id)
+              }
+              title="Prioridad de hoy"
+              className={`text-lg leading-none ${
+                isTodayPriority
+                  ? 'text-amber-500'
+                  : 'text-neutral-300 hover:text-amber-400 dark:text-neutral-600'
+              }`}
+            >
+              {isTodayPriority ? '★' : '☆'}
+            </button>
+          )}
         </div>
 
         {error && <p className="text-sm text-amber-700 dark:text-amber-400">{error}</p>}
