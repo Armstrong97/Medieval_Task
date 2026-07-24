@@ -6,6 +6,7 @@ export type TaskStatus = 'pending' | 'in_progress' | 'done'
 export type ProjectStatus = 'active' | 'archived'
 export type TaskSize = 'small' | 'medium' | 'large'
 export type QuestType = 'daily_triage' | 'daily_priority' | 'weekly_project'
+export type LootTriggerType = 'streak' | 'quest_complete' | 'level_up' | 'rank_up'
 
 export interface Database {
   public: {
@@ -110,6 +111,7 @@ export interface Database {
           category_id: string
           current_xp: number
           current_level: number
+          current_rank_id: string | null
         }
         Insert: {
           id?: string
@@ -117,8 +119,48 @@ export interface Database {
           category_id: string
           current_xp?: number
           current_level?: number
+          current_rank_id?: string | null
         }
         Update: Partial<Database['public']['Tables']['user_category_xp']['Insert']>
+        Relationships: []
+      }
+      class_ranks: {
+        Row: {
+          id: string
+          category_id: string
+          rank_order: number
+          rank_name: string
+          xp_threshold: number
+          icon_name: string | null
+        }
+        Insert: Record<string, never>
+        Update: Record<string, never>
+        Relationships: []
+      }
+      loot_definitions: {
+        Row: {
+          id: string
+          slug: string
+          name: string
+          description: string
+          icon_name: string
+          category_id: string | null
+          trigger_type: LootTriggerType
+          trigger_value: number | null
+        }
+        Insert: Record<string, never>
+        Update: Record<string, never>
+        Relationships: []
+      }
+      loot: {
+        Row: {
+          id: string
+          user_id: string
+          loot_definition_id: string
+          unlocked_at: string
+        }
+        Insert: Record<string, never>
+        Update: Record<string, never>
         Relationships: []
       }
       streaks: {
@@ -184,3 +226,6 @@ export type Task = Database['public']['Tables']['tasks']['Row']
 export type UserCategoryXp = Database['public']['Tables']['user_category_xp']['Row']
 export type Streak = Database['public']['Tables']['streaks']['Row']
 export type Quest = Database['public']['Tables']['quests']['Row']
+export type ClassRank = Database['public']['Tables']['class_ranks']['Row']
+export type LootDefinition = Database['public']['Tables']['loot_definitions']['Row']
+export type Loot = Database['public']['Tables']['loot']['Row']

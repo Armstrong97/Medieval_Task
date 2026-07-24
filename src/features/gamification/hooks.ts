@@ -2,14 +2,37 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   clearTodayPriorityTask,
   fetchCategoryXp,
+  fetchClassRanks,
+  fetchLootDefinitions,
   fetchStreak,
   fetchTodayQuests,
+  fetchUnlockedLoot,
   fetchWeeklyQuests,
   setTodayPriorityTask,
 } from '@/features/gamification/api'
 
 export function useStreak() {
   return useQuery({ queryKey: ['gamification', 'streak'], queryFn: fetchStreak })
+}
+
+export function useClassRanks() {
+  return useQuery({
+    queryKey: ['gamification', 'class-ranks'],
+    queryFn: fetchClassRanks,
+    staleTime: Infinity,
+  })
+}
+
+export function useLootDefinitions() {
+  return useQuery({
+    queryKey: ['gamification', 'loot-definitions'],
+    queryFn: fetchLootDefinitions,
+    staleTime: Infinity,
+  })
+}
+
+export function useUnlockedLoot() {
+  return useQuery({ queryKey: ['gamification', 'loot'], queryFn: fetchUnlockedLoot })
 }
 
 export function useCategoryXp() {

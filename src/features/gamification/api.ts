@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import type { Quest, Streak, UserCategoryXp } from '@/types/database.types'
+import type { ClassRank, Loot, LootDefinition, Quest, Streak, UserCategoryXp } from '@/types/database.types'
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10)
@@ -56,4 +56,22 @@ export async function clearTodayPriorityTask(): Promise<void> {
     .eq('type', 'daily_priority')
     .eq('period_start', todayIso())
   if (error) throw error
+}
+
+export async function fetchClassRanks(): Promise<ClassRank[]> {
+  const { data, error } = await supabase.from('class_ranks').select('*').order('rank_order')
+  if (error) throw error
+  return data
+}
+
+export async function fetchLootDefinitions(): Promise<LootDefinition[]> {
+  const { data, error } = await supabase.from('loot_definitions').select('*')
+  if (error) throw error
+  return data
+}
+
+export async function fetchUnlockedLoot(): Promise<Loot[]> {
+  const { data, error } = await supabase.from('loot').select('*')
+  if (error) throw error
+  return data
 }

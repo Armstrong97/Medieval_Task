@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Modal } from '@/components/ui/Modal'
 import { useCategories } from '@/features/projects/hooks'
+import { useKanbanColumns } from '@/features/kanban/hooks'
 import { useCreateTask, useDeleteTask, useSubtasks, useUpdateTask } from '@/features/tasks/hooks'
 import {
   useClearTodayPriority,
@@ -37,14 +38,30 @@ export function TaskModal({
   const { data: todayQuests } = useTodayQuests()
   const setTodayPriority = useSetTodayPriority()
   const clearTodayPriority = useClearTodayPriority()
+  const { data: boardColumns } = useKanbanColumns(task?.project_id ?? null)
 
   const [title, setTitle] = useState(task?.title ?? '')
   const [description, setDescription] = useState(task?.description ?? '')
   const [categoryId, setCategoryId] = useState(task?.category_id ?? defaultCategoryId ?? '')
   const [deadline, setDeadline] = useState(toDatetimeLocalValue(task?.deadline ?? null))
   const [size, setSize] = useState<TaskSize | null>(task?.size ?? null)
+  const [isDone, setIsDone] = useState(task?.status === 'done')
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+
+  function handleToggleDone(checked: boolean) {
+    if (!task) return
+    setIsDone(checked)
+    const targetColumnName = checked ? 'Hecho' : 'Por hacer'
+    const targetColumn = boardColumns?.find((c) => c.name === targetColumnName)
+    updateTask.mutate({
+      id: task.id,
+      patch: {
+        status: checked ? 'done' : 'pending',
+        ...(targetColumn ? { kanban_column_id: targetColumn.id } : {}),
+      },
+    })
+  }
 
   const priorityQuest = todayQuests?.find((q) => q.type === 'daily_priority')
   const isTodayPriority = !!task && priorityQuest?.task_id === task.id
@@ -118,9 +135,21 @@ export function TaskModal({
 
   return (
     <Modal onClose={onClose}>
-      <h2 className="text-base font-medium text-neutral-900 dark:text-neutral-100">
-        {task ? 'Editar tarea' : 'Nueva tarea'}
-      </h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-medium text-neutral-900 dark:text-neutral-100">
+          {task ? 'Editar tarea' : 'Nueva tarea'}
+        </h2>
+        {task && (
+          <label className="flex items-center gap-1.5 text-sm text-neutral-600 dark:text-neutral-300">
+            <input
+              type="checkbox"
+              checked={isDone}
+              onChange={(e) => handleToggleDone(e.target.checked)}
+            />
+            Hecha
+          </label>
+        )}
+      </div>
 
       <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3">
         <input

@@ -18,3 +18,38 @@ export async function fetchFirstColumnId(projectId: string | null): Promise<stri
   }
   return first.id
 }
+
+export async function createColumn(input: {
+  projectId: string | null
+  name: string
+  position: number
+}): Promise<KanbanColumn> {
+  const { data, error } = await supabase
+    .from('kanban_columns')
+    .insert({ project_id: input.projectId, name: input.name, position: input.position })
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function renameColumn(id: string, name: string): Promise<KanbanColumn> {
+  const { data, error } = await supabase
+    .from('kanban_columns')
+    .update({ name })
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function updateColumnPosition(id: string, position: number): Promise<void> {
+  const { error } = await supabase.from('kanban_columns').update({ position }).eq('id', id)
+  if (error) throw error
+}
+
+export async function deleteColumn(id: string): Promise<void> {
+  const { error } = await supabase.from('kanban_columns').delete().eq('id', id)
+  if (error) throw error
+}

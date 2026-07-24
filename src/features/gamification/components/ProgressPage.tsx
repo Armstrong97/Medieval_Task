@@ -1,17 +1,27 @@
+import type { CSSProperties } from 'react'
 import { endOfWeek, format, startOfWeek } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { Flame, Shield, Star } from 'lucide-react'
+import { Crown, Flame, Shield } from 'lucide-react'
 import { useCategories, useProjects } from '@/features/projects/hooks'
 import {
   useCategoryXp,
+  useClassRanks,
   useStreak,
   useTodayQuests,
   useWeeklyQuests,
 } from '@/features/gamification/hooks'
 import { useTaskById, useTasksInRange } from '@/features/tasks/hooks'
 import { CategoryIcon } from '@/utils/categoryIcon'
+import { LootShowcase } from '@/features/gamification/components/LootShowcase'
 
 const XP_PER_LEVEL = 100
+
+function rankGlowStyle(rankOrder: number, colorHex: string): CSSProperties {
+  if (rankOrder >= 4) return { boxShadow: `0 0 0 3px ${colorHex}55, 0 0 14px 2px ${colorHex}77` }
+  if (rankOrder === 3) return { boxShadow: `0 0 0 2px ${colorHex}44, 0 0 8px 1px ${colorHex}44` }
+  if (rankOrder === 2) return { boxShadow: `0 0 0 2px ${colorHex}33` }
+  return {}
+}
 
 function PriorityQuestRow() {
   const { data: todayQuests } = useTodayQuests()
@@ -94,6 +104,7 @@ export function ProgressPage() {
   const { data: xp } = useCategoryXp()
   const { data: streak } = useStreak()
   const { data: todayQuests } = useTodayQuests()
+  const { data: classRanks } = useClassRanks()
 
   const triageQuest = todayQuests?.find((q) => q.type === 'daily_triage')
 
@@ -162,22 +173,39 @@ export function ProgressPage() {
             const currentXp = catXp?.current_xp ?? 0
             const level = catXp?.current_level ?? 1
             const progressInLevel = currentXp % XP_PER_LEVEL
+            const ranksForCat = classRanks?.filter((r) => r.category_id === cat.id) ?? []
+            const currentRank =
+              ranksForCat.find((r) => r.id === catXp?.current_rank_id) ??
+              ranksForCat.find((r) => r.rank_order === 1)
+            const rankOrder = currentRank?.rank_order ?? 1
 
             return (
               <div
                 key={cat.id}
                 className="flex items-center gap-3 rounded-lg border border-neutral-200 p-3 dark:border-neutral-800"
               >
-                <div
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-                  style={{ backgroundColor: `${cat.color_hex}22` }}
-                >
-                  <CategoryIcon iconName={cat.icon_name} className="h-5 w-5" style={{ color: cat.color_hex }} />
+                <div className="relative shrink-0">
+                  <div
+                    className="flex h-10 w-10 items-center justify-center rounded-full"
+                    style={{
+                      backgroundColor: `${cat.color_hex}22`,
+                      ...rankGlowStyle(rankOrder, cat.color_hex),
+                    }}
+                  >
+                    <CategoryIcon iconName={cat.icon_name} className="h-5 w-5" style={{ color: cat.color_hex }} />
+                  </div>
+                  {rankOrder >= 4 && (
+                    <Crown
+                      className="absolute -right-1 -top-1 h-4 w-4"
+                      style={{ color: cat.color_hex }}
+                      fill={cat.color_hex}
+                    />
+                  )}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline justify-between">
                     <p className="truncate text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                      {cat.name} <span className="font-normal text-neutral-400">· {cat.class_name}</span>
+                      {cat.name} <span className="font-normal text-neutral-400">· {currentRank?.rank_name ?? cat.class_name}</span>
                     </p>
                     <p className="shrink-0 text-xs text-neutral-400 dark:text-neutral-500">Nv. {level}</p>
                   </div>
@@ -190,9 +218,20 @@ export function ProgressPage() {
                       }}
                     />
                   </div>
-                  <p className="mt-0.5 text-xs text-neutral-400 dark:text-neutral-500">
-                    {progressInLevel}/{XP_PER_LEVEL} XP · {currentXp} total
-                  </p>
+                  <div className="mt-1 flex items-center justify-between">
+                    <p className="text-xs text-neutral-400 dark:text-neutral-500">
+                      {progressInLevel}/{XP_PER_LEVEL} XP · {currentXp} total
+                    </p>
+                    <div className="flex gap-0.5">
+                      {[1, 2, 3, 4].map((n) => (
+                        <span
+                          key={n}
+                          className="h-1 w-3 rounded-full bg-neutral-200 dark:bg-neutral-700"
+                          style={n <= rankOrder ? { backgroundColor: cat.color_hex } : undefined}
+                        />
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
             )
@@ -200,9 +239,12 @@ export function ProgressPage() {
         </div>
       </section>
 
-      <p className="mt-6 flex items-center gap-1 text-xs text-neutral-400 dark:text-neutral-500">
-        <Star className="h-3 w-3" /> El árbol completo de rangos por clase llega en la próxima fase.
-      </p>
+      <section className="mt-6">
+        <h2 className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Loot</h2>
+        <div className="mt-2 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+          <LootShowcase />
+        </div>
+      </section>
     </div>
   )
 }

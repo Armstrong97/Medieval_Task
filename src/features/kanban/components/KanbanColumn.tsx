@@ -1,19 +1,53 @@
+import { useState } from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import { TaskCard } from '@/features/tasks/components/TaskCard'
+import { useDeleteColumn, useRenameColumn } from '@/features/kanban/hooks'
 import type { KanbanColumn as KanbanColumnType, Task } from '@/types/database.types'
 
 export function KanbanColumn({
   column,
   tasks,
+  canMoveLeft,
+  canMoveRight,
   onOpenTask,
   onAddTask,
+  onMoveLeft,
+  onMoveRight,
 }: {
   column: KanbanColumnType
   tasks: Task[]
+  canMoveLeft: boolean
+  canMoveRight: boolean
   onOpenTask: (task: Task) => void
   onAddTask: (columnId: string) => void
+  onMoveLeft: () => void
+  onMoveRight: () => void
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id })
+  const renameColumn = useRenameColumn()
+  const deleteColumn = useDeleteColumn()
+  const [editing, setEditing] = useState(false)
+  const [name, setName] = useState(column.name)
+
+  function handleRenameSubmit() {
+    setEditing(false)
+    const trimmed = name.trim()
+    if (trimmed && trimmed !== column.name) {
+      renameColumn.mutate({ id: column.id, name: trimmed })
+    } else {
+      setName(column.name)
+    }
+  }
+
+  function handleDelete() {
+    const warning =
+      tasks.length > 0
+        ? `Esta columna tiene ${tasks.length} tarjeta(s). Al eliminarla vuelven al inbox para re-triarlas. ¿Continuar?`
+        : '¿Eliminar esta columna?'
+    if (window.confirm(warning)) {
+      deleteColumn.mutate(column.id)
+    }
+  }
 
   return (
     <div
@@ -24,18 +58,69 @@ export function KanbanColumn({
           : 'border-neutral-200 dark:border-neutral-800'
       }`}
     >
-      <div className="flex items-center justify-between px-1 py-1">
-        <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-          {column.name} <span className="text-neutral-400 dark:text-neutral-600">{tasks.length}</span>
-        </h3>
-        <button
-          type="button"
-          onClick={() => onAddTask(column.id)}
-          className="text-neutral-400 hover:text-neutral-700 dark:text-neutral-500 dark:hover:text-neutral-300"
-          aria-label="Nueva tarea"
-        >
-          +
-        </button>
+      <div className="flex items-center justify-between gap-1 px-1 py-1">
+        <div className="flex min-w-0 items-center gap-1">
+          <button
+            type="button"
+            onClick={onMoveLeft}
+            disabled={!canMoveLeft}
+            className="text-neutral-300 hover:text-neutral-700 disabled:opacity-0 dark:text-neutral-600 dark:hover:text-neutral-300"
+            aria-label="Mover columna a la izquierda"
+          >
+            ‹
+          </button>
+          {editing ? (
+            <input
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onBlur={handleRenameSubmit}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleRenameSubmit()
+                if (e.key === 'Escape') {
+                  setName(column.name)
+                  setEditing(false)
+                }
+              }}
+              className="w-28 rounded border border-neutral-300 bg-white px-1 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+            />
+          ) : (
+            <h3
+              onClick={() => setEditing(true)}
+              className="truncate text-sm font-medium text-neutral-700 dark:text-neutral-300"
+              title="Click para renombrar"
+            >
+              {column.name} <span className="text-neutral-400 dark:text-neutral-600">{tasks.length}</span>
+            </h3>
+          )}
+          <button
+            type="button"
+            onClick={onMoveRight}
+            disabled={!canMoveRight}
+            className="text-neutral-300 hover:text-neutral-700 disabled:opacity-0 dark:text-neutral-600 dark:hover:text-neutral-300"
+            aria-label="Mover columna a la derecha"
+          >
+            ›
+          </button>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onAddTask(column.id)}
+            className="text-neutral-400 hover:text-neutral-700 dark:text-neutral-500 dark:hover:text-neutral-300"
+            aria-label="Nueva tarea"
+          >
+            +
+          </button>
+          <button
+            type="button"
+            onClick={handleDelete}
+            className="text-neutral-300 hover:text-neutral-600 dark:text-neutral-600 dark:hover:text-neutral-300"
+            aria-label="Eliminar columna"
+          >
+            ×
+          </button>
+        </div>
       </div>
       <div className="mt-1 flex flex-col gap-2">
         {tasks.map((task) => (
