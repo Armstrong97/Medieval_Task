@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { Logomark } from '@/components/ui/Logomark'
+import { AmbientBackground } from '@/components/ui/AmbientBackground'
 
 type Mode = 'magic-link' | 'password-in' | 'password-up'
 
@@ -51,7 +52,8 @@ export function LoginPage() {
 
   return (
     <div className="flex min-h-dvh items-center justify-center bg-bg p-4">
-      <div className="w-full max-w-sm rounded-lg border border-border bg-surface p-6 shadow-xl">
+      <AmbientBackground />
+      <div className="relative w-full max-w-sm rounded-lg border border-border bg-surface p-6 shadow-xl">
         <div className="flex items-center gap-2.5">
           <Logomark className="h-9 w-9" />
           <h1 className="font-display text-lg font-semibold tracking-tight text-fg">
@@ -114,7 +116,7 @@ export function LoginPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="mt-1 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-fg transition-opacity disabled:opacity-60"
+            className="mt-1 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-fg transition-all duration-150 hover:shadow-[0_4px_24px_rgba(240,195,100,0.45)] hover:-translate-y-px active:scale-[0.97] disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none"
           >
             {submitting
               ? 'Un momento…'

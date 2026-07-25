@@ -39,7 +39,7 @@ export function FollowUpsPage() {
           return (
             <li
               key={followUp.id}
-              className={`flex items-center gap-3 rounded-lg border p-3 ${
+              className={`flex items-center gap-3 rounded-lg border p-3 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md ${
                 due ? 'border-warn-border bg-warn-bg' : 'border-border bg-surface'
               }`}
             >
@@ -66,7 +66,7 @@ export function FollowUpsPage() {
               <button
                 type="button"
                 onClick={() => registerContact.mutate(followUp.id)}
-                className="shrink-0 rounded-md border border-border px-2 py-1 text-xs text-fg-muted hover:bg-surface-2"
+                className="shrink-0 rounded-md border border-border px-2 py-1 text-xs text-fg-muted transition-all duration-150 hover:border-accent/40 hover:bg-surface-2 hover:text-accent active:scale-95"
               >
                 Registrar contacto
               </button>

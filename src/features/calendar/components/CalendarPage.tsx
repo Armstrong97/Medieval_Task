@@ -60,7 +60,7 @@ function DayCell({
               type="button"
               onClick={() => onOpenTask(task)}
               title={task.title}
-              className={`truncate rounded px-1 py-0.5 text-left text-[11px] ${
+              className={`truncate rounded px-1 py-0.5 text-left text-[11px] transition-colors hover:brightness-125 ${
                 overdue ? 'bg-warn-bg text-warn-fg' : 'text-fg-muted'
               }`}
               style={!overdue && category ? { backgroundColor: `${category.color_hex}1a` } : undefined}
@@ -100,7 +100,7 @@ function DayListView({
               <button
                 type="button"
                 onClick={() => onOpenTask(task)}
-                className={`flex w-full items-center gap-3 rounded-lg border p-3 text-left text-sm ${
+                className={`flex w-full items-center gap-3 rounded-lg border p-3 text-left text-sm transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 ${
                   overdue ? 'border-warn-border bg-warn-bg' : 'border-border bg-surface'
                 }`}
               >
@@ -185,7 +185,7 @@ export function CalendarPage() {
           <button
             type="button"
             onClick={goPrev}
-            className="rounded-md border border-border px-2 py-1 text-sm text-fg-muted hover:text-fg"
+            className="rounded-md border border-border px-2 py-1 text-sm text-fg-muted transition-colors hover:border-accent/40 hover:text-fg"
           >
             ‹
           </button>
@@ -195,7 +195,7 @@ export function CalendarPage() {
           <button
             type="button"
             onClick={goNext}
-            className="rounded-md border border-border px-2 py-1 text-sm text-fg-muted hover:text-fg"
+            className="rounded-md border border-border px-2 py-1 text-sm text-fg-muted transition-colors hover:border-accent/40 hover:text-fg"
           >
             ›
           </button>

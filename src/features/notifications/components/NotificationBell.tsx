@@ -37,7 +37,7 @@ export function NotificationBell() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="relative text-fg-muted hover:text-fg"
+        className="relative text-fg-muted transition-colors hover:text-fg"
         aria-label="Notificaciones"
       >
         <Bell className="h-5 w-5" />
@@ -51,7 +51,7 @@ export function NotificationBell() {
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 z-50 mt-2 w-80 rounded-lg border border-border bg-surface p-2 shadow-xl">
+          <div className="modal-panel absolute right-0 z-50 mt-2 w-80 rounded-lg border border-border bg-surface p-2 shadow-xl">
             {unread.length === 0 ? (
               <p className="p-3 text-sm text-fg-muted">Sin notificaciones pendientes.</p>
             ) : (
@@ -62,7 +62,7 @@ export function NotificationBell() {
                   return (
                     <li
                       key={notification.id}
-                      className="flex items-start gap-2 rounded-md p-2 hover:bg-surface-2"
+                      className="flex items-start gap-2 rounded-md p-2 transition-colors hover:bg-surface-2"
                     >
                       <Icon
                         className={`mt-0.5 h-4 w-4 shrink-0 ${

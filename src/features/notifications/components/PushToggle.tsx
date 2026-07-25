@@ -43,7 +43,7 @@ export function PushToggle() {
         type="button"
         onClick={toggle}
         disabled={busy}
-        className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-fg-muted hover:bg-surface-2 disabled:opacity-60"
+        className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-fg-muted transition-colors hover:bg-surface-2 disabled:opacity-60"
       >
         {subscribed ? <BellOff className="h-3.5 w-3.5" /> : <BellRing className="h-3.5 w-3.5" />}
         {subscribed ? 'Desactivar notificaciones push' : 'Activar notificaciones push'}

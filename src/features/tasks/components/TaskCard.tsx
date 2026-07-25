@@ -25,7 +25,7 @@ export function TaskCard({ task, onOpen }: { task: Task; onOpen: (task: Task) =>
   return (
     <div
       ref={setNodeRef}
-      className={`rounded-md border border-border bg-surface p-3 text-sm shadow-sm transition-shadow hover:border-accent/40 ${
+      className={`rounded-md border border-border bg-surface p-3 text-sm shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-[0_12px_30px_rgba(139,92,246,0.18)] active:translate-y-0 active:scale-[0.99] ${
         isDragging ? 'opacity-50' : ''
       }`}
       style={{

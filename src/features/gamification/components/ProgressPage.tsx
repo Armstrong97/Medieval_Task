@@ -87,7 +87,7 @@ function WeeklyProjectQuests() {
           </div>
           <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
             <div
-              className="h-full rounded-full bg-accent"
+              className="h-full rounded-full bg-accent transition-[width] duration-700 ease-out"
               style={{ width: `${total ? (done / total) * 100 : 0}%` }}
             />
           </div>
@@ -180,7 +180,7 @@ export function ProgressPage() {
             return (
               <div
                 key={cat.id}
-                className="flex items-center gap-3 rounded-lg border border-border bg-surface p-3"
+                className="flex items-center gap-3 rounded-lg border border-border bg-surface p-3 transition-transform duration-200 hover:-translate-y-0.5"
               >
                 <div className="relative shrink-0">
                   <div
@@ -212,10 +212,11 @@ export function ProgressPage() {
                   </div>
                   <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
                     <div
-                      className="h-full rounded-full"
+                      className="h-full rounded-full transition-[width] duration-700 ease-out"
                       style={{
                         width: `${progressInLevel}%`,
                         backgroundColor: cat.color_hex,
+                        boxShadow: `0 0 10px ${cat.color_hex}66`,
                       }}
                     />
                   </div>

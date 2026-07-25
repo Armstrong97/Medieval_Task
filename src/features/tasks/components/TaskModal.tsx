@@ -241,9 +241,9 @@ export function TaskModal({
                 type="button"
                 onClick={() => setSize(size === opt.value ? null : opt.value)}
                 title={`+${opt.xp} XP`}
-                className={`rounded-md border px-2 py-1 font-mono text-xs ${
+                className={`rounded-md border px-2 py-1 font-mono text-xs transition-all duration-150 active:scale-95 ${
                   size === opt.value
-                    ? 'border-accent bg-accent text-accent-fg'
+                    ? 'border-accent bg-accent text-accent-fg shadow-[0_0_12px_rgba(217,169,74,0.35)]'
                     : 'border-border text-fg-muted hover:bg-surface-2'
                 }`}
               >
@@ -259,8 +259,8 @@ export function TaskModal({
                 isTodayPriority ? clearTodayPriority.mutate() : setTodayPriority.mutate(task.id)
               }
               title="Prioridad de hoy"
-              className={`text-lg leading-none ${
-                isTodayPriority ? 'text-accent' : 'text-fg-muted/40 hover:text-accent/60'
+              className={`text-lg leading-none transition-all duration-150 hover:scale-110 active:scale-95 ${
+                isTodayPriority ? 'text-accent drop-shadow-[0_0_6px_rgba(217,169,74,0.6)]' : 'text-fg-muted/40 hover:text-accent/60'
               }`}
             >
               {isTodayPriority ? '★' : '☆'}
@@ -324,7 +324,7 @@ export function TaskModal({
           <button
             type="submit"
             disabled={saving}
-            className="flex-1 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-fg disabled:opacity-60"
+            className="flex-1 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-fg transition-all duration-150 hover:shadow-[0_4px_20px_rgba(217,169,74,0.4)] active:scale-[0.98] disabled:opacity-60 disabled:hover:shadow-none"
           >
             Guardar
           </button>
@@ -332,7 +332,7 @@ export function TaskModal({
             <button
               type="button"
               onClick={handleDelete}
-              className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-fg-muted hover:bg-surface-2"
+              className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-fg-muted transition-colors hover:bg-surface-2 hover:text-warn-fg"
             >
               Borrar
             </button>

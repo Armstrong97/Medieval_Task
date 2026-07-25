@@ -61,9 +61,9 @@ export function InboxPage() {
             type="button"
             onClick={() => (dictation.listening ? dictation.stop() : dictation.start())}
             title={dictation.listening ? 'Detener dictado' : 'Dictar por voz'}
-            className={`shrink-0 rounded-md border px-3 ${
+            className={`shrink-0 rounded-md border px-3 transition-all duration-150 active:scale-95 ${
               dictation.listening
-                ? 'border-accent/40 bg-accent/10 text-accent'
+                ? 'border-accent/40 bg-accent/10 text-accent shadow-[0_0_12px_rgba(217,169,74,0.3)] animate-pulse'
                 : 'border-border text-fg-muted hover:bg-surface-2'
             }`}
           >
@@ -80,7 +80,7 @@ export function InboxPage() {
             {items.map((item) => (
               <li
                 key={item.id}
-                className="flex items-center justify-between gap-2 rounded-md border border-border bg-surface px-3 py-2 text-sm"
+                className="flex items-center justify-between gap-2 rounded-md border border-border bg-surface px-3 py-2 text-sm transition-all duration-150 hover:border-accent/30"
               >
                 <span className="text-fg">
                   {item.title}

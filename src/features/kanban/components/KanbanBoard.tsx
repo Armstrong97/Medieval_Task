@@ -93,7 +93,7 @@ export function KanbanBoard({
           <button
             type="button"
             onClick={handleAddColumn}
-            className="h-fit shrink-0 rounded-lg border border-dashed border-border px-4 py-2 text-sm text-fg-muted hover:border-accent/50 hover:text-accent"
+            className="h-fit shrink-0 rounded-lg border border-dashed border-border px-4 py-2 text-sm text-fg-muted transition-all duration-150 hover:border-accent/50 hover:text-accent active:scale-95"
           >
             + Columna
           </button>

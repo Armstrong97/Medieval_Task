@@ -1,7 +1,10 @@
 @import "tailwindcss";
 @import "@fontsource-variable/inter";
 @import "@fontsource-variable/jetbrains-mono";
-@import "@fontsource-variable/space-grotesk";
+@import "@fontsource/cinzel/500.css";
+@import "@fontsource/cinzel/600.css";
+@import "@fontsource/cinzel/700.css";
+@import "@fontsource/cinzel/900.css";
 
 /* Tokens de color: valores reales en :root / @media dark más abajo,
    acá solo se registran como utilidades de Tailwind (bg-bg, text-fg, etc). */
@@ -14,27 +17,31 @@
   --color-border: var(--border);
   --color-accent: var(--accent);
   --color-accent-fg: var(--accent-fg);
+  --color-gold: var(--gold);
+  --color-gold-bright: var(--gold-bright);
   --color-warn-bg: var(--warn-bg);
   --color-warn-fg: var(--warn-fg);
   --color-warn-border: var(--warn-border);
 
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
-  --font-display: "Space Grotesk Variable", ui-sans-serif, sans-serif;
+  --font-display: "Cinzel", ui-sans-serif, serif;
 }
 
 :root {
   color-scheme: light dark;
 
-  /* claro — cálido, no blanco/gris puro */
+  /* claro — respaldo, mismo requisito de spec de siempre soportar ambos */
   --bg: #faf9f6;
   --surface: #ffffff;
   --surface-2: #f1efe9;
   --fg: #181814;
   --fg-muted: #6b6862;
   --border: rgba(20, 18, 14, 0.1);
-  --accent: #ea580c;
+  --accent: #b8791a;
   --accent-fg: #ffffff;
+  --gold: #b8791a;
+  --gold-bright: #8a5a10;
   --warn-bg: #fef3e2;
   --warn-fg: #92400e;
   --warn-border: rgba(217, 119, 6, 0.3);
@@ -42,15 +49,17 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    /* oscuro — identidad principal de la app */
-    --bg: #121212;
-    --surface: #1c1c1a;
-    --surface-2: #262624;
-    --fg: #efefe5;
-    --fg-muted: #8a8a82;
-    --border: rgba(255, 255, 255, 0.08);
-    --accent: #f2600c;
-    --accent-fg: #ffffff;
+    /* oscuro — identidad principal: fantasía RPG, base ciruela profunda + acento oro */
+    --bg: #120c18;
+    --surface: #1e1526;
+    --surface-2: #2a1d38;
+    --fg: #f3ecf7;
+    --fg-muted: #b3a3c0;
+    --border: #3a2a4a;
+    --accent: #d9a94a;
+    --accent-fg: #241705;
+    --gold: #d9a94a;
+    --gold-bright: #f0c364;
     --warn-bg: rgba(146, 64, 14, 0.25);
     --warn-fg: #fcd9a8;
     --warn-border: rgba(217, 119, 6, 0.4);
@@ -66,4 +75,132 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background-color: var(--bg);
   color: var(--fg);
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background: radial-gradient(circle at 20% 0%, #251636 0%, var(--bg) 55%);
+  }
+}
+
+/* Fondo ambiental (ver AmbientBackground.tsx) */
+.ambient-aurora {
+  opacity: 0.5;
+  filter: blur(60px);
+  background: conic-gradient(
+    from 0deg at 50% 50%,
+    #8b5cf655,
+    #f0c36433,
+    #ec489944,
+    #3b82f633,
+    #8b5cf655
+  );
+  animation: ambient-spin 40s linear infinite;
+}
+
+.ambient-mote {
+  background: radial-gradient(circle, var(--gold-bright), transparent 70%);
+  opacity: 0.75;
+  animation: ambient-float linear infinite;
+}
+
+@keyframes ambient-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes ambient-float {
+  0% {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.8;
+  }
+  90% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(-115vh) translateX(var(--drift, 20px));
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient-aurora,
+  .ambient-mote {
+    animation: none;
+  }
+}
+
+/* Celebracion de logros (ver AchievementCelebration.tsx) */
+.achievement-burst {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gold-bright);
+  opacity: 0;
+}
+
+.achievement-modal {
+  opacity: 0;
+  transform: scale(0.6);
+  animation: achievement-pop 650ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes achievement-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+    box-shadow: 0 0 0 rgba(240, 195, 100, 0);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.05);
+    box-shadow: 0 0 60px rgba(240, 195, 100, 0.5);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 40px rgba(240, 195, 100, 0.35);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .achievement-modal {
+    animation: none;
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Modal compartido (ver Modal.tsx) */
+.modal-backdrop {
+  animation: modal-fade 180ms ease-out;
+}
+
+.modal-panel {
+  animation: modal-pop 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modal-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes modal-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-backdrop,
+  .modal-panel {
+    animation: none;
+  }
 }

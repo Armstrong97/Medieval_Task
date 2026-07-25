@@ -52,8 +52,10 @@ export function KanbanColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`flex w-72 shrink-0 flex-col rounded-lg border p-2 transition-colors ${
-        isOver ? 'border-accent/50 bg-accent/5' : 'border-border bg-surface/40'
+      className={`flex w-72 shrink-0 flex-col rounded-lg border p-2 transition-all duration-200 ${
+        isOver
+          ? 'border-accent/50 bg-accent/5 shadow-[0_0_24px_rgba(217,169,74,0.25)]'
+          : 'border-border bg-surface/40'
       }`}
     >
       <div className="flex items-center justify-between gap-1 px-1 py-1">
@@ -62,7 +64,7 @@ export function KanbanColumn({
             type="button"
             onClick={onMoveLeft}
             disabled={!canMoveLeft}
-            className="text-fg-muted/50 hover:text-fg disabled:opacity-0"
+            className="text-fg-muted/50 transition-colors hover:text-fg disabled:opacity-0"
             aria-label="Mover columna a la izquierda"
           >
             ‹
@@ -95,7 +97,7 @@ export function KanbanColumn({
             type="button"
             onClick={onMoveRight}
             disabled={!canMoveRight}
-            className="text-fg-muted/50 hover:text-fg disabled:opacity-0"
+            className="text-fg-muted/50 transition-colors hover:text-fg disabled:opacity-0"
             aria-label="Mover columna a la derecha"
           >
             ›
@@ -105,7 +107,7 @@ export function KanbanColumn({
           <button
             type="button"
             onClick={() => onAddTask(column.id)}
-            className="text-fg-muted hover:text-accent"
+            className="text-fg-muted transition-colors hover:text-accent"
             aria-label="Nueva tarea"
           >
             +
@@ -113,7 +115,7 @@ export function KanbanColumn({
           <button
             type="button"
             onClick={handleDelete}
-            className="text-fg-muted/60 hover:text-warn-fg"
+            className="text-fg-muted/60 transition-colors hover:text-warn-fg"
             aria-label="Eliminar columna"
           >
             ×

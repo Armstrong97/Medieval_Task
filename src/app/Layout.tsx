@@ -14,6 +14,8 @@ import { useAuth } from '@/features/auth/AuthProvider'
 import { useStreak } from '@/features/gamification/hooks'
 import { NotificationBell } from '@/features/notifications/components/NotificationBell'
 import { Logomark } from '@/components/ui/Logomark'
+import { AmbientBackground } from '@/components/ui/AmbientBackground'
+import { AchievementWatcher } from '@/features/gamification/components/AchievementWatcher'
 
 const navItems = [
   { to: '/inbox', label: 'Inbox', icon: InboxIcon },
@@ -48,8 +50,10 @@ export function Layout() {
   const { signOut } = useAuth()
 
   return (
-    <div className="min-h-dvh bg-bg text-fg">
-      <nav className="flex items-center gap-4 border-b border-border bg-surface px-4 py-2.5">
+    <div className="min-h-dvh text-fg">
+      <AmbientBackground />
+      <AchievementWatcher />
+      <nav className="flex items-center gap-4 border-b border-border bg-surface/90 px-4 py-2.5 backdrop-blur-sm">
         <NavLink to="/inbox" className="shrink-0">
           <Logomark className="h-7 w-7" />
         </NavLink>
