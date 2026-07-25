@@ -89,16 +89,14 @@ export function TriagePage() {
   }
 
   if (isLoading) {
-    return <p className="p-6 text-sm text-neutral-400 dark:text-neutral-500">Cargando…</p>
+    return <p className="p-6 text-sm text-fg-muted">Cargando…</p>
   }
 
   if (!current) {
     return (
       <div className="p-6">
-        <h1 className="text-lg font-medium text-neutral-900 dark:text-neutral-100">Triage</h1>
-        <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
-          Inbox vacío — no hay nada que triar por ahora.
-        </p>
+        <h1 className="font-display text-lg font-semibold tracking-tight text-fg">Triage</h1>
+        <p className="mt-2 text-sm text-fg-muted">Inbox vacío — no hay nada que triar por ahora.</p>
       </div>
     )
   }
@@ -106,22 +104,20 @@ export function TriagePage() {
   return (
     <div className="mx-auto max-w-lg p-6">
       <div className="flex items-baseline justify-between">
-        <h1 className="text-lg font-medium text-neutral-900 dark:text-neutral-100">Triage</h1>
-        <span className="text-sm text-neutral-400 dark:text-neutral-500">
-          {items?.length} en el inbox
-        </span>
+        <h1 className="font-display text-lg font-semibold tracking-tight text-fg">Triage</h1>
+        <span className="font-mono text-sm text-fg-muted">{items?.length} en el inbox</span>
       </div>
 
-      <div className="mt-4 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-        <p className="text-base text-neutral-900 dark:text-neutral-100">{current.title}</p>
+      <div className="mt-4 rounded-lg border border-border bg-surface p-4">
+        <p className="text-base text-fg">{current.title}</p>
 
         <form onSubmit={handleSave} className="mt-4 flex flex-col gap-3">
-          <label className="flex flex-col gap-1 text-sm text-neutral-700 dark:text-neutral-300">
+          <label className="flex flex-col gap-1 text-sm text-fg-muted">
             Categoría
             <select
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
-              className="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-neutral-900 outline-none focus:border-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
+              className="rounded-md border border-border bg-surface px-3 py-1.5 text-fg outline-none focus:border-accent"
             >
               <option value="" disabled>
                 Elegí categoría
@@ -134,12 +130,12 @@ export function TriagePage() {
             </select>
           </label>
 
-          <label className="flex flex-col gap-1 text-sm text-neutral-700 dark:text-neutral-300">
+          <label className="flex flex-col gap-1 text-sm text-fg-muted">
             Proyecto
             <select
               value={projectChoice}
               onChange={(e) => setProjectChoice(e.target.value)}
-              className="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-neutral-900 outline-none focus:border-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
+              className="rounded-md border border-border bg-surface px-3 py-1.5 text-fg outline-none focus:border-accent"
             >
               <option value={NO_PROJECT}>Tareas sueltas (sin proyecto)</option>
               {projects?.map((project) => (
@@ -156,34 +152,34 @@ export function TriagePage() {
               value={newProjectName}
               onChange={(e) => setNewProjectName(e.target.value)}
               placeholder="Nombre del proyecto"
-              className="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-neutral-900 outline-none focus:border-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
+              className="rounded-md border border-border bg-surface px-3 py-1.5 text-fg outline-none focus:border-accent"
             />
           )}
 
-          <label className="flex flex-col gap-1 text-sm text-neutral-700 dark:text-neutral-300">
+          <label className="flex flex-col gap-1 text-sm text-fg-muted">
             Deadline
             <input
               type="datetime-local"
               value={deadline}
               onChange={(e) => setDeadline(e.target.value)}
-              className="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-neutral-900 outline-none focus:border-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
+              className="rounded-md border border-border bg-surface px-3 py-1.5 text-fg outline-none focus:border-accent"
             />
           </label>
 
-          {error && <p className="text-sm text-amber-700 dark:text-amber-400">{error}</p>}
+          {error && <p className="text-sm text-warn-fg">{error}</p>}
 
           <div className="mt-1 flex gap-2">
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-900"
+              className="flex-1 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-fg disabled:opacity-60"
             >
               Guardar
             </button>
             <button
               type="button"
               onClick={handleDiscard}
-              className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-600 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-900"
+              className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-fg-muted hover:bg-surface-2"
             >
               Descartar
             </button>

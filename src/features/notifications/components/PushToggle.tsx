@@ -38,17 +38,17 @@ export function PushToggle() {
   }
 
   return (
-    <div className="border-t border-neutral-100 p-2 dark:border-neutral-800">
+    <div className="border-t border-border p-2">
       <button
         type="button"
         onClick={toggle}
         disabled={busy}
-        className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-neutral-500 hover:bg-neutral-50 disabled:opacity-60 dark:text-neutral-400 dark:hover:bg-neutral-800"
+        className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-fg-muted hover:bg-surface-2 disabled:opacity-60"
       >
         {subscribed ? <BellOff className="h-3.5 w-3.5" /> : <BellRing className="h-3.5 w-3.5" />}
         {subscribed ? 'Desactivar notificaciones push' : 'Activar notificaciones push'}
       </button>
-      {error && <p className="px-2 text-xs text-amber-700 dark:text-amber-400">{error}</p>}
+      {error && <p className="px-2 text-xs text-warn-fg">{error}</p>}
     </div>
   )
 }

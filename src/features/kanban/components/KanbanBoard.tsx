@@ -70,7 +70,7 @@ export function KanbanBoard({
   }
 
   if (columnsLoading || tasksLoading) {
-    return <p className="p-6 text-sm text-neutral-400 dark:text-neutral-500">Cargando…</p>
+    return <p className="p-6 text-sm text-fg-muted">Cargando…</p>
   }
 
   return (
@@ -93,7 +93,7 @@ export function KanbanBoard({
           <button
             type="button"
             onClick={handleAddColumn}
-            className="h-fit shrink-0 rounded-lg border border-dashed border-neutral-300 px-4 py-2 text-sm text-neutral-400 hover:border-neutral-400 hover:text-neutral-600 dark:border-neutral-700 dark:text-neutral-500 dark:hover:text-neutral-300"
+            className="h-fit shrink-0 rounded-lg border border-dashed border-border px-4 py-2 text-sm text-fg-muted hover:border-accent/50 hover:text-accent"
           >
             + Columna
           </button>

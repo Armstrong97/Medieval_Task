@@ -14,7 +14,7 @@ export function LootShowcase() {
   const { data: unlocked } = useUnlockedLoot()
 
   if (!definitions || definitions.length === 0) {
-    return <p className="text-sm text-neutral-400 dark:text-neutral-500">Todavía no hay insignias.</p>
+    return <p className="text-sm text-fg-muted">Todavía no hay insignias.</p>
   }
 
   return (
@@ -27,16 +27,12 @@ export function LootShowcase() {
           <div
             key={loot.id}
             className={`flex flex-col items-center gap-1 rounded-lg border p-3 text-center ${
-              unlock
-                ? 'border-neutral-200 dark:border-neutral-800'
-                : 'border-dashed border-neutral-200 opacity-50 dark:border-neutral-800'
+              unlock ? 'border-accent/30 bg-accent/5' : 'border-dashed border-border opacity-50'
             }`}
           >
-            <Icon
-              className={`h-6 w-6 ${unlock ? 'text-amber-500' : 'text-neutral-300 dark:text-neutral-700'}`}
-            />
-            <p className="text-xs font-medium text-neutral-800 dark:text-neutral-200">{loot.name}</p>
-            <p className="text-[11px] text-neutral-400 dark:text-neutral-500">{loot.description}</p>
+            <Icon className={`h-6 w-6 ${unlock ? 'text-accent' : 'text-fg-muted/60'}`} />
+            <p className="text-xs font-medium text-fg">{loot.name}</p>
+            <p className="text-[11px] text-fg-muted">{loot.description}</p>
           </div>
         )
       })}

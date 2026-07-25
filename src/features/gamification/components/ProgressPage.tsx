@@ -30,7 +30,7 @@ function PriorityQuestRow() {
 
   if (!priorityQuest) {
     return (
-      <p className="text-sm text-neutral-400 dark:text-neutral-500">
+      <p className="text-sm text-fg-muted">
         Todavía no marcaste una tarea prioritaria de hoy (con la ★ en el modal de la tarea).
       </p>
     )
@@ -38,14 +38,12 @@ function PriorityQuestRow() {
 
   return (
     <p className="flex items-center gap-2 text-sm">
-      <span className={priorityQuest.completed ? 'text-emerald-600 dark:text-emerald-400' : 'text-neutral-400'}>
+      <span className={priorityQuest.completed ? 'text-emerald-500' : 'text-fg-muted'}>
         {priorityQuest.completed ? '✓' : '☆'}
       </span>
-      <span className="text-neutral-700 dark:text-neutral-300">
-        {priorityTask?.title ?? 'Cargando…'}
-      </span>
+      <span className="text-fg">{priorityTask?.title ?? 'Cargando…'}</span>
       {priorityQuest.completed && (
-        <span className="text-xs text-emerald-600 dark:text-emerald-400">+{priorityQuest.xp_reward} XP</span>
+        <span className="font-mono text-xs text-emerald-500">+{priorityQuest.xp_reward} XP</span>
       )}
     </p>
   )
@@ -71,7 +69,7 @@ function WeeklyProjectQuests() {
 
   if (rows.length === 0) {
     return (
-      <p className="text-sm text-neutral-400 dark:text-neutral-500">
+      <p className="text-sm text-fg-muted">
         Ningún proyecto tiene tareas con deadline esta semana todavía.
       </p>
     )
@@ -82,14 +80,14 @@ function WeeklyProjectQuests() {
       {rows.map(({ project, total, done, completed }) => (
         <li key={project.id} className="text-sm">
           <div className="flex items-center justify-between">
-            <span className="text-neutral-700 dark:text-neutral-300">{project.name}</span>
-            <span className="text-xs text-neutral-400 dark:text-neutral-500">
-              {done}/{total} {completed && <span className="text-emerald-600 dark:text-emerald-400">· +50 XP ✓</span>}
+            <span className="text-fg">{project.name}</span>
+            <span className="font-mono text-xs text-fg-muted">
+              {done}/{total} {completed && <span className="text-emerald-500">· +50 XP ✓</span>}
             </span>
           </div>
-          <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
+          <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
             <div
-              className="h-full rounded-full bg-neutral-900 dark:bg-neutral-100"
+              className="h-full rounded-full bg-accent"
               style={{ width: `${total ? (done / total) * 100 : 0}%` }}
             />
           </div>
@@ -110,18 +108,16 @@ export function ProgressPage() {
 
   return (
     <div className="mx-auto max-w-3xl p-6">
-      <h1 className="text-lg font-medium text-neutral-900 dark:text-neutral-100">Progreso</h1>
+      <h1 className="font-display text-lg font-semibold tracking-tight text-fg">Progreso</h1>
 
-      <div className="mt-4 flex items-center gap-6 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+      <div className="mt-4 flex items-center gap-6 rounded-lg border border-border bg-surface p-4">
         <div className="flex items-center gap-2">
-          <Flame className="h-5 w-5 text-orange-500" />
+          <Flame className="h-6 w-6 text-accent" />
           <div>
-            <p className="text-lg font-medium text-neutral-900 dark:text-neutral-100">
-              {streak?.current_streak_days ?? 0} días
+            <p className="font-mono text-xl font-semibold text-fg">
+              {streak?.current_streak_days ?? 0} <span className="text-sm font-normal text-fg-muted">días</span>
             </p>
-            <p className="text-xs text-neutral-400 dark:text-neutral-500">
-              récord: {streak?.longest_streak ?? 0}
-            </p>
+            <p className="font-mono text-xs text-fg-muted">récord: {streak?.longest_streak ?? 0}</p>
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -129,9 +125,7 @@ export function ProgressPage() {
             <Shield
               key={i}
               className={`h-4 w-4 ${
-                i < (streak?.shields_available ?? 0)
-                  ? 'fill-sky-400 text-sky-400'
-                  : 'text-neutral-200 dark:text-neutral-700'
+                i < (streak?.shields_available ?? 0) ? 'fill-sky-500 text-sky-500' : 'text-fg-muted/25'
               }`}
             />
           ))}
@@ -139,15 +133,17 @@ export function ProgressPage() {
       </div>
 
       <section className="mt-6">
-        <h2 className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Quests de hoy</h2>
-        <div className="mt-2 flex flex-col gap-2 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+        <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-fg-muted">
+          Quests de hoy
+        </h2>
+        <div className="mt-2 flex flex-col gap-2 rounded-lg border border-border bg-surface p-4">
           <p className="flex items-center gap-2 text-sm">
-            <span className={triageQuest?.completed ? 'text-emerald-600 dark:text-emerald-400' : 'text-neutral-400'}>
+            <span className={triageQuest?.completed ? 'text-emerald-500' : 'text-fg-muted'}>
               {triageQuest?.completed ? '✓' : '○'}
             </span>
-            <span className="text-neutral-700 dark:text-neutral-300">Vaciar el inbox (triage diario)</span>
+            <span className="text-fg">Vaciar el inbox (triage diario)</span>
             {triageQuest?.completed && (
-              <span className="text-xs text-emerald-600 dark:text-emerald-400">+{triageQuest.xp_reward} XP</span>
+              <span className="font-mono text-xs text-emerald-500">+{triageQuest.xp_reward} XP</span>
             )}
           </p>
           <PriorityQuestRow />
@@ -155,18 +151,20 @@ export function ProgressPage() {
       </section>
 
       <section className="mt-6">
-        <h2 className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+        <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-fg-muted">
           Quests semanales ·{' '}
-          {format(startOfWeek(new Date(), { weekStartsOn: 1 }), "d MMM", { locale: es })} –{' '}
-          {format(endOfWeek(new Date(), { weekStartsOn: 1 }), "d MMM", { locale: es })}
+          <span className="font-mono normal-case tracking-normal">
+            {format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'd MMM', { locale: es })} –{' '}
+            {format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'd MMM', { locale: es })}
+          </span>
         </h2>
-        <div className="mt-2 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+        <div className="mt-2 rounded-lg border border-border bg-surface p-4">
           <WeeklyProjectQuests />
         </div>
       </section>
 
       <section className="mt-6">
-        <h2 className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Clases</h2>
+        <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-fg-muted">Clases</h2>
         <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
           {categories?.map((cat) => {
             const catXp = xp?.find((x) => x.category_id === cat.id)
@@ -182,7 +180,7 @@ export function ProgressPage() {
             return (
               <div
                 key={cat.id}
-                className="flex items-center gap-3 rounded-lg border border-neutral-200 p-3 dark:border-neutral-800"
+                className="flex items-center gap-3 rounded-lg border border-border bg-surface p-3"
               >
                 <div className="relative shrink-0">
                   <div
@@ -204,12 +202,15 @@ export function ProgressPage() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline justify-between">
-                    <p className="truncate text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                      {cat.name} <span className="font-normal text-neutral-400">· {currentRank?.rank_name ?? cat.class_name}</span>
+                    <p className="truncate text-sm text-fg">
+                      <span className="font-medium">{cat.name}</span>{' '}
+                      <span className="font-display font-medium text-fg-muted">
+                        · {currentRank?.rank_name ?? cat.class_name}
+                      </span>
                     </p>
-                    <p className="shrink-0 text-xs text-neutral-400 dark:text-neutral-500">Nv. {level}</p>
+                    <p className="shrink-0 font-mono text-xs text-fg-muted">Nv. {level}</p>
                   </div>
-                  <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
+                  <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
                     <div
                       className="h-full rounded-full"
                       style={{
@@ -219,14 +220,14 @@ export function ProgressPage() {
                     />
                   </div>
                   <div className="mt-1 flex items-center justify-between">
-                    <p className="text-xs text-neutral-400 dark:text-neutral-500">
+                    <p className="font-mono text-xs text-fg-muted">
                       {progressInLevel}/{XP_PER_LEVEL} XP · {currentXp} total
                     </p>
                     <div className="flex gap-0.5">
                       {[1, 2, 3, 4].map((n) => (
                         <span
                           key={n}
-                          className="h-1 w-3 rounded-full bg-neutral-200 dark:bg-neutral-700"
+                          className="h-1 w-3 rounded-full bg-surface-2"
                           style={n <= rankOrder ? { backgroundColor: cat.color_hex } : undefined}
                         />
                       ))}
@@ -240,8 +241,8 @@ export function ProgressPage() {
       </section>
 
       <section className="mt-6">
-        <h2 className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Loot</h2>
-        <div className="mt-2 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+        <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-fg-muted">Loot</h2>
+        <div className="mt-2 rounded-lg border border-border bg-surface p-4">
           <LootShowcase />
         </div>
       </section>

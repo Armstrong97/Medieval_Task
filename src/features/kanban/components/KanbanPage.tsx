@@ -12,14 +12,12 @@ export function KanbanPage() {
 
   return (
     <div>
-      <div className="flex items-center gap-2 border-b border-neutral-100 px-6 py-3 dark:border-neutral-900">
+      <div className="flex items-center gap-2 overflow-x-auto border-b border-border px-6 py-3">
         <button
           type="button"
           onClick={() => navigate('/kanban')}
-          className={`rounded-full px-3 py-1 text-sm ${
-            !activeProjectId
-              ? 'bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900'
-              : 'text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-900'
+          className={`shrink-0 rounded-full px-3 py-1 text-sm font-medium ${
+            !activeProjectId ? 'bg-accent text-accent-fg' : 'text-fg-muted hover:bg-surface-2'
           }`}
         >
           Tareas sueltas
@@ -29,10 +27,10 @@ export function KanbanPage() {
             key={project.id}
             type="button"
             onClick={() => navigate(`/kanban/${project.id}`)}
-            className={`rounded-full px-3 py-1 text-sm ${
+            className={`shrink-0 rounded-full px-3 py-1 text-sm font-medium ${
               activeProjectId === project.id
-                ? 'bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900'
-                : 'text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-900'
+                ? 'bg-accent text-accent-fg'
+                : 'text-fg-muted hover:bg-surface-2'
             }`}
           >
             {project.name}

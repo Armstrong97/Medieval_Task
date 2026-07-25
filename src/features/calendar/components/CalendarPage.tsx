@@ -40,12 +40,12 @@ function DayCell({
   onOpenTask: (task: Task) => void
 }) {
   return (
-    <div className={`min-h-24 bg-white p-1.5 dark:bg-neutral-950 ${faded ? 'opacity-40' : ''}`}>
+    <div className={`min-h-24 bg-surface p-1.5 ${faded ? 'opacity-40' : ''}`}>
       <span
-        className={`text-xs ${
+        className={`font-mono text-xs ${
           isToday(day)
-            ? 'inline-flex h-5 w-5 items-center justify-center rounded-full bg-neutral-900 font-medium text-white dark:bg-neutral-100 dark:text-neutral-900'
-            : 'text-neutral-500 dark:text-neutral-400'
+            ? 'inline-flex h-5 w-5 items-center justify-center rounded-full bg-accent font-medium text-accent-fg'
+            : 'text-fg-muted'
         }`}
       >
         {format(day, 'd')}
@@ -61,9 +61,7 @@ function DayCell({
               onClick={() => onOpenTask(task)}
               title={task.title}
               className={`truncate rounded px-1 py-0.5 text-left text-[11px] ${
-                overdue
-                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                  : 'text-neutral-700 dark:text-neutral-300'
+                overdue ? 'bg-warn-bg text-warn-fg' : 'text-fg-muted'
               }`}
               style={!overdue && category ? { backgroundColor: `${category.color_hex}1a` } : undefined}
             >
@@ -86,11 +84,7 @@ function DayListView({
   onOpenTask: (task: Task) => void
 }) {
   if (dayTasks.length === 0) {
-    return (
-      <p className="mt-4 text-sm text-neutral-400 dark:text-neutral-500">
-        Nada con deadline este día.
-      </p>
-    )
+    return <p className="mt-4 text-sm text-fg-muted">Nada con deadline este día.</p>
   }
 
   return (
@@ -107,12 +101,10 @@ function DayListView({
                 type="button"
                 onClick={() => onOpenTask(task)}
                 className={`flex w-full items-center gap-3 rounded-lg border p-3 text-left text-sm ${
-                  overdue
-                    ? 'border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/40'
-                    : 'border-neutral-200 dark:border-neutral-800'
+                  overdue ? 'border-warn-border bg-warn-bg' : 'border-border bg-surface'
                 }`}
               >
-                <span className="w-12 shrink-0 text-xs text-neutral-400 dark:text-neutral-500">
+                <span className="w-12 shrink-0 font-mono text-xs text-fg-muted">
                   {format(new Date(task.deadline!), 'HH:mm')}
                 </span>
                 {category && (
@@ -121,7 +113,7 @@ function DayListView({
                     style={{ backgroundColor: category.color_hex }}
                   />
                 )}
-                <span className="flex-1 text-neutral-800 dark:text-neutral-200">{task.title}</span>
+                <span className="flex-1 text-fg">{task.title}</span>
               </button>
             </li>
           )
@@ -193,29 +185,29 @@ export function CalendarPage() {
           <button
             type="button"
             onClick={goPrev}
-            className="rounded-md border border-neutral-300 px-2 py-1 text-sm dark:border-neutral-700"
+            className="rounded-md border border-border px-2 py-1 text-sm text-fg-muted hover:text-fg"
           >
             ‹
           </button>
-          <h1 className="min-w-52 text-center text-lg font-medium capitalize text-neutral-900 dark:text-neutral-100">
+          <h1 className="min-w-52 text-center font-display text-lg font-semibold capitalize tracking-tight text-fg">
             {title}
           </h1>
           <button
             type="button"
             onClick={goNext}
-            className="rounded-md border border-neutral-300 px-2 py-1 text-sm dark:border-neutral-700"
+            className="rounded-md border border-border px-2 py-1 text-sm text-fg-muted hover:text-fg"
           >
             ›
           </button>
           <button
             type="button"
             onClick={() => setAnchor(new Date())}
-            className="ml-2 text-sm text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200"
+            className="ml-2 text-sm text-fg-muted hover:text-fg"
           >
             Hoy
           </button>
 
-          <div className="ml-2 flex gap-1 rounded-md bg-neutral-100 p-1 dark:bg-neutral-900">
+          <div className="ml-2 flex gap-1 rounded-md bg-surface-2 p-1">
             {(
               [
                 { key: 'day', label: 'Día' },
@@ -228,9 +220,7 @@ export function CalendarPage() {
                 type="button"
                 onClick={() => setView(tab.key)}
                 className={`rounded px-2 py-1 text-xs font-medium ${
-                  view === tab.key
-                    ? 'bg-white text-neutral-900 shadow-sm dark:bg-neutral-800 dark:text-neutral-100'
-                    : 'text-neutral-500 dark:text-neutral-400'
+                  view === tab.key ? 'bg-surface text-fg shadow-sm' : 'text-fg-muted hover:text-fg'
                 }`}
               >
                 {tab.label}
@@ -248,9 +238,7 @@ export function CalendarPage() {
                 type="button"
                 onClick={() => toggleCategory(cat.id)}
                 className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${
-                  active
-                    ? 'border-transparent text-neutral-700 dark:text-neutral-300'
-                    : 'border-neutral-200 text-neutral-300 dark:border-neutral-800 dark:text-neutral-600'
+                  active ? 'border-transparent text-fg' : 'border-border text-fg-muted/50'
                 }`}
                 style={active ? { backgroundColor: `${cat.color_hex}1a` } : undefined}
               >
@@ -272,11 +260,11 @@ export function CalendarPage() {
           onOpenTask={setEditingTask}
         />
       ) : (
-        <div className="mt-4 grid grid-cols-7 gap-px overflow-hidden rounded-lg border border-neutral-200 bg-neutral-200 dark:border-neutral-800 dark:bg-neutral-800">
+        <div className="mt-4 grid grid-cols-7 gap-px overflow-hidden rounded-lg border border-border bg-border">
           {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map((label) => (
             <div
               key={label}
-              className="bg-neutral-50 px-2 py-1 text-center text-xs font-medium text-neutral-500 dark:bg-neutral-900 dark:text-neutral-400"
+              className="bg-surface-2 px-2 py-1 text-center text-xs font-medium text-fg-muted"
             >
               {label}
             </div>

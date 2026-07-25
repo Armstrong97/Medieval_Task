@@ -180,11 +180,11 @@ export function TaskModal({
   return (
     <Modal onClose={onClose}>
       <div className="flex items-center justify-between">
-        <h2 className="text-base font-medium text-neutral-900 dark:text-neutral-100">
+        <h2 className="font-display text-base font-semibold tracking-tight text-fg">
           {task ? 'Editar tarea' : 'Nueva tarea'}
         </h2>
         {task && (
-          <label className="flex items-center gap-1.5 text-sm text-neutral-600 dark:text-neutral-300">
+          <label className="flex items-center gap-1.5 text-sm text-fg-muted">
             <input
               type="checkbox"
               checked={isDone}
@@ -201,20 +201,20 @@ export function TaskModal({
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Título"
           autoFocus
-          className="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm text-neutral-900 outline-none focus:border-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
+          className="rounded-md border border-border bg-surface-2 px-3 py-1.5 text-sm text-fg outline-none focus:border-accent"
         />
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Descripción (opcional)"
           rows={2}
-          className="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm text-neutral-900 outline-none focus:border-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
+          className="rounded-md border border-border bg-surface-2 px-3 py-1.5 text-sm text-fg outline-none focus:border-accent"
         />
         <div className="flex gap-2">
           <select
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
-            className="flex-1 rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm text-neutral-900 outline-none focus:border-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
+            className="flex-1 rounded-md border border-border bg-surface-2 px-3 py-1.5 text-sm text-fg outline-none focus:border-accent"
           >
             <option value="" disabled>
               Categoría
@@ -229,7 +229,7 @@ export function TaskModal({
             type="datetime-local"
             value={deadline}
             onChange={(e) => setDeadline(e.target.value)}
-            className="flex-1 rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm text-neutral-900 outline-none focus:border-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
+            className="flex-1 rounded-md border border-border bg-surface-2 px-3 py-1.5 text-sm text-fg outline-none focus:border-accent"
           />
         </div>
 
@@ -241,10 +241,10 @@ export function TaskModal({
                 type="button"
                 onClick={() => setSize(size === opt.value ? null : opt.value)}
                 title={`+${opt.xp} XP`}
-                className={`rounded-md border px-2 py-1 text-xs ${
+                className={`rounded-md border px-2 py-1 font-mono text-xs ${
                   size === opt.value
-                    ? 'border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-900'
-                    : 'border-neutral-300 text-neutral-500 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-900'
+                    ? 'border-accent bg-accent text-accent-fg'
+                    : 'border-border text-fg-muted hover:bg-surface-2'
                 }`}
               >
                 {opt.label} <span className="opacity-60">+{opt.xp}</span>
@@ -260,9 +260,7 @@ export function TaskModal({
               }
               title="Prioridad de hoy"
               className={`text-lg leading-none ${
-                isTodayPriority
-                  ? 'text-amber-500'
-                  : 'text-neutral-300 hover:text-amber-400 dark:text-neutral-600'
+                isTodayPriority ? 'text-accent' : 'text-fg-muted/40 hover:text-accent/60'
               }`}
             >
               {isTodayPriority ? '★' : '☆'}
@@ -270,26 +268,27 @@ export function TaskModal({
           )}
         </div>
 
-        <div className="rounded-md border border-neutral-200 p-2 dark:border-neutral-800">
-          <label className="flex items-center gap-1.5 text-sm text-neutral-700 dark:text-neutral-300">
+        <div className="rounded-md border border-border p-2">
+          <label className="flex items-center gap-1.5 text-sm text-fg-muted">
             <input
               type="checkbox"
               checked={isFollowUp}
               onChange={(e) => setIsFollowUp(e.target.checked)}
+              className="accent-accent"
             />
             Depende de un stakeholder / follow-up
           </label>
 
           {isFollowUp && (
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              <label className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
+              <label className="flex items-center gap-1.5 text-xs text-fg-muted">
                 Cada
                 <input
                   type="number"
                   min={1}
                   value={intervalDays}
                   onChange={(e) => setIntervalDays(Number(e.target.value) || 1)}
-                  className="w-14 rounded border border-neutral-300 bg-white px-1.5 py-1 text-sm text-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
+                  className="w-14 rounded border border-border bg-surface-2 px-1.5 py-1 font-mono text-sm text-fg"
                 />
                 días
               </label>
@@ -297,20 +296,21 @@ export function TaskModal({
                 value={stakeholderName}
                 onChange={(e) => setStakeholderName(e.target.value)}
                 placeholder="Nombre del stakeholder (opcional)"
-                className="flex-1 rounded border border-neutral-300 bg-white px-2 py-1 text-sm text-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
+                className="flex-1 rounded border border-border bg-surface-2 px-2 py-1 text-sm text-fg"
               />
             </div>
           )}
 
           {existingFollowUp && (
-            <div className="mt-2 flex items-center justify-between text-xs text-neutral-400 dark:text-neutral-500">
-              <span>
-                Próximo recordatorio: {toDatetimeLocalValue(existingFollowUp.next_reminder_at).slice(0, 10)}
+            <div className="mt-2 flex items-center justify-between text-xs text-fg-muted">
+              <span className="font-mono">
+                Próximo recordatorio:{' '}
+                {toDatetimeLocalValue(existingFollowUp.next_reminder_at).slice(0, 10)}
               </span>
               <button
                 type="button"
                 onClick={() => registerContact.mutate(existingFollowUp.id)}
-                className="rounded border border-neutral-300 px-2 py-0.5 text-neutral-600 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-900"
+                className="rounded border border-border px-2 py-0.5 text-fg-muted hover:bg-surface-2"
               >
                 Registrar contacto ahora
               </button>
@@ -318,13 +318,13 @@ export function TaskModal({
           )}
         </div>
 
-        {error && <p className="text-sm text-amber-700 dark:text-amber-400">{error}</p>}
+        {error && <p className="text-sm text-warn-fg">{error}</p>}
 
         <div className="mt-1 flex gap-2">
           <button
             type="submit"
             disabled={saving}
-            className="flex-1 rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-900"
+            className="flex-1 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-fg disabled:opacity-60"
           >
             Guardar
           </button>
@@ -332,7 +332,7 @@ export function TaskModal({
             <button
               type="button"
               onClick={handleDelete}
-              className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-600 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-900"
+              className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-fg-muted hover:bg-surface-2"
             >
               Borrar
             </button>
@@ -341,10 +341,8 @@ export function TaskModal({
       </form>
 
       {task && (
-        <div className="mt-5 border-t border-neutral-100 pt-4 dark:border-neutral-800">
-          <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-            Subtareas
-          </h3>
+        <div className="mt-5 border-t border-border pt-4">
+          <h3 className="text-sm font-medium text-fg-muted">Subtareas</h3>
           <ul className="mt-2 flex flex-col gap-1.5">
             {subtasks?.map((subtask) => (
               <li key={subtask.id} className="flex items-center gap-2 text-sm">
@@ -357,25 +355,22 @@ export function TaskModal({
                       patch: { status: e.target.checked ? 'done' : 'pending' },
                     })
                   }
+                  className="accent-accent"
                 />
                 <span
-                  className={
-                    subtask.status === 'done'
-                      ? 'flex-1 text-neutral-400 line-through dark:text-neutral-600'
-                      : 'flex-1 text-neutral-800 dark:text-neutral-200'
-                  }
+                  className={subtask.status === 'done' ? 'flex-1 text-fg-muted line-through' : 'flex-1 text-fg'}
                 >
                   {subtask.title}
                 </span>
                 {subtask.deadline && (
-                  <span className="text-xs text-neutral-400 dark:text-neutral-500">
+                  <span className="font-mono text-xs text-fg-muted">
                     {toDatetimeLocalValue(subtask.deadline).slice(0, 10)}
                   </span>
                 )}
                 <button
                   type="button"
                   onClick={() => deleteTask.mutate(subtask.id)}
-                  className="text-neutral-400 hover:text-neutral-700 dark:text-neutral-500 dark:hover:text-neutral-300"
+                  className="text-fg-muted hover:text-fg"
                   aria-label="Borrar subtarea"
                 >
                   ×
@@ -389,17 +384,17 @@ export function TaskModal({
               value={newSubtaskTitle}
               onChange={(e) => setNewSubtaskTitle(e.target.value)}
               placeholder="Nueva subtarea"
-              className="flex-1 rounded-md border border-neutral-300 bg-white px-2 py-1 text-sm text-neutral-900 outline-none focus:border-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
+              className="flex-1 rounded-md border border-border bg-surface-2 px-2 py-1 text-sm text-fg outline-none focus:border-accent"
             />
             <input
               type="datetime-local"
               value={newSubtaskDeadline}
               onChange={(e) => setNewSubtaskDeadline(e.target.value)}
-              className="rounded-md border border-neutral-300 bg-white px-2 py-1 text-sm text-neutral-900 outline-none focus:border-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
+              className="rounded-md border border-border bg-surface-2 px-2 py-1 text-sm text-fg outline-none focus:border-accent"
             />
             <button
               type="submit"
-              className="rounded-md border border-neutral-300 px-2 py-1 text-sm text-neutral-600 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-900"
+              className="rounded-md border border-border px-2 py-1 text-sm text-fg-muted hover:bg-surface-2"
             >
               +
             </button>

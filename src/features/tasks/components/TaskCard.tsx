@@ -25,14 +25,15 @@ export function TaskCard({ task, onOpen }: { task: Task; onOpen: (task: Task) =>
   return (
     <div
       ref={setNodeRef}
-      style={
-        transform
-          ? { transform: `translate(${transform.x}px, ${transform.y}px)`, zIndex: 10 }
-          : undefined
-      }
-      className={`rounded-md border border-neutral-200 bg-white p-3 text-sm shadow-sm dark:border-neutral-800 dark:bg-neutral-900 ${
+      className={`rounded-md border border-border bg-surface p-3 text-sm shadow-sm transition-shadow hover:border-accent/40 ${
         isDragging ? 'opacity-50' : ''
       }`}
+      style={{
+        ...(transform
+          ? { transform: `translate(${transform.x}px, ${transform.y}px)`, zIndex: 10 }
+          : undefined),
+        borderLeft: category ? `3px solid ${category.color_hex}` : undefined,
+      }}
     >
       <div
         {...listeners}
@@ -40,24 +41,21 @@ export function TaskCard({ task, onOpen }: { task: Task; onOpen: (task: Task) =>
         onClick={() => onOpen(task)}
         className="cursor-grab active:cursor-grabbing"
       >
-        <p className="font-medium text-neutral-900 dark:text-neutral-100">{task.title}</p>
+        <p className="font-medium text-fg">{task.title}</p>
 
         <div className="mt-2 flex flex-wrap items-center gap-2">
           {category && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
-              <span
-                className="h-1.5 w-1.5 rounded-full"
-                style={{ backgroundColor: category.color_hex }}
-              />
+            <span
+              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs"
+              style={{ backgroundColor: `${category.color_hex}1f`, color: category.color_hex }}
+            >
               {category.name}
             </span>
           )}
           {task.deadline && (
             <span
-              className={`rounded-full px-2 py-0.5 text-xs ${
-                overdue
-                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                  : 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300'
+              className={`rounded-full px-2 py-0.5 font-mono text-xs ${
+                overdue ? 'bg-warn-bg text-warn-fg' : 'bg-surface-2 text-fg-muted'
               }`}
             >
               {format(new Date(task.deadline), 'd MMM')}
@@ -65,7 +63,7 @@ export function TaskCard({ task, onOpen }: { task: Task; onOpen: (task: Task) =>
           )}
           {followUp && (
             <span
-              className="inline-flex items-center gap-0.5 rounded-full bg-sky-50 px-1.5 py-0.5 text-xs text-sky-700 dark:bg-sky-950 dark:text-sky-300"
+              className="inline-flex items-center gap-0.5 rounded-full bg-sky-500/15 px-1.5 py-0.5 text-xs text-sky-500"
               title="Follow-up activo"
             >
               <Link2 className="h-3 w-3" />
@@ -75,11 +73,11 @@ export function TaskCard({ task, onOpen }: { task: Task; onOpen: (task: Task) =>
       </div>
 
       {subtasks && subtasks.length > 0 && (
-        <div className="mt-2 border-t border-neutral-100 pt-2 dark:border-neutral-800">
+        <div className="mt-2 border-t border-border pt-2">
           <button
             type="button"
             onClick={() => setShowSubtasks((v) => !v)}
-            className="text-xs text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200"
+            className="font-mono text-xs text-fg-muted hover:text-fg"
           >
             {showSubtasks ? '▾' : '▸'} {doneCount}/{subtasks.length} subtareas
           </button>
@@ -96,15 +94,9 @@ export function TaskCard({ task, onOpen }: { task: Task; onOpen: (task: Task) =>
                         patch: { status: e.target.checked ? 'done' : 'pending' },
                       })
                     }
-                    className="h-3 w-3"
+                    className="h-3 w-3 accent-accent"
                   />
-                  <span
-                    className={
-                      subtask.status === 'done'
-                        ? 'text-neutral-400 line-through dark:text-neutral-600'
-                        : 'text-neutral-700 dark:text-neutral-300'
-                    }
-                  >
+                  <span className={subtask.status === 'done' ? 'text-fg-muted line-through' : 'text-fg'}>
                     {subtask.title}
                   </span>
                 </li>

@@ -37,12 +37,12 @@ export function NotificationBell() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="relative text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
+        className="relative text-fg-muted hover:text-fg"
         aria-label="Notificaciones"
       >
         <Bell className="h-5 w-5" />
         {unread.length > 0 && (
-          <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-medium text-white">
+          <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 font-mono text-[10px] font-medium text-accent-fg">
             {unread.length}
           </span>
         )}
@@ -51,11 +51,9 @@ export function NotificationBell() {
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 z-50 mt-2 w-80 rounded-lg border border-neutral-200 bg-white p-2 shadow-lg dark:border-neutral-800 dark:bg-neutral-900">
+          <div className="absolute right-0 z-50 mt-2 w-80 rounded-lg border border-border bg-surface p-2 shadow-xl">
             {unread.length === 0 ? (
-              <p className="p-3 text-sm text-neutral-400 dark:text-neutral-500">
-                Sin notificaciones pendientes.
-              </p>
+              <p className="p-3 text-sm text-fg-muted">Sin notificaciones pendientes.</p>
             ) : (
               <ul className="flex flex-col gap-1">
                 {unread.map((notification) => {
@@ -64,13 +62,11 @@ export function NotificationBell() {
                   return (
                     <li
                       key={notification.id}
-                      className="flex items-start gap-2 rounded-md p-2 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                      className="flex items-start gap-2 rounded-md p-2 hover:bg-surface-2"
                     >
                       <Icon
                         className={`mt-0.5 h-4 w-4 shrink-0 ${
-                          notification.type === 'overdue'
-                            ? 'text-amber-600'
-                            : 'text-neutral-400 dark:text-neutral-500'
+                          notification.type === 'overdue' ? 'text-warn-fg' : 'text-fg-muted'
                         }`}
                       />
                       <button
@@ -79,14 +75,14 @@ export function NotificationBell() {
                           if (task) setEditingTask(task)
                           setOpen(false)
                         }}
-                        className="flex-1 text-left text-sm text-neutral-700 dark:text-neutral-300"
+                        className="flex-1 text-left text-sm text-fg"
                       >
                         {notification.message}
                       </button>
                       <button
                         type="button"
                         onClick={() => dismiss.mutate(notification.id)}
-                        className="shrink-0 text-neutral-300 hover:text-neutral-600 dark:text-neutral-600 dark:hover:text-neutral-300"
+                        className="shrink-0 text-fg-muted/60 hover:text-fg"
                         aria-label="Descartar"
                       >
                         ×

@@ -26,8 +26,8 @@ export default defineConfig({
         name: 'Productividad RPG',
         short_name: 'Prod RPG',
         description: 'Productividad personal con gamification tipo RPG',
-        theme_color: '#18181b',
-        background_color: '#ffffff',
+        theme_color: '#121212',
+        background_color: '#121212',
         display: 'standalone',
         start_url: '/',
         icons: [

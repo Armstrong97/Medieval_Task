@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/features/auth/AuthProvider'
+import { Logomark } from '@/components/ui/Logomark'
 
 type Mode = 'magic-link' | 'password-in' | 'password-up'
 
@@ -49,13 +50,16 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-white dark:bg-neutral-950">
-      <div className="w-full max-w-sm rounded-lg border border-neutral-200 p-6 dark:border-neutral-800">
-        <h1 className="text-lg font-medium text-neutral-900 dark:text-neutral-100">
-          Productividad RPG
-        </h1>
+    <div className="flex min-h-dvh items-center justify-center bg-bg p-4">
+      <div className="w-full max-w-sm rounded-lg border border-border bg-surface p-6 shadow-xl">
+        <div className="flex items-center gap-2.5">
+          <Logomark className="h-9 w-9" />
+          <h1 className="font-display text-lg font-semibold tracking-tight text-fg">
+            Productividad RPG
+          </h1>
+        </div>
 
-        <div className="mt-4 flex gap-1 rounded-md bg-neutral-100 p-1 dark:bg-neutral-900">
+        <div className="mt-5 flex gap-1 rounded-md bg-surface-2 p-1">
           {(
             [
               { key: 'magic-link', label: 'Enlace mágico' },
@@ -71,9 +75,7 @@ export function LoginPage() {
                 setMessage(null)
               }}
               className={`flex-1 rounded px-2 py-1.5 text-sm font-medium transition-colors ${
-                mode === tab.key
-                  ? 'bg-white text-neutral-900 shadow-sm dark:bg-neutral-800 dark:text-neutral-100'
-                  : 'text-neutral-500 dark:text-neutral-400'
+                mode === tab.key ? 'bg-surface text-fg shadow-sm' : 'text-fg-muted hover:text-fg'
               }`}
             >
               {tab.label}
@@ -82,20 +84,20 @@ export function LoginPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3">
-          <label className="flex flex-col gap-1 text-sm text-neutral-700 dark:text-neutral-300">
+          <label className="flex flex-col gap-1 text-sm text-fg-muted">
             Email
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-neutral-900 outline-none focus:border-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
+              className="rounded-md border border-border bg-surface-2 px-3 py-1.5 text-fg outline-none focus:border-accent"
               placeholder="tu@email.com"
             />
           </label>
 
           {mode !== 'magic-link' && (
-            <label className="flex flex-col gap-1 text-sm text-neutral-700 dark:text-neutral-300">
+            <label className="flex flex-col gap-1 text-sm text-fg-muted">
               Contraseña
               <input
                 type="password"
@@ -103,7 +105,7 @@ export function LoginPage() {
                 minLength={6}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-neutral-900 outline-none focus:border-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
+                className="rounded-md border border-border bg-surface-2 px-3 py-1.5 text-fg outline-none focus:border-accent"
                 placeholder="••••••••"
               />
             </label>
@@ -112,7 +114,7 @@ export function LoginPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="mt-1 rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white transition-opacity disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-900"
+            className="mt-1 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-fg transition-opacity disabled:opacity-60"
           >
             {submitting
               ? 'Un momento…'
@@ -126,11 +128,7 @@ export function LoginPage() {
 
         {message && (
           <p
-            className={`mt-3 text-sm ${
-              message.kind === 'error'
-                ? 'text-amber-700 dark:text-amber-400'
-                : 'text-neutral-600 dark:text-neutral-400'
-            }`}
+            className={`mt-3 text-sm ${message.kind === 'error' ? 'text-warn-fg' : 'text-fg-muted'}`}
           >
             {message.text}
           </p>

@@ -52,10 +52,8 @@ export function KanbanColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`flex w-72 shrink-0 flex-col rounded-lg border p-2 ${
-        isOver
-          ? 'border-neutral-400 bg-neutral-50 dark:border-neutral-600 dark:bg-neutral-900'
-          : 'border-neutral-200 dark:border-neutral-800'
+      className={`flex w-72 shrink-0 flex-col rounded-lg border p-2 transition-colors ${
+        isOver ? 'border-accent/50 bg-accent/5' : 'border-border bg-surface/40'
       }`}
     >
       <div className="flex items-center justify-between gap-1 px-1 py-1">
@@ -64,7 +62,7 @@ export function KanbanColumn({
             type="button"
             onClick={onMoveLeft}
             disabled={!canMoveLeft}
-            className="text-neutral-300 hover:text-neutral-700 disabled:opacity-0 dark:text-neutral-600 dark:hover:text-neutral-300"
+            className="text-fg-muted/50 hover:text-fg disabled:opacity-0"
             aria-label="Mover columna a la izquierda"
           >
             ‹
@@ -82,22 +80,22 @@ export function KanbanColumn({
                   setEditing(false)
                 }
               }}
-              className="w-28 rounded border border-neutral-300 bg-white px-1 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+              className="w-28 rounded border border-border bg-surface px-1 text-sm text-fg"
             />
           ) : (
             <h3
               onClick={() => setEditing(true)}
-              className="truncate text-sm font-medium text-neutral-700 dark:text-neutral-300"
+              className="truncate text-sm font-medium text-fg"
               title="Click para renombrar"
             >
-              {column.name} <span className="text-neutral-400 dark:text-neutral-600">{tasks.length}</span>
+              {column.name} <span className="font-mono text-fg-muted">{tasks.length}</span>
             </h3>
           )}
           <button
             type="button"
             onClick={onMoveRight}
             disabled={!canMoveRight}
-            className="text-neutral-300 hover:text-neutral-700 disabled:opacity-0 dark:text-neutral-600 dark:hover:text-neutral-300"
+            className="text-fg-muted/50 hover:text-fg disabled:opacity-0"
             aria-label="Mover columna a la derecha"
           >
             ›
@@ -107,7 +105,7 @@ export function KanbanColumn({
           <button
             type="button"
             onClick={() => onAddTask(column.id)}
-            className="text-neutral-400 hover:text-neutral-700 dark:text-neutral-500 dark:hover:text-neutral-300"
+            className="text-fg-muted hover:text-accent"
             aria-label="Nueva tarea"
           >
             +
@@ -115,7 +113,7 @@ export function KanbanColumn({
           <button
             type="button"
             onClick={handleDelete}
-            className="text-neutral-300 hover:text-neutral-600 dark:text-neutral-600 dark:hover:text-neutral-300"
+            className="text-fg-muted/60 hover:text-warn-fg"
             aria-label="Eliminar columna"
           >
             ×

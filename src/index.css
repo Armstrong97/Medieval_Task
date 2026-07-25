@@ -1,15 +1,69 @@
 @import "tailwindcss";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/jetbrains-mono";
+@import "@fontsource-variable/space-grotesk";
 
-@custom-variant dark (&:where(.dark, .dark *));
+/* Tokens de color: valores reales en :root / @media dark más abajo,
+   acá solo se registran como utilidades de Tailwind (bg-bg, text-fg, etc). */
+@theme {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-warn-bg: var(--warn-bg);
+  --color-warn-fg: var(--warn-fg);
+  --color-warn-border: var(--warn-border);
+
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+  --font-display: "Space Grotesk Variable", ui-sans-serif, sans-serif;
+}
 
 :root {
   color-scheme: light dark;
+
+  /* claro — cálido, no blanco/gris puro */
+  --bg: #faf9f6;
+  --surface: #ffffff;
+  --surface-2: #f1efe9;
+  --fg: #181814;
+  --fg-muted: #6b6862;
+  --border: rgba(20, 18, 14, 0.1);
+  --accent: #ea580c;
+  --accent-fg: #ffffff;
+  --warn-bg: #fef3e2;
+  --warn-fg: #92400e;
+  --warn-border: rgba(217, 119, 6, 0.3);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* oscuro — identidad principal de la app */
+    --bg: #121212;
+    --surface: #1c1c1a;
+    --surface-2: #262624;
+    --fg: #efefe5;
+    --fg-muted: #8a8a82;
+    --border: rgba(255, 255, 255, 0.08);
+    --accent: #f2600c;
+    --accent-fg: #ffffff;
+    --warn-bg: rgba(146, 64, 14, 0.25);
+    --warn-fg: #fcd9a8;
+    --warn-border: rgba(217, 119, 6, 0.4);
+  }
 }
 
 body {
   margin: 0;
+  font-family: var(--font-sans);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg);
+  color: var(--fg);
 }

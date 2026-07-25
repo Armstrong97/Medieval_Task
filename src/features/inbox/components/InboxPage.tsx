@@ -32,16 +32,16 @@ export function InboxPage() {
   return (
     <div className="mx-auto max-w-xl p-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-medium text-neutral-900 dark:text-neutral-100">Inbox</h1>
+        <h1 className="font-display text-lg font-semibold tracking-tight text-fg">Inbox</h1>
         {!online && (
-          <span className="flex items-center gap-1 rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
+          <span className="flex items-center gap-1 rounded-full bg-warn-bg px-2 py-0.5 text-xs text-warn-fg">
             <WifiOff className="h-3 w-3" /> sin conexión — se guarda igual
           </span>
         )}
       </div>
-      <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+      <p className="mt-1 text-sm text-fg-muted">
         Escribí y enter. Sin categoría, sin proyecto, sin fecha — eso se define después en{' '}
-        <Link to="/triage" className="underline underline-offset-2">
+        <Link to="/triage" className="text-accent underline underline-offset-2">
           Triage
         </Link>
         .
@@ -54,7 +54,7 @@ export function InboxPage() {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="¿Qué se te ocurrió?"
-          className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-neutral-900 outline-none focus:border-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
+          className="w-full rounded-md border border-border bg-surface px-3 py-2 text-fg outline-none focus:border-accent"
         />
         {dictation.supported && (
           <button
@@ -63,8 +63,8 @@ export function InboxPage() {
             title={dictation.listening ? 'Detener dictado' : 'Dictar por voz'}
             className={`shrink-0 rounded-md border px-3 ${
               dictation.listening
-                ? 'border-amber-400 bg-amber-50 text-amber-700 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-300'
-                : 'border-neutral-300 text-neutral-500 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-900'
+                ? 'border-accent/40 bg-accent/10 text-accent'
+                : 'border-border text-fg-muted hover:bg-surface-2'
             }`}
           >
             {dictation.listening ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
@@ -73,31 +73,25 @@ export function InboxPage() {
       </form>
 
       <div className="mt-6">
-        {isLoading && (
-          <p className="text-sm text-neutral-400 dark:text-neutral-500">Cargando…</p>
-        )}
-        {items && items.length === 0 && (
-          <p className="text-sm text-neutral-400 dark:text-neutral-500">Inbox vacío.</p>
-        )}
+        {isLoading && <p className="text-sm text-fg-muted">Cargando…</p>}
+        {items && items.length === 0 && <p className="text-sm text-fg-muted">Inbox vacío.</p>}
         {items && items.length > 0 && (
           <ul className="flex flex-col gap-1.5">
             {items.map((item) => (
               <li
                 key={item.id}
-                className="flex items-center justify-between gap-2 rounded-md border border-neutral-200 px-3 py-2 text-sm dark:border-neutral-800"
+                className="flex items-center justify-between gap-2 rounded-md border border-border bg-surface px-3 py-2 text-sm"
               >
-                <span className="text-neutral-800 dark:text-neutral-200">
+                <span className="text-fg">
                   {item.title}
                   {item.id.startsWith('optimistic-') && (
-                    <span className="ml-2 text-xs text-neutral-400 dark:text-neutral-500">
-                      pendiente de sincronizar
-                    </span>
+                    <span className="ml-2 text-xs text-fg-muted">pendiente de sincronizar</span>
                   )}
                 </span>
                 <button
                   type="button"
                   onClick={() => deleteTask.mutate(item.id)}
-                  className="shrink-0 text-neutral-400 hover:text-neutral-700 dark:text-neutral-500 dark:hover:text-neutral-300"
+                  className="shrink-0 text-fg-muted hover:text-fg"
                   aria-label="Descartar"
                 >
                   ×

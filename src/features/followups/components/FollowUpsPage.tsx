@@ -19,17 +19,15 @@ export function FollowUpsPage() {
 
   return (
     <div className="mx-auto max-w-2xl p-6">
-      <h1 className="text-lg font-medium text-neutral-900 dark:text-neutral-100">
+      <h1 className="font-display text-lg font-semibold tracking-tight text-fg">
         Follow-ups activos
       </h1>
-      <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-        Ordenados por próximo recordatorio.
-      </p>
+      <p className="mt-1 text-sm text-fg-muted">Ordenados por próximo recordatorio.</p>
 
-      {isLoading && <p className="mt-4 text-sm text-neutral-400 dark:text-neutral-500">Cargando…</p>}
+      {isLoading && <p className="mt-4 text-sm text-fg-muted">Cargando…</p>}
 
       {!isLoading && rows.length === 0 && (
-        <p className="mt-4 text-sm text-neutral-400 dark:text-neutral-500">
+        <p className="mt-4 text-sm text-fg-muted">
           No hay follow-ups activos. Marcá una tarea como dependiente de un stakeholder desde su modal.
         </p>
       )}
@@ -42,9 +40,7 @@ export function FollowUpsPage() {
             <li
               key={followUp.id}
               className={`flex items-center gap-3 rounded-lg border p-3 ${
-                due
-                  ? 'border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/40'
-                  : 'border-neutral-200 dark:border-neutral-800'
+                due ? 'border-warn-border bg-warn-bg' : 'border-border bg-surface'
               }`}
             >
               <button
@@ -52,10 +48,8 @@ export function FollowUpsPage() {
                 onClick={() => setEditingTask(task!)}
                 className="flex-1 text-left"
               >
-                <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                  {task!.title}
-                </p>
-                <p className="mt-0.5 flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
+                <p className="text-sm font-medium text-fg">{task!.title}</p>
+                <p className="mt-0.5 flex items-center gap-2 font-mono text-xs text-fg-muted">
                   {category && (
                     <span className="inline-flex items-center gap-1">
                       <span
@@ -72,7 +66,7 @@ export function FollowUpsPage() {
               <button
                 type="button"
                 onClick={() => registerContact.mutate(followUp.id)}
-                className="shrink-0 rounded-md border border-neutral-300 px-2 py-1 text-xs text-neutral-600 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-900"
+                className="shrink-0 rounded-md border border-border px-2 py-1 text-xs text-fg-muted hover:bg-surface-2"
               >
                 Registrar contacto
               </button>
