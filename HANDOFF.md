@@ -273,7 +273,20 @@ El checkbox "Hecha" del modal se reemplazó por un botón dorado prominente (`Co
 `KanbanBoard.tsx` ahora tiene una barra de filtros: pestañas de selección única (Todas/Vencidas/Hoy/Mañana/Fin de semana/Esta semana/Este mes, default "Todas") + chips de categoría multi-toggle (mismo patrón visual que el filtro de Calendario). Filtra client-side sobre las tareas ya traídas del board, antes de repartirlas en columnas — pensado explícitamente para reducir la sobrecarga visual del Kanban con muchas tareas (mencionado como problema de TDAH por el usuario).
 
 ### Pendiente de correr manualmente antes de que todo esto funcione en producción
-1. **SQL Editor de Supabase** (dashboard, como todas las migraciones anteriores): correr `supabase/migrations/20260725230823_fase6_subtask_xp_and_followup_status.sql` completo.
-2. `npx supabase functions deploy send-notifications` (requiere `supabase login` + `supabase link` primero si no están hechos en esta máquina).
+1. **SQL Editor de Supabase** (dashboard, como todas las migraciones anteriores): correr `supabase/migrations/20260725230823_fase6_subtask_xp_and_followup_status.sql` completo. ✅ **Ya corrido por el usuario** (2026-07-25).
+2. `npx supabase functions deploy send-notifications`. ✅ **Ya desplegado por el usuario** (2026-07-25, vía `--project-ref` sin `link`).
 
-Sin esto, el código del cliente asume que existe el status `'follow_up'` y que las subtareas dan XP — sin la migración corrida, crear una tarea con status `'follow_up'` va a fallar el check constraint en la base real.
+### 6.6 — Ventana flotante de foco ("En progreso")
+**Iteró dos veces**: la primera versión fue una notificación estática del sistema al minimizar (`useFocusReminder.ts`, ya borrado) — funcionaba, pero el usuario aclaró que lo que quería era una **ventana flotante siempre-encima, redimensionable y con el estilo de la app**. La versión final usa la **Document Picture-in-Picture API** (`src/features/tasks/components/FocusFloat.tsx`):
+- Botón `PictureInPicture2` en el nav (junto a la campana) que abre/cierra la mini-ventana. **No puede abrirse sola al minimizar** — la API exige un gesto del usuario, por eso es un botón (restricción del navegador, explicada al usuario).
+- La ventana flota por encima de cualquier app, se puede redimensionar, y muestra hasta 3 tareas `in_progress` (query `['tasks','in-progress']`, `fetchInProgressTasks` en `tasks/api.ts`) con borde del color de su categoría y un check dorado para completarlas desde ahí mismo (`useCompleteTask` compartido).
+- El contenido se renderiza con `createPortal` de React hacia el `document.body` de la ventana PiP — sigue dentro del árbol de React principal, así que React Query/mutations funcionan normal. Los estilos se copian hoja por hoja (`copyStylesInto`) con un `<base>` apuntando al origin para que las fuentes autohospedadas resuelvan; hereda tokens, Cinzel y modo oscuro.
+- **Solo Chrome/Edge de escritorio** — si `documentPictureInPicture` no existe (Firefox, Safari, móvil), el botón directamente no se renderiza.
+
+### 6.7 — Calendario: completadas tachadas + toggle
+Las tareas `done` se ven tachadas y atenuadas en las vistas mes/semana (chips de `DayCell`) y día (`DayListView`). Checkbox "Mostrar completadas" en la barra superior del calendario (default: activado) para ocultarlas del todo. Solo estado de cliente, sin persistencia de la preferencia.
+
+### 6.8 — Menú "Mi Perfil" en el nav
+Nuevo dropdown `src/features/auth/components/ProfileMenu.tsx` (ícono `CircleUserRound`, mismo patrón de panel que `NotificationBell`), junto a notificaciones y racha. Muestra el email de la sesión y contiene el botón "Cerrar sesión" — el botón suelto de logout que estaba en el nav desde Fase 1 se eliminó. Pensado como contenedor para futuras opciones de perfil/ajustes.
+
+Sin la migración de Fase 6 corrida, el código del cliente asume que existe el status `'follow_up'` y que las subtareas dan XP — crear una tarea con status `'follow_up'` fallaría el check constraint en la base real (ya no aplica: la migración está corrida, se deja como advertencia para entornos nuevos).

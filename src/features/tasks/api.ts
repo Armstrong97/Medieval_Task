@@ -52,6 +52,17 @@ export async function fetchActiveTasksWithDeadline(): Promise<Task[]> {
   return data
 }
 
+export async function fetchInProgressTasks(): Promise<Task[]> {
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('*')
+    .eq('status', 'in_progress')
+    .is('parent_task_id', null)
+    .order('deadline', { ascending: true, nullsFirst: false })
+  if (error) throw error
+  return data
+}
+
 export async function fetchInboxTasks(): Promise<Task[]> {
   const { data, error } = await supabase
     .from('tasks')

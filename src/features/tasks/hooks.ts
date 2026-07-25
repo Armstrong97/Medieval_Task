@@ -6,6 +6,7 @@ import {
   fetchActiveTasksWithDeadline,
   fetchBoardTasks,
   fetchInboxTasks,
+  fetchInProgressTasks,
   fetchSubtasks,
   fetchTaskById,
   fetchTasksByIds,
@@ -35,6 +36,13 @@ export function useActiveTasksWithDeadline() {
   return useQuery({
     queryKey: ['tasks', 'active-with-deadline'],
     queryFn: fetchActiveTasksWithDeadline,
+  })
+}
+
+export function useInProgressTasks() {
+  return useQuery({
+    queryKey: ['tasks', 'in-progress'],
+    queryFn: fetchInProgressTasks,
   })
 }
 

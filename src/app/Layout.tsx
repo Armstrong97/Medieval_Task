@@ -6,13 +6,13 @@ import {
   Inbox as InboxIcon,
   Link2,
   ListChecks,
-  LogOut,
   Shield,
   Trophy,
 } from 'lucide-react'
-import { useAuth } from '@/features/auth/AuthProvider'
 import { useStreak } from '@/features/gamification/hooks'
 import { NotificationBell } from '@/features/notifications/components/NotificationBell'
+import { FocusFloatButton } from '@/features/tasks/components/FocusFloat'
+import { ProfileMenu } from '@/features/auth/components/ProfileMenu'
 import { Logomark } from '@/components/ui/Logomark'
 import { AmbientBackground } from '@/components/ui/AmbientBackground'
 import { AchievementWatcher } from '@/features/gamification/components/AchievementWatcher'
@@ -47,8 +47,6 @@ function StreakIndicator() {
 }
 
 export function Layout() {
-  const { signOut } = useAuth()
-
   return (
     <div className="min-h-dvh text-fg">
       <AmbientBackground />
@@ -76,17 +74,10 @@ export function Layout() {
         </div>
 
         <div className="flex shrink-0 items-center gap-3">
+          <FocusFloatButton />
           <NotificationBell />
           <StreakIndicator />
-          <button
-            type="button"
-            onClick={() => void signOut()}
-            title="Cerrar sesión"
-            aria-label="Cerrar sesión"
-            className="text-fg-muted hover:text-fg"
-          >
-            <LogOut className="h-4 w-4" />
-          </button>
+          <ProfileMenu />
         </div>
       </nav>
       <Outlet />

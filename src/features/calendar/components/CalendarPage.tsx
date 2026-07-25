@@ -53,7 +53,8 @@ function DayCell({
       <div className="mt-1 flex flex-col gap-0.5">
         {dayTasks.map((task) => {
           const category = categories?.find((c) => c.id === task.category_id)
-          const overdue = task.status !== 'done' && isPast(new Date(task.deadline!))
+          const done = task.status === 'done'
+          const overdue = !done && isPast(new Date(task.deadline!))
           return (
             <button
               key={task.id}
@@ -61,7 +62,11 @@ function DayCell({
               onClick={() => onOpenTask(task)}
               title={task.title}
               className={`truncate rounded px-1 py-0.5 text-left text-[11px] transition-colors hover:brightness-125 ${
-                overdue ? 'bg-warn-bg text-warn-fg' : 'text-fg-muted'
+                overdue
+                  ? 'bg-warn-bg text-warn-fg'
+                  : done
+                    ? 'text-fg-muted/60 line-through'
+                    : 'text-fg-muted'
               }`}
               style={!overdue && category ? { backgroundColor: `${category.color_hex}1a` } : undefined}
             >
@@ -94,7 +99,8 @@ function DayListView({
         .sort((a, b) => new Date(a.deadline!).getTime() - new Date(b.deadline!).getTime())
         .map((task) => {
           const category = categories?.find((c) => c.id === task.category_id)
-          const overdue = task.status !== 'done' && isPast(new Date(task.deadline!))
+          const done = task.status === 'done'
+          const overdue = !done && isPast(new Date(task.deadline!))
           return (
             <li key={task.id}>
               <button
@@ -102,7 +108,7 @@ function DayListView({
                 onClick={() => onOpenTask(task)}
                 className={`flex w-full items-center gap-3 rounded-lg border p-3 text-left text-sm transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 ${
                   overdue ? 'border-warn-border bg-warn-bg' : 'border-border bg-surface'
-                }`}
+                } ${done ? 'opacity-60' : ''}`}
               >
                 <span className="w-12 shrink-0 font-mono text-xs text-fg-muted">
                   {format(new Date(task.deadline!), 'HH:mm')}
@@ -113,7 +119,9 @@ function DayListView({
                     style={{ backgroundColor: category.color_hex }}
                   />
                 )}
-                <span className="flex-1 text-fg">{task.title}</span>
+                <span className={done ? 'flex-1 text-fg-muted line-through' : 'flex-1 text-fg'}>
+                  {task.title}
+                </span>
               </button>
             </li>
           )
@@ -126,6 +134,7 @@ export function CalendarPage() {
   const [view, setView] = useState<ViewMode>('month')
   const [anchor, setAnchor] = useState(() => new Date())
   const [hiddenCategoryIds, setHiddenCategoryIds] = useState<Set<string>>(new Set())
+  const [showCompleted, setShowCompleted] = useState(true)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
 
   const { data: categories } = useCategories()
@@ -153,7 +162,10 @@ export function CalendarPage() {
     view === 'day' ? addDays(rangeEnd, 1).toISOString() : rangeEnd.toISOString(),
   )
 
-  const visibleTasks = tasks?.filter((t) => !hiddenCategoryIds.has(t.category_id ?? ''))
+  const visibleTasks = tasks?.filter(
+    (t) =>
+      !hiddenCategoryIds.has(t.category_id ?? '') && (showCompleted || t.status !== 'done'),
+  )
 
   function toggleCategory(id: string) {
     setHiddenCategoryIds((prev) => {
@@ -229,7 +241,16 @@ export function CalendarPage() {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="flex cursor-pointer items-center gap-1.5 text-xs text-fg-muted">
+            <input
+              type="checkbox"
+              checked={showCompleted}
+              onChange={(e) => setShowCompleted(e.target.checked)}
+              className="accent-accent"
+            />
+            Mostrar completadas
+          </label>
           {categories?.map((cat) => {
             const active = !hiddenCategoryIds.has(cat.id)
             return (
