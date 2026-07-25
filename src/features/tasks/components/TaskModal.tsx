@@ -1,22 +1,30 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
+import { Check, Link2, Undo2 } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 import { useCategories } from '@/features/projects/hooks'
-import { useKanbanColumns } from '@/features/kanban/hooks'
-import { useCreateTask, useDeleteTask, useSubtasks, useUpdateTask } from '@/features/tasks/hooks'
+import {
+  useCompleteTask,
+  useCreateTask,
+  useDeleteTask,
+  useReopenTask,
+  useSubtasks,
+  useUpdateTask,
+} from '@/features/tasks/hooks'
 import {
   useClearTodayPriority,
   useSetTodayPriority,
   useTodayQuests,
 } from '@/features/gamification/hooks'
 import {
-  useCreateFollowUp,
   useDeleteFollowUp,
   useFollowUpForTask,
   useRegisterFollowUpContact,
-  useUpdateFollowUp,
+  useSendToFollowUp,
 } from '@/features/followups/hooks'
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '@/utils/datetime'
 import type { Task, TaskSize } from '@/types/database.types'
+
+const DEFAULT_FOLLOW_UP_INTERVAL_DAYS = 7
 
 const SIZE_OPTIONS: { value: TaskSize; label: string; xp: number }[] = [
   { value: 'small', label: 'Pequeña', xp: 10 },
@@ -41,14 +49,14 @@ export function TaskModal({
   const createTask = useCreateTask()
   const updateTask = useUpdateTask()
   const deleteTask = useDeleteTask()
+  const completeTask = useCompleteTask()
+  const reopenTask = useReopenTask()
   const { data: subtasks } = useSubtasks(task?.id ?? null)
   const { data: todayQuests } = useTodayQuests()
   const setTodayPriority = useSetTodayPriority()
   const clearTodayPriority = useClearTodayPriority()
-  const { data: boardColumns } = useKanbanColumns(task?.project_id ?? null)
   const { data: existingFollowUp } = useFollowUpForTask(task?.id ?? null)
-  const createFollowUp = useCreateFollowUp()
-  const updateFollowUp = useUpdateFollowUp()
+  const sendToFollowUp = useSendToFollowUp()
   const deleteFollowUp = useDeleteFollowUp()
   const registerContact = useRegisterFollowUpContact()
 
@@ -57,33 +65,38 @@ export function TaskModal({
   const [categoryId, setCategoryId] = useState(task?.category_id ?? defaultCategoryId ?? '')
   const [deadline, setDeadline] = useState(toDatetimeLocalValue(task?.deadline ?? null))
   const [size, setSize] = useState<TaskSize | null>(task?.size ?? null)
-  const [isDone, setIsDone] = useState(task?.status === 'done')
-  const [isFollowUp, setIsFollowUp] = useState(false)
-  const [intervalDays, setIntervalDays] = useState(7)
-  const [stakeholderName, setStakeholderName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [showFollowUpForm, setShowFollowUpForm] = useState(false)
+  const [followUpIntervalDays, setFollowUpIntervalDays] = useState(DEFAULT_FOLLOW_UP_INTERVAL_DAYS)
+  const [followUpStakeholder, setFollowUpStakeholder] = useState('')
 
-  useEffect(() => {
-    if (existingFollowUp) {
-      setIsFollowUp(true)
-      setIntervalDays(existingFollowUp.interval_days)
-      setStakeholderName(existingFollowUp.stakeholder_name ?? '')
-    }
-  }, [existingFollowUp])
-
-  function handleToggleDone(checked: boolean) {
+  function handleComplete() {
     if (!task) return
-    setIsDone(checked)
-    const targetColumnName = checked ? 'Hecho' : 'Por hacer'
-    const targetColumn = boardColumns?.find((c) => c.name === targetColumnName)
-    updateTask.mutate({
-      id: task.id,
-      patch: {
-        status: checked ? 'done' : 'pending',
-        ...(targetColumn ? { kanban_column_id: targetColumn.id } : {}),
+    completeTask.mutate({ id: task.id, project_id: task.project_id })
+  }
+
+  function handleReopen() {
+    if (!task) return
+    reopenTask.mutate({ id: task.id, project_id: task.project_id })
+  }
+
+  function handleConfirmFollowUp() {
+    if (!task) return
+    sendToFollowUp.mutate(
+      {
+        taskId: task.id,
+        intervalDays: followUpIntervalDays,
+        stakeholderName: followUpStakeholder.trim() || null,
       },
-    })
+      { onSuccess: () => setShowFollowUpForm(false) },
+    )
+  }
+
+  function handleCancelFollowUp() {
+    if (!task || !existingFollowUp) return
+    deleteFollowUp.mutate(existingFollowUp.id)
+    reopenTask.mutate({ id: task.id, project_id: task.project_id })
   }
 
   const priorityQuest = todayQuests?.find((q) => q.type === 'daily_priority')
@@ -102,7 +115,6 @@ export function TaskModal({
     setError(null)
     setSaving(true)
     try {
-      let savedTaskId: string
       if (task) {
         await updateTask.mutateAsync({
           id: task.id,
@@ -114,9 +126,8 @@ export function TaskModal({
             size,
           },
         })
-        savedTaskId = task.id
       } else {
-        const created = await createTask.mutateAsync({
+        await createTask.mutateAsync({
           title: title.trim(),
           description: description.trim() || null,
           category_id: categoryId || null,
@@ -125,24 +136,6 @@ export function TaskModal({
           kanban_column_id: defaultKanbanColumnId,
           size,
         })
-        savedTaskId = created.id
-      }
-
-      if (isFollowUp) {
-        if (existingFollowUp) {
-          await updateFollowUp.mutateAsync({
-            id: existingFollowUp.id,
-            patch: { interval_days: intervalDays, stakeholder_name: stakeholderName.trim() || null },
-          })
-        } else {
-          await createFollowUp.mutateAsync({
-            task_id: savedTaskId,
-            interval_days: intervalDays,
-            stakeholder_name: stakeholderName.trim() || null,
-          })
-        }
-      } else if (existingFollowUp) {
-        await deleteFollowUp.mutateAsync(existingFollowUp.id)
       }
 
       onClose()
@@ -179,20 +172,28 @@ export function TaskModal({
 
   return (
     <Modal onClose={onClose}>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <h2 className="font-display text-base font-semibold tracking-tight text-fg">
           {task ? 'Editar tarea' : 'Nueva tarea'}
         </h2>
-        {task && (
-          <label className="flex items-center gap-1.5 text-sm text-fg-muted">
-            <input
-              type="checkbox"
-              checked={isDone}
-              onChange={(e) => handleToggleDone(e.target.checked)}
-            />
-            Hecha
-          </label>
-        )}
+        {task &&
+          (task.status === 'done' ? (
+            <button
+              type="button"
+              onClick={handleReopen}
+              className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-sm font-medium text-fg-muted transition-colors hover:text-fg"
+            >
+              <Undo2 className="h-4 w-4" /> Reabrir
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleComplete}
+              className="flex items-center gap-1.5 rounded-full bg-accent px-3 py-1.5 text-sm font-semibold text-accent-fg transition-all duration-150 hover:shadow-[0_0_18px_rgba(217,169,74,0.45)] active:scale-95"
+            >
+              <Check className="h-4 w-4" /> Completar
+            </button>
+          ))}
       </div>
 
       <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3">
@@ -268,55 +269,90 @@ export function TaskModal({
           )}
         </div>
 
-        <div className="rounded-md border border-border p-2">
-          <label className="flex items-center gap-1.5 text-sm text-fg-muted">
-            <input
-              type="checkbox"
-              checked={isFollowUp}
-              onChange={(e) => setIsFollowUp(e.target.checked)}
-              className="accent-accent"
-            />
-            Depende de un stakeholder / follow-up
-          </label>
+        {task && task.status !== 'follow_up' && task.status !== 'done' && (
+          <div className="rounded-md border border-border p-2">
+            {showFollowUpForm ? (
+              <div className="flex flex-col gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="flex items-center gap-1.5 text-xs text-fg-muted">
+                    Cada
+                    <input
+                      type="number"
+                      min={1}
+                      value={followUpIntervalDays}
+                      onChange={(e) => setFollowUpIntervalDays(Number(e.target.value) || 1)}
+                      className="w-14 rounded border border-border bg-surface-2 px-1.5 py-1 font-mono text-sm text-fg"
+                    />
+                    días
+                  </label>
+                  <input
+                    value={followUpStakeholder}
+                    onChange={(e) => setFollowUpStakeholder(e.target.value)}
+                    placeholder="Nombre del stakeholder (opcional)"
+                    className="flex-1 rounded border border-border bg-surface-2 px-2 py-1 text-sm text-fg"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleConfirmFollowUp}
+                    className="rounded-md bg-sky-500/15 px-3 py-1 text-xs font-medium text-sky-500 transition-colors hover:bg-sky-500/25"
+                  >
+                    Confirmar seguimiento
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowFollowUpForm(false)}
+                    className="rounded-md px-3 py-1 text-xs text-fg-muted hover:bg-surface-2"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowFollowUpForm(true)}
+                className="flex items-center gap-1.5 text-sm text-fg-muted transition-colors hover:text-sky-500"
+              >
+                <Link2 className="h-3.5 w-3.5" /> Enviar a Follow-up
+              </button>
+            )}
+          </div>
+        )}
 
-          {isFollowUp && (
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <label className="flex items-center gap-1.5 text-xs text-fg-muted">
-                Cada
-                <input
-                  type="number"
-                  min={1}
-                  value={intervalDays}
-                  onChange={(e) => setIntervalDays(Number(e.target.value) || 1)}
-                  className="w-14 rounded border border-border bg-surface-2 px-1.5 py-1 font-mono text-sm text-fg"
-                />
-                días
-              </label>
-              <input
-                value={stakeholderName}
-                onChange={(e) => setStakeholderName(e.target.value)}
-                placeholder="Nombre del stakeholder (opcional)"
-                className="flex-1 rounded border border-border bg-surface-2 px-2 py-1 text-sm text-fg"
-              />
-            </div>
-          )}
-
-          {existingFollowUp && (
-            <div className="mt-2 flex items-center justify-between text-xs text-fg-muted">
+        {existingFollowUp && (
+          <div className="rounded-md border border-sky-500/30 bg-sky-500/5 p-2">
+            <p className="flex items-center gap-1.5 text-sm text-fg">
+              <Link2 className="h-3.5 w-3.5 text-sky-500" />
+              En seguimiento
+              {existingFollowUp.stakeholder_name ? ` con ${existingFollowUp.stakeholder_name}` : ''} · cada{' '}
+              {existingFollowUp.interval_days} días
+            </p>
+            <div className="mt-1.5 flex items-center justify-between text-xs text-fg-muted">
               <span className="font-mono">
                 Próximo recordatorio:{' '}
                 {toDatetimeLocalValue(existingFollowUp.next_reminder_at).slice(0, 10)}
               </span>
-              <button
-                type="button"
-                onClick={() => registerContact.mutate(existingFollowUp.id)}
-                className="rounded border border-border px-2 py-0.5 text-fg-muted hover:bg-surface-2"
-              >
-                Registrar contacto ahora
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleCancelFollowUp}
+                  className="rounded border border-border px-2 py-0.5 text-fg-muted transition-colors hover:bg-surface-2"
+                >
+                  Cancelar seguimiento
+                </button>
+                <button
+                  type="button"
+                  onClick={() => registerContact.mutate(existingFollowUp.id)}
+                  className="rounded border border-border px-2 py-0.5 text-fg-muted transition-colors hover:bg-surface-2"
+                >
+                  Registrar contacto ahora
+                </button>
+              </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {error && <p className="text-sm text-warn-fg">{error}</p>}
 

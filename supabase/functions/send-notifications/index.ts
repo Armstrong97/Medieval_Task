@@ -43,7 +43,7 @@ Deno.serve(async () => {
   const { data: tasks, error: tasksError } = await supabase
     .from('tasks')
     .select('id, user_id, title, deadline')
-    .neq('status', 'done')
+    .not('status', 'in', '(done,follow_up)')
     .is('parent_task_id', null)
     .not('deadline', 'is', null)
   if (tasksError) throw tasksError

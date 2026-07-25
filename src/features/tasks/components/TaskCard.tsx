@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { format, isPast } from 'date-fns'
-import { Link2 } from 'lucide-react'
+import { Check, Link2, Undo2 } from 'lucide-react'
 import { useCategories } from '@/features/projects/hooks'
-import { useSubtasks, useUpdateTask } from '@/features/tasks/hooks'
-import { useFollowUpForTask } from '@/features/followups/hooks'
+import { useCompleteTask, useReopenTask, useSubtasks, useUpdateTask } from '@/features/tasks/hooks'
+import { useFollowUpForTask, useSendToFollowUp } from '@/features/followups/hooks'
 import type { Task } from '@/types/database.types'
+
+const DEFAULT_FOLLOW_UP_INTERVAL_DAYS = 7
 
 export function TaskCard({ task, onOpen }: { task: Task; onOpen: (task: Task) => void }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
@@ -16,6 +18,9 @@ export function TaskCard({ task, onOpen }: { task: Task; onOpen: (task: Task) =>
   const { data: subtasks } = useSubtasks(task.id)
   const { data: followUp } = useFollowUpForTask(task.id)
   const updateTask = useUpdateTask()
+  const completeTask = useCompleteTask()
+  const reopenTask = useReopenTask()
+  const sendToFollowUp = useSendToFollowUp()
 
   const category = categories?.find((c) => c.id === task.category_id)
   const overdue =
@@ -105,6 +110,44 @@ export function TaskCard({ task, onOpen }: { task: Task; onOpen: (task: Task) =>
           )}
         </div>
       )}
+
+      <div className="mt-2 flex items-center justify-end gap-1.5 border-t border-border pt-2">
+        {task.status === 'done' ? (
+          <button
+            type="button"
+            onClick={() => reopenTask.mutate({ id: task.id, project_id: task.project_id })}
+            title="Reabrir tarea"
+            className="flex items-center gap-1 rounded-full px-2 py-1 text-xs text-fg-muted transition-colors hover:text-fg"
+          >
+            <Undo2 className="h-3.5 w-3.5" />
+          </button>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={() =>
+                sendToFollowUp.mutate({
+                  taskId: task.id,
+                  intervalDays: DEFAULT_FOLLOW_UP_INTERVAL_DAYS,
+                  stakeholderName: null,
+                })
+              }
+              title="Enviar a Follow-up (cada 7 días, editable después)"
+              className="flex items-center gap-1 rounded-full border border-border px-2 py-1 text-xs text-fg-muted transition-all duration-150 hover:border-sky-500/40 hover:text-sky-500 active:scale-95"
+            >
+              <Link2 className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => completeTask.mutate({ id: task.id, project_id: task.project_id })}
+              title="Completar tarea"
+              className="flex items-center gap-1 rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-fg transition-all duration-150 hover:shadow-[0_0_14px_rgba(217,169,74,0.45)] active:scale-95"
+            >
+              <Check className="h-3.5 w-3.5" /> Completar
+            </button>
+          </>
+        )}
+      </div>
     </div>
   )
 }

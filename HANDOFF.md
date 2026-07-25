@@ -170,6 +170,13 @@ Después de terminar las 5 fases, se hizo un rediseño visual completo pedido ex
 
 Se tocaron los 20+ componentes visuales de la app. Verificado (no con captura de pantalla — el compositing del Browser pane no estuvo disponible en esa sesión, se verificó vía inspección de estilos computados con JS) en claro, oscuro, y viewport mobile (375px).
 
+**Adenda — segundo rediseño visual (2026-07-25, misma sesión que Fase 6 más abajo)**: la identidad "terminal/HUD técnico" de arriba fue reemplazada por una dirección "fantasía RPG rica" a pedido explícito del usuario (no le convencía el HUD, quería más fondos e interactividad). Se armó primero como design system en Claude Design (`claude.ai/design`, proyecto "Productividad RPG — Rediseño Fantasía") con 4 piezas de referencia (tokens, fondo animado, componentes, animación de logro) y se aprobó antes de tocar código. Cambios:
+- **Paleta oscura** ahora ciruela profundo (`--bg: #120c18`, `--surface: #1e1526`) con acento dorado de logro (`--gold`/`--accent: #d9a94a`) en vez del naranja anterior — mismo patrón de tokens semánticos, valores nuevos.
+- **Tipografía display**: `Cinzel` (autohospedada, `@fontsource/cinzel`) reemplazó a Space Grotesk para rangos/clases/títulos de sección — más "fantasía", menos "tech". Se desinstaló `@fontsource-variable/space-grotesk` por quedar sin uso.
+- **`AmbientBackground`** (`src/components/ui/AmbientBackground.tsx`): aurora rotando muy lento (40s) + motas doradas ascendiendo, montado una vez en `Layout` y en `LoginPage` (que vive fuera del Layout). Solo visible en modo oscuro, se apaga con `prefers-reduced-motion`.
+- **`AchievementCelebration` + `AchievementWatcher`** (`src/features/gamification/components/AchievementWatcher.tsx`): compara rangos/loot actuales contra lo último visto en `localStorage` (`rpg_seen_rank_ids`, `rpg_seen_loot_ids`) y dispara un modal de celebración con partículas cuando hay algo nuevo — en cola si hay varios a la vez. Es puramente de cliente (detecta el resultado de los triggers de Postgres, no reemplaza su lógica).
+- Micro-interacciones (hover/press/glow) agregadas de forma consistente en `TaskCard`, botones de login/triage/kanban, barra de XP, `LootShowcase`, `Modal` (ahora entra con fade+scale en vez de aparecer de golpe).
+
 ---
 
 ## 9. Decisiones de diseño clave (registro condensado, con el porqué)
@@ -232,3 +239,41 @@ Para tocar la Edge Function o correr migraciones nuevas por CLI: `npx supabase l
 3. Si se va a tocar UI: respetar los tokens semánticos de `index.css` (`bg-bg`, `text-fg`, `bg-surface`, `border-border`, `text-accent`, etc.) en vez de volver a colores `neutral-*`/`dark:` sueltos — y usar `font-mono` para cualquier número/fecha/contador, `font-display` solo para nombres de rango/clase y títulos de sección.
 4. Cualquier mecánica nueva de gamification: revisar primero si el efecto debería vivir en un trigger de Postgres (patrón ya establecido) en vez de lógica de cliente.
 5. Si el usuario pide algo que contradiga la tabla de decisiones de la sección 9, confirmar explícitamente antes de cambiarlo — son decisiones ya tomadas conscientemente, no default accidentales.
+
+---
+
+## 13. Fase 6 — "Cambios menores de Experiencia" (en curso, iniciada 2026-07-25)
+
+No es parte del spec original (ver nota al final de la sección 10) — el usuario la abrió como una lista abierta de mejoras de experiencia que se va a ir ampliando; él avisa cuándo se da por cerrada. Los primeros 4 pedidos ya implementados:
+
+### 6.1 — Las subtareas ahora otorgan XP (antes daban 0)
+Cada subtarea otorga `round(xp_reward_de_la_tarea_padre / 10)` al completarse — Pequeña(10)→1, Mediana(25)→3, Grande(50)→5, sin tamaño→0. Fomenta partir tareas grandes en pasos chicos sin perder el incentivo de XP (pedido explícito del usuario). Va a la categoría de la tarea padre (las subtareas no tienen `category_id` propio).
+
+Implementado en la migración `20260725230823_fase6_subtask_xp_and_followup_status.sql`, modificando `tasks_set_xp_reward` (ya no fuerza `xp_reward = 0` para subtareas) y `tasks_after_done` (ya no ignora subtareas; ahora suma XP a la categoría de su padre, pero sigue sin disparar quest de prioridad del día ni quest semanal — esas siguen siendo solo de tareas de nivel superior).
+
+**Limitación conocida, decisión mía sin confirmar con el usuario**: si el tamaño de la tarea padre cambia *después* de crear una subtarea, el `xp_reward` de esa subtarea no se recalcula solo (el trigger solo reacciona a cambios en la fila de la subtarea misma, no en la del padre). Si esto molesta en la práctica, la solución sería un trigger adicional `after update of xp_reward on tasks` que recalcule los hijos — no se implementó por no estar pedido y para no sobre-construir.
+
+### 6.2 — "Enviar a Follow-up" como acción, no como checkbox de creación
+Pivote respecto al spec original: el usuario decidió que el follow-up **no se configura en Triage** (Inbox y Triage no cambian en esto) y que el viejo checkbox "Depende de un stakeholder" del modal de tarea (Fase 4) ya no existe. En su lugar:
+- Nuevo status de tarea: `'follow_up'` (antes solo `pending`/`in_progress`/`done`), agregado al check constraint de `tasks.status` en la misma migración de Fase 6.
+- Acción **"Enviar a Follow-up"**: crea el registro en `follow_ups` (intervalo + stakeholder opcional) y pone `status = 'follow_up'` en un solo paso (`useSendToFollowUp` en `followups/hooks.ts`). Disponible como botón rápido en la tarjeta de Kanban (usa default de 7 días, sin stakeholder — se puede editar después) y como acción con formulario inline en `TaskModal`.
+- `fetchBoardTasks` ahora excluye `status = 'follow_up'` — la tarea desaparece del Kanban activo ("libera mentalmente") pero sigue viva en la página de Follow-ups (que lee de la tabla `follow_ups`, no del status de la tarea, así que no se ve afectada).
+- Las notificaciones de deadline (`fetchActiveTasksWithDeadline` en el cliente y la Edge Function `send-notifications`) también excluyen `follow_up` — una tarea en seguimiento deja de generar alertas de vencida/vence-hoy; solo genera su propia notificación tipo `follow_up` vía `next_reminder_at`, como ya funcionaba.
+- Se puede "Cancelar seguimiento" (borra el `follow_up` y reabre la tarea) o completarla directamente desde ahí — ambas rutas conviven en `TaskModal` y en `FollowUpsPage`.
+
+**Pendiente manual del usuario**: la Edge Function `supabase/functions/send-notifications/index.ts` cambió (excluye `follow_up` del query de deadlines) y necesita `npx supabase functions deploy send-notifications` para tomar efecto en producción — no se pudo correr porque el CLI no está logueado en esta máquina (mismo motivo que siempre, ver sección 6).
+
+### 6.3 — Botón "Completar" en vez de checkbox, + botón en el Kanban
+El checkbox "Hecha" del modal se reemplazó por un botón dorado prominente (`Completar` / `Reabrir` según el estado). Se agregó el mismo par de acciones (`Completar` + `Enviar a Follow-up`) como botones en la esquina inferior derecha de cada tarjeta de Kanban — fuera del área de drag-and-drop para no interferir con `@dnd-kit`. Nuevas funciones compartidas `completeTask`/`reopenTask` en `tasks/api.ts` (mueven la tarea a la columna "Hecho"/"Por hacer" del proyecto, igual que ya hacía el checkbox viejo) usadas desde `TaskCard`, `TaskModal` y `FollowUpsPage`.
+
+### 6.4 — Triage ahora exige tamaño (XP) para guardar
+**Contradice una decisión anterior** (sección 9: "tamaño opcional, sin fricción obligatoria") — confirmado explícitamente con el usuario antes de cambiarlo, como pide la regla de la sección 12.5. La decisión final: el Inbox no cambia (captura sigue sin fricción), pero el paso de Triage ahora exige categoría + proyecto/tareas sueltas + deadline (como ya era) **+ tamaño**, con validación de formulario (`TriagePage.tsx`) — no se puede sacar una tarea del inbox sin elegir Pequeña/Mediana/Grande. El tamaño sigue siendo opcional en cualquier otro punto de edición posterior (TaskModal).
+
+### 6.5 — Filtros de Kanban (fecha + categoría)
+`KanbanBoard.tsx` ahora tiene una barra de filtros: pestañas de selección única (Todas/Vencidas/Hoy/Mañana/Fin de semana/Esta semana/Este mes, default "Todas") + chips de categoría multi-toggle (mismo patrón visual que el filtro de Calendario). Filtra client-side sobre las tareas ya traídas del board, antes de repartirlas en columnas — pensado explícitamente para reducir la sobrecarga visual del Kanban con muchas tareas (mencionado como problema de TDAH por el usuario).
+
+### Pendiente de correr manualmente antes de que todo esto funcione en producción
+1. **SQL Editor de Supabase** (dashboard, como todas las migraciones anteriores): correr `supabase/migrations/20260725230823_fase6_subtask_xp_and_followup_status.sql` completo.
+2. `npx supabase functions deploy send-notifications` (requiere `supabase login` + `supabase link` primero si no están hechos en esta máquina).
+
+Sin esto, el código del cliente asume que existe el status `'follow_up'` y que las subtareas dan XP — sin la migración corrida, crear una tarea con status `'follow_up'` va a fallar el check constraint en la base real.

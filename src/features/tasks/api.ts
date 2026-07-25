@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { fetchKanbanColumns } from '@/features/kanban/api'
 import type { Database, Task } from '@/types/database.types'
 
 export type NewTask = Pick<
@@ -45,7 +46,7 @@ export async function fetchActiveTasksWithDeadline(): Promise<Task[]> {
   const { data, error } = await supabase
     .from('tasks')
     .select('*')
-    .neq('status', 'done')
+    .not('status', 'in', '(done,follow_up)')
     .not('deadline', 'is', null)
   if (error) throw error
   return data
@@ -68,6 +69,7 @@ export async function fetchBoardTasks(projectId: string | null): Promise<Task[]>
     .select('*')
     .is('parent_task_id', null)
     .not('kanban_column_id', 'is', null)
+    .neq('status', 'follow_up')
   const { data, error } = await (projectId
     ? query.eq('project_id', projectId)
     : query.is('project_id', null))
@@ -116,4 +118,32 @@ export async function updateTask(id: string, patch: TaskPatch): Promise<Task> {
 export async function deleteTask(id: string): Promise<void> {
   const { error } = await supabase.from('tasks').delete().eq('id', id)
   if (error) throw error
+}
+
+// Marca la tarea como hecha y la mueve a la columna "Hecho" del tablero al
+// que pertenece (mismo patrón que ya usaba el checkbox del modal).
+export async function completeTask(task: Pick<Task, 'id' | 'project_id'>): Promise<Task> {
+  const columns = await fetchKanbanColumns(task.project_id)
+  const doneColumn = columns.find((c) => c.name === 'Hecho')
+  return updateTask(task.id, {
+    status: 'done',
+    ...(doneColumn ? { kanban_column_id: doneColumn.id } : {}),
+  })
+}
+
+// Revierte una tarea "Hecha" de vuelta a activa, moviéndola a "Por hacer".
+export async function reopenTask(task: Pick<Task, 'id' | 'project_id'>): Promise<Task> {
+  const columns = await fetchKanbanColumns(task.project_id)
+  const todoColumn = columns.find((c) => c.name === 'Por hacer')
+  return updateTask(task.id, {
+    status: 'pending',
+    ...(todoColumn ? { kanban_column_id: todoColumn.id } : {}),
+  })
+}
+
+// "Enviar a Follow-up": libera la tarea de la vista activa del Kanban sin
+// cerrarla — status pasa a 'follow_up', queda fuera del tablero pero visible
+// en la página de Follow-ups hasta que se registre contacto y se complete.
+export async function sendTaskToFollowUp(taskId: string): Promise<Task> {
+  return updateTask(taskId, { status: 'follow_up' })
 }

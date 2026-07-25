@@ -2,7 +2,7 @@
 // Cuando el proyecto tenga acceso a `supabase login`, reemplazar por:
 // `supabase gen types typescript --project-id <ref> > src/types/database.types.ts`
 
-export type TaskStatus = 'pending' | 'in_progress' | 'done'
+export type TaskStatus = 'pending' | 'in_progress' | 'done' | 'follow_up'
 export type ProjectStatus = 'active' | 'archived'
 export type TaskSize = 'small' | 'medium' | 'large'
 export type QuestType = 'daily_triage' | 'daily_priority' | 'weekly_project'

@@ -3,9 +3,16 @@ import { useCategories, useCreateProject, useProjects } from '@/features/project
 import { fetchFirstColumnId } from '@/features/kanban/api'
 import { useDeleteTask, useInboxTasks, useUpdateTask } from '@/features/tasks/hooks'
 import { fromDatetimeLocalValue } from '@/utils/datetime'
+import type { TaskSize } from '@/types/database.types'
 
 const NEW_PROJECT = '__new__'
 const NO_PROJECT = ''
+
+const SIZE_OPTIONS: { value: TaskSize; label: string; xp: number }[] = [
+  { value: 'small', label: 'Pequeña', xp: 10 },
+  { value: 'medium', label: 'Mediana', xp: 25 },
+  { value: 'large', label: 'Grande', xp: 50 },
+]
 
 export function TriagePage() {
   const { data: items, isLoading } = useInboxTasks()
@@ -19,6 +26,7 @@ export function TriagePage() {
   const [projectChoice, setProjectChoice] = useState(NO_PROJECT)
   const [newProjectName, setNewProjectName] = useState('')
   const [deadline, setDeadline] = useState('')
+  const [size, setSize] = useState<TaskSize | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
@@ -29,6 +37,7 @@ export function TriagePage() {
     setProjectChoice(NO_PROJECT)
     setNewProjectName('')
     setDeadline('')
+    setSize(null)
     setError(null)
   }
 
@@ -43,6 +52,10 @@ export function TriagePage() {
     }
     if (!deadline) {
       setError('El deadline es obligatorio para sacarla del inbox.')
+      return
+    }
+    if (!size) {
+      setError('Elegí un tamaño para la tarea (define el XP que da).')
       return
     }
     if (projectChoice === NEW_PROJECT && !newProjectName.trim()) {
@@ -72,6 +85,7 @@ export function TriagePage() {
           project_id: projectId,
           kanban_column_id: kanbanColumnId,
           deadline: fromDatetimeLocalValue(deadline),
+          size,
         },
       })
       resetForm()
@@ -165,6 +179,26 @@ export function TriagePage() {
               className="rounded-md border border-border bg-surface px-3 py-1.5 text-fg outline-none focus:border-accent"
             />
           </label>
+
+          <div className="flex flex-col gap-1 text-sm text-fg-muted">
+            Tamaño (define el XP)
+            <div className="flex gap-1.5">
+              {SIZE_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setSize(opt.value)}
+                  className={`flex-1 rounded-md border px-2 py-1.5 text-xs font-medium transition-all duration-150 active:scale-95 ${
+                    size === opt.value
+                      ? 'border-accent bg-accent text-accent-fg shadow-[0_0_12px_rgba(217,169,74,0.35)]'
+                      : 'border-border text-fg-muted hover:bg-surface-2'
+                  }`}
+                >
+                  {opt.label} <span className="opacity-60">+{opt.xp}</span>
+                </button>
+              ))}
+            </div>
+          </div>
 
           {error && <p className="text-sm text-warn-fg">{error}</p>}
 

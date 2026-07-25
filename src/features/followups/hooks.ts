@@ -7,6 +7,7 @@ import {
   registerFollowUpContact,
   updateFollowUp,
 } from '@/features/followups/api'
+import { sendTaskToFollowUp } from '@/features/tasks/api'
 
 export function useFollowUps() {
   return useQuery({ queryKey: ['follow-ups'], queryFn: fetchFollowUps })
@@ -47,4 +48,29 @@ export function useRegisterFollowUpContact() {
 export function useDeleteFollowUp() {
   const invalidate = useInvalidateFollowUps()
   return useMutation({ mutationFn: deleteFollowUp, onSuccess: invalidate })
+}
+
+// Acción "Enviar a Follow-up": crea el registro de seguimiento y saca la
+// tarea de la vista activa del Kanban (status -> 'follow_up') en un solo paso.
+export function useSendToFollowUp() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: {
+      taskId: string
+      intervalDays: number
+      stakeholderName: string | null
+    }) => {
+      await createFollowUp({
+        task_id: input.taskId,
+        interval_days: input.intervalDays,
+        stakeholder_name: input.stakeholderName,
+        notes: null,
+      })
+      await sendTaskToFollowUp(input.taskId)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['follow-ups'] })
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+    },
+  })
 }

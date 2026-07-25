@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { format, isPast } from 'date-fns'
+import { Check } from 'lucide-react'
 import { useFollowUps, useRegisterFollowUpContact } from '@/features/followups/hooks'
 import { useCategories } from '@/features/projects/hooks'
-import { useTasksByIds } from '@/features/tasks/hooks'
+import { useCompleteTask, useTasksByIds } from '@/features/tasks/hooks'
 import { TaskModal } from '@/features/tasks/components/TaskModal'
 import type { Task } from '@/types/database.types'
 
@@ -11,6 +12,7 @@ export function FollowUpsPage() {
   const { data: categories } = useCategories()
   const { data: tasks } = useTasksByIds(followUps?.map((f) => f.task_id) ?? [])
   const registerContact = useRegisterFollowUpContact()
+  const completeTask = useCompleteTask()
   const [editingTask, setEditingTask] = useState<Task | null>(null)
 
   const rows = (followUps ?? [])
@@ -28,7 +30,8 @@ export function FollowUpsPage() {
 
       {!isLoading && rows.length === 0 && (
         <p className="mt-4 text-sm text-fg-muted">
-          No hay follow-ups activos. Marcá una tarea como dependiente de un stakeholder desde su modal.
+          No hay follow-ups activos. Enviá una tarea a Follow-up desde su tarjeta en el Kanban o
+          desde su modal.
         </p>
       )}
 
@@ -69,6 +72,16 @@ export function FollowUpsPage() {
                 className="shrink-0 rounded-md border border-border px-2 py-1 text-xs text-fg-muted transition-all duration-150 hover:border-accent/40 hover:bg-surface-2 hover:text-accent active:scale-95"
               >
                 Registrar contacto
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  completeTask.mutate({ id: task!.id, project_id: task!.project_id })
+                }
+                title="Completar tarea"
+                className="flex shrink-0 items-center gap-1 rounded-md bg-accent px-2 py-1 text-xs font-medium text-accent-fg transition-all duration-150 hover:shadow-[0_0_14px_rgba(217,169,74,0.45)] active:scale-95"
+              >
+                <Check className="h-3.5 w-3.5" />
               </button>
             </li>
           )

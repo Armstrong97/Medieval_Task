@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
+  completeTask,
   createTask,
   deleteTask,
   fetchActiveTasksWithDeadline,
@@ -9,6 +10,8 @@ import {
   fetchTaskById,
   fetchTasksByIds,
   fetchTasksInRange,
+  reopenTask,
+  sendTaskToFollowUp,
   updateTask,
 } from '@/features/tasks/api'
 import type { Task } from '@/types/database.types'
@@ -96,6 +99,21 @@ export function useDeleteTask() {
     mutationFn: deleteTask,
     onSuccess: invalidate,
   })
+}
+
+export function useCompleteTask() {
+  const invalidate = useInvalidateTasks()
+  return useMutation({ mutationFn: completeTask, onSuccess: invalidate })
+}
+
+export function useReopenTask() {
+  const invalidate = useInvalidateTasks()
+  return useMutation({ mutationFn: reopenTask, onSuccess: invalidate })
+}
+
+export function useSendTaskToFollowUp() {
+  const invalidate = useInvalidateTasks()
+  return useMutation({ mutationFn: sendTaskToFollowUp, onSuccess: invalidate })
 }
 
 // Captura del Inbox: actualiza el cache al toque (antes de que la mutación
