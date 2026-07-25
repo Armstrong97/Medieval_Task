@@ -2,10 +2,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   createTask,
   deleteTask,
+  fetchActiveTasksWithDeadline,
   fetchBoardTasks,
   fetchInboxTasks,
   fetchSubtasks,
   fetchTaskById,
+  fetchTasksByIds,
   fetchTasksInRange,
   updateTask,
 } from '@/features/tasks/api'
@@ -15,6 +17,20 @@ export function useTaskById(id: string | null) {
     queryKey: ['tasks', 'by-id', id],
     queryFn: () => fetchTaskById(id as string),
     enabled: id !== null,
+  })
+}
+
+export function useTasksByIds(ids: string[]) {
+  return useQuery({
+    queryKey: ['tasks', 'by-ids', ids],
+    queryFn: () => fetchTasksByIds(ids),
+  })
+}
+
+export function useActiveTasksWithDeadline() {
+  return useQuery({
+    queryKey: ['tasks', 'active-with-deadline'],
+    queryFn: fetchActiveTasksWithDeadline,
   })
 }
 

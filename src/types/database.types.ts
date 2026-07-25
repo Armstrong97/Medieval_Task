@@ -7,6 +7,7 @@ export type ProjectStatus = 'active' | 'archived'
 export type TaskSize = 'small' | 'medium' | 'large'
 export type QuestType = 'daily_triage' | 'daily_priority' | 'weekly_project'
 export type LootTriggerType = 'streak' | 'quest_complete' | 'level_up' | 'rank_up'
+export type NotificationType = 'upcoming' | 'due_today' | 'overdue' | 'follow_up'
 
 export interface Database {
   public: {
@@ -213,6 +214,56 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['quests']['Insert']>
         Relationships: []
       }
+      follow_ups: {
+        Row: {
+          id: string
+          user_id: string
+          task_id: string
+          stakeholder_name: string | null
+          interval_days: number
+          last_contacted_at: string
+          next_reminder_at: string
+          notes: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string
+          task_id: string
+          stakeholder_name?: string | null
+          interval_days: number
+          last_contacted_at?: string
+          next_reminder_at?: string
+          notes?: string | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['follow_ups']['Insert']>
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          id: string
+          user_id: string
+          task_id: string
+          type: NotificationType
+          message: string
+          scheduled_at: string
+          dismissed_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string
+          task_id: string
+          type: NotificationType
+          message: string
+          scheduled_at?: string
+          dismissed_at?: string | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['notifications']['Insert']>
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>
@@ -229,3 +280,5 @@ export type Quest = Database['public']['Tables']['quests']['Row']
 export type ClassRank = Database['public']['Tables']['class_ranks']['Row']
 export type LootDefinition = Database['public']['Tables']['loot_definitions']['Row']
 export type Loot = Database['public']['Tables']['loot']['Row']
+export type FollowUp = Database['public']['Tables']['follow_ups']['Row']
+export type AppNotification = Database['public']['Tables']['notifications']['Row']

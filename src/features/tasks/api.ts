@@ -34,6 +34,23 @@ export async function fetchTaskById(id: string): Promise<Task | null> {
   return data
 }
 
+export async function fetchTasksByIds(ids: string[]): Promise<Task[]> {
+  if (ids.length === 0) return []
+  const { data, error } = await supabase.from('tasks').select('*').in('id', ids)
+  if (error) throw error
+  return data
+}
+
+export async function fetchActiveTasksWithDeadline(): Promise<Task[]> {
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('*')
+    .neq('status', 'done')
+    .not('deadline', 'is', null)
+  if (error) throw error
+  return data
+}
+
 export async function fetchInboxTasks(): Promise<Task[]> {
   const { data, error } = await supabase
     .from('tasks')

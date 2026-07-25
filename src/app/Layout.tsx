@@ -2,6 +2,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { Flame, Shield } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useStreak } from '@/features/gamification/hooks'
+import { NotificationBell } from '@/features/notifications/components/NotificationBell'
 
 const navItems = [
   { to: '/inbox', label: 'Inbox' },
@@ -9,6 +10,7 @@ const navItems = [
   { to: '/kanban', label: 'Kanban' },
   { to: '/calendario', label: 'Calendario' },
   { to: '/progreso', label: 'Progreso' },
+  { to: '/follow-ups', label: 'Follow-ups' },
 ]
 
 function StreakIndicator() {
@@ -58,6 +60,7 @@ export function Layout() {
           ))}
         </div>
         <div className="flex items-center gap-4">
+          <NotificationBell />
           <StreakIndicator />
           <button
             type="button"

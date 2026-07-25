@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { format, isPast } from 'date-fns'
+import { Link2 } from 'lucide-react'
 import { useCategories } from '@/features/projects/hooks'
 import { useSubtasks, useUpdateTask } from '@/features/tasks/hooks'
+import { useFollowUpForTask } from '@/features/followups/hooks'
 import type { Task } from '@/types/database.types'
 
 export function TaskCard({ task, onOpen }: { task: Task; onOpen: (task: Task) => void }) {
@@ -12,6 +14,7 @@ export function TaskCard({ task, onOpen }: { task: Task; onOpen: (task: Task) =>
   const { data: categories } = useCategories()
   const [showSubtasks, setShowSubtasks] = useState(false)
   const { data: subtasks } = useSubtasks(task.id)
+  const { data: followUp } = useFollowUpForTask(task.id)
   const updateTask = useUpdateTask()
 
   const category = categories?.find((c) => c.id === task.category_id)
@@ -58,6 +61,14 @@ export function TaskCard({ task, onOpen }: { task: Task; onOpen: (task: Task) =>
               }`}
             >
               {format(new Date(task.deadline), 'd MMM')}
+            </span>
+          )}
+          {followUp && (
+            <span
+              className="inline-flex items-center gap-0.5 rounded-full bg-sky-50 px-1.5 py-0.5 text-xs text-sky-700 dark:bg-sky-950 dark:text-sky-300"
+              title="Follow-up activo"
+            >
+              <Link2 className="h-3 w-3" />
             </span>
           )}
         </div>

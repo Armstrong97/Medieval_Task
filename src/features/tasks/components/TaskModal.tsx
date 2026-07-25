@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Modal } from '@/components/ui/Modal'
 import { useCategories } from '@/features/projects/hooks'
 import { useKanbanColumns } from '@/features/kanban/hooks'
@@ -8,6 +8,13 @@ import {
   useSetTodayPriority,
   useTodayQuests,
 } from '@/features/gamification/hooks'
+import {
+  useCreateFollowUp,
+  useDeleteFollowUp,
+  useFollowUpForTask,
+  useRegisterFollowUpContact,
+  useUpdateFollowUp,
+} from '@/features/followups/hooks'
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '@/utils/datetime'
 import type { Task, TaskSize } from '@/types/database.types'
 
@@ -39,6 +46,11 @@ export function TaskModal({
   const setTodayPriority = useSetTodayPriority()
   const clearTodayPriority = useClearTodayPriority()
   const { data: boardColumns } = useKanbanColumns(task?.project_id ?? null)
+  const { data: existingFollowUp } = useFollowUpForTask(task?.id ?? null)
+  const createFollowUp = useCreateFollowUp()
+  const updateFollowUp = useUpdateFollowUp()
+  const deleteFollowUp = useDeleteFollowUp()
+  const registerContact = useRegisterFollowUpContact()
 
   const [title, setTitle] = useState(task?.title ?? '')
   const [description, setDescription] = useState(task?.description ?? '')
@@ -46,8 +58,19 @@ export function TaskModal({
   const [deadline, setDeadline] = useState(toDatetimeLocalValue(task?.deadline ?? null))
   const [size, setSize] = useState<TaskSize | null>(task?.size ?? null)
   const [isDone, setIsDone] = useState(task?.status === 'done')
+  const [isFollowUp, setIsFollowUp] = useState(false)
+  const [intervalDays, setIntervalDays] = useState(7)
+  const [stakeholderName, setStakeholderName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (existingFollowUp) {
+      setIsFollowUp(true)
+      setIntervalDays(existingFollowUp.interval_days)
+      setStakeholderName(existingFollowUp.stakeholder_name ?? '')
+    }
+  }, [existingFollowUp])
 
   function handleToggleDone(checked: boolean) {
     if (!task) return
@@ -79,6 +102,7 @@ export function TaskModal({
     setError(null)
     setSaving(true)
     try {
+      let savedTaskId: string
       if (task) {
         await updateTask.mutateAsync({
           id: task.id,
@@ -90,8 +114,9 @@ export function TaskModal({
             size,
           },
         })
+        savedTaskId = task.id
       } else {
-        await createTask.mutateAsync({
+        const created = await createTask.mutateAsync({
           title: title.trim(),
           description: description.trim() || null,
           category_id: categoryId || null,
@@ -100,7 +125,26 @@ export function TaskModal({
           kanban_column_id: defaultKanbanColumnId,
           size,
         })
+        savedTaskId = created.id
       }
+
+      if (isFollowUp) {
+        if (existingFollowUp) {
+          await updateFollowUp.mutateAsync({
+            id: existingFollowUp.id,
+            patch: { interval_days: intervalDays, stakeholder_name: stakeholderName.trim() || null },
+          })
+        } else {
+          await createFollowUp.mutateAsync({
+            task_id: savedTaskId,
+            interval_days: intervalDays,
+            stakeholder_name: stakeholderName.trim() || null,
+          })
+        }
+      } else if (existingFollowUp) {
+        await deleteFollowUp.mutateAsync(existingFollowUp.id)
+      }
+
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar.')
@@ -223,6 +267,54 @@ export function TaskModal({
             >
               {isTodayPriority ? '★' : '☆'}
             </button>
+          )}
+        </div>
+
+        <div className="rounded-md border border-neutral-200 p-2 dark:border-neutral-800">
+          <label className="flex items-center gap-1.5 text-sm text-neutral-700 dark:text-neutral-300">
+            <input
+              type="checkbox"
+              checked={isFollowUp}
+              onChange={(e) => setIsFollowUp(e.target.checked)}
+            />
+            Depende de un stakeholder / follow-up
+          </label>
+
+          {isFollowUp && (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <label className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
+                Cada
+                <input
+                  type="number"
+                  min={1}
+                  value={intervalDays}
+                  onChange={(e) => setIntervalDays(Number(e.target.value) || 1)}
+                  className="w-14 rounded border border-neutral-300 bg-white px-1.5 py-1 text-sm text-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
+                />
+                días
+              </label>
+              <input
+                value={stakeholderName}
+                onChange={(e) => setStakeholderName(e.target.value)}
+                placeholder="Nombre del stakeholder (opcional)"
+                className="flex-1 rounded border border-neutral-300 bg-white px-2 py-1 text-sm text-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
+              />
+            </div>
+          )}
+
+          {existingFollowUp && (
+            <div className="mt-2 flex items-center justify-between text-xs text-neutral-400 dark:text-neutral-500">
+              <span>
+                Próximo recordatorio: {toDatetimeLocalValue(existingFollowUp.next_reminder_at).slice(0, 10)}
+              </span>
+              <button
+                type="button"
+                onClick={() => registerContact.mutate(existingFollowUp.id)}
+                className="rounded border border-neutral-300 px-2 py-0.5 text-neutral-600 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-900"
+              >
+                Registrar contacto ahora
+              </button>
+            </div>
           )}
         </div>
 
