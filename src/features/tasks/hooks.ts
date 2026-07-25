@@ -11,6 +11,7 @@ import {
   fetchTasksInRange,
   updateTask,
 } from '@/features/tasks/api'
+import type { Task } from '@/types/database.types'
 
 export function useTaskById(id: string | null) {
   return useQuery({
@@ -94,5 +95,43 @@ export function useDeleteTask() {
   return useMutation({
     mutationFn: deleteTask,
     onSuccess: invalidate,
+  })
+}
+
+// Captura del Inbox: actualiza el cache al toque (antes de que la mutación
+// termine, incluso offline) para que la tarea capturada se vea al instante
+// y no se pierda de vista mientras espera conexión para sincronizar.
+export function useCaptureInboxTask() {
+  const queryClient = useQueryClient()
+  const invalidate = useInvalidateTasks()
+
+  return useMutation({
+    mutationFn: (title: string) => createTask({ title }),
+    onMutate: async (title) => {
+      await queryClient.cancelQueries({ queryKey: ['tasks', 'inbox'] })
+      const previous = queryClient.getQueryData<Task[]>(['tasks', 'inbox'])
+      const optimisticTask: Task = {
+        id: `optimistic-${crypto.randomUUID()}`,
+        user_id: '',
+        project_id: null,
+        parent_task_id: null,
+        kanban_column_id: null,
+        category_id: null,
+        title,
+        description: null,
+        deadline: null,
+        status: 'pending',
+        size: null,
+        xp_reward: 0,
+        created_at: new Date().toISOString(),
+        completed_at: null,
+      }
+      queryClient.setQueryData<Task[]>(['tasks', 'inbox'], (old = []) => [...old, optimisticTask])
+      return { previous }
+    },
+    onError: (_err, _title, context) => {
+      if (context?.previous) queryClient.setQueryData(['tasks', 'inbox'], context.previous)
+    },
+    onSettled: invalidate,
   })
 }

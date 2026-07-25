@@ -7,6 +7,7 @@ import {
 } from '@/features/notifications/hooks'
 import { useTasksByIds } from '@/features/tasks/hooks'
 import { TaskModal } from '@/features/tasks/components/TaskModal'
+import { PushToggle } from '@/features/notifications/components/PushToggle'
 import type { NotificationType, Task } from '@/types/database.types'
 
 const TYPE_ICON: Record<NotificationType, typeof Bell> = {
@@ -95,6 +96,7 @@ export function NotificationBell() {
                 })}
               </ul>
             )}
+            <PushToggle />
           </div>
         </>
       )}

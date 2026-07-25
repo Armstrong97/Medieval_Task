@@ -264,6 +264,26 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['notifications']['Insert']>
         Relationships: []
       }
+      push_subscriptions: {
+        Row: {
+          id: string
+          user_id: string
+          endpoint: string
+          p256dh: string
+          auth: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string
+          endpoint: string
+          p256dh: string
+          auth: string
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['push_subscriptions']['Insert']>
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>
@@ -282,3 +302,4 @@ export type LootDefinition = Database['public']['Tables']['loot_definitions']['R
 export type Loot = Database['public']['Tables']['loot']['Row']
 export type FollowUp = Database['public']['Tables']['follow_ups']['Row']
 export type AppNotification = Database['public']['Tables']['notifications']['Row']
+export type PushSubscriptionRow = Database['public']['Tables']['push_subscriptions']['Row']
