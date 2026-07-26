@@ -289,4 +289,61 @@ Las tareas `done` se ven tachadas y atenuadas en las vistas mes/semana (chips de
 ### 6.8 — Menú "Mi Perfil" en el nav
 Nuevo dropdown `src/features/auth/components/ProfileMenu.tsx` (ícono `CircleUserRound`, mismo patrón de panel que `NotificationBell`), junto a notificaciones y racha. Muestra el email de la sesión y contiene el botón "Cerrar sesión" — el botón suelto de logout que estaba en el nav desde Fase 1 se eliminó. Pensado como contenedor para futuras opciones de perfil/ajustes.
 
+### 6.9 — Dashboard exploratorio del Inbox (implementado, sin commitear todavía)
+El usuario sintió el Inbox "vacío" y pidió ideas para reforzar el hábito de avanzar tareas/sumar puntos; se implementaron las 6 que se propusieron, a la espera de que las pruebe en vivo y confirme qué se queda:
+- **Franja de estado** (racha, XP ganado hoy, check de quest de triage) y **prioridad del día** — `src/features/inbox/components/InboxDashboard.tsx` (`InboxTopBar`).
+- **Contador de vencidas/hoy** con link directo al Kanban ya filtrado — para esto `KanbanBoard.tsx` ahora lee un `dateFilter` inicial desde `location.state` (react-router), y `DateFilter` se exportó desde ahí.
+- **Estado vacío con personalidad** + **última victoria** + **sugerencia "quick win"** (tarea Pequeña más urgente) — `InboxEmptyState` en el mismo archivo.
+- Nuevas queries en `tasks/api.ts`: `fetchTasksCompletedToday`, `fetchLastCompletedTask`, `fetchQuickWinTask`. Nuevo hook `useXpEarnedToday` en `gamification/hooks.ts` (suma XP de tareas completadas hoy + bonus de quests diaria-prioridad/semanal completadas hoy — la quest de triage no suma porque su xp_reward nunca tocó `user_category_xp`, ver Fase 2).
+- **Estado al escribir esto**: código implementado y verificado (typecheck/lint/HMR limpios), reordenado a pedido del usuario (captura primero, dashboard después, separado por un divider) — **todavía sin confirmación final del usuario ni commit**. Si otra sesión retoma esto, preguntar antes de asumir que quedó aprobado.
+
+---
+
+## 14. Colaboración con Gemini (Arquitecto UX/Gamificación) — a partir de 2026-07-26
+
+Arranca una nueva fase de trabajo con un flujo de dos IAs:
+- **Gemini Pro / Gemini Advanced** actúa como **Arquitecto de UX/UI, Gamificación y Diseño Neurodivergente (TDAH)** — define la visión de diseño, flujos anti-parálisis, jerarquía visual, sistemas de juego y tokens estilísticos, en conversación directa con el usuario (fuera de esta sesión).
+- **Claude (yo)** actúa como **capa de ejecución e ingeniería**: implemento en código (React 19, TypeScript, Tailwind v4, Supabase, TanStack Query) lo que Gemini especifica, manteniendo las convenciones ya establecidas en este documento y en las migraciones de Postgres.
+- El usuario pasa los documentos de especificación de Gemini módulo por módulo; yo los implemento.
+- **Mi rol no es solo ejecutar**: si una especificación de Gemini choca con una limitación técnica real (RLS, triggers existentes, `database.types.ts`, o contradice una decisión ya tomada en la sección 9), **no improviso un parche silencioso** — se lo explico al usuario y le doy un prompt ya redactado para que se lo pase de vuelta a Gemini, para que el ajuste de diseño se decida ahí, no como un apaño mío de ingeniería.
+
+### Plan de rediseño anunciado (pendiente de especificación detallada por módulo)
+Motivación del usuario: la identidad visual se sintió demasiado "HUD técnico/terminal" (ver sección 8 y su adenda) — sobrecarga cognitiva para el perfil TDAH — y la gamificación se siente "plana" (solo números). Nueva dirección: **Fantasía Medieval Orgánica (Grimorio/Taberna)**, en 4 módulos:
+
+1. **"The Battle HUD" — Dashboard de Enfrentamiento (anti-parálisis)**: reemplaza el Kanban masivo como pantalla principal por 1-3 "Combat Slots" de misiones activas, tareas como "enemigos" con barra de HP basada en subtareas, integración con `FocusFloat` (sección 6.6), y una forma no punitiva de mandar algo al backlog ("Retirada Táctica"). Kanban y Calendario pasan a ser vistas secundarias ("el Grimorio").
+2. **Gamificación narrativa**: proyectos grandes como "Jefes de Mazmorra", recompensas visuales/interactivas al completar (no solo XP numérico) — construye sobre `AchievementCelebration`/`AchievementWatcher` (sección 8, adenda) y `class_ranks`/`loot` (Fase 3).
+3. **Inbox & Triage como "Mesa de Estrategia"**: selección de tamaño con interfaz táctil tipo mazo de cartas (Pequeña=Daga, Mediana=Espada, Grande=Mandoble) — reemplazaría los botones actuales de `SIZE_OPTIONS` en `TriagePage.tsx`/`TaskModal.tsx` (Fase 6.4).
+4. **Design system Fantasía Medieval**: nueva pasada de tokens en `index.css` (ya está en paleta ciruela/oro + Cinzel desde la adenda de la sección 8 — este módulo la profundiza hacia cuero/hierro/runas), sin tocar la estructura semántica de tokens ya establecida.
+
+**Estado**: solo la visión general fue comunicada. Cada módulo se implementa cuando el usuario trae la especificación detallada de Gemini. No hay código de este plan todavía — instrucción explícita del usuario de no adivinar ni escribir nada hasta tener la spec del Módulo 1.
+
+### Módulo 1 — "The Battle HUD" (implementado 2026-07-26)
+
+Primera especificación real recibida de Gemini. Antes de tocar código se detectó una **inconsistencia técnica real** (no una interpretación de diseño): la spec original solo excluía `status = 'done'` de la query del HUD y del índice único de `hud_slot` — pero la app ya tenía un cuarto estado, `'follow_up'` (Fase 6.2, anterior a que Gemini entrara al proyecto), que Gemini no conocía. Sin la exclusión, una tarea "liberada mentalmente" habría seguido ocupando un Combat Slot activo, contradiciendo el objetivo mismo del módulo. Se le mandó un prompt a Gemini con el problema (ver el turno anterior de esta conversación) en vez de asumir la solución; Gemini confirmó por escrito: excluir `follow_up` igual que `done`, tanto en la query como en el índice, y liberar el slot atómicamente al mandar a follow-up. La spec quedó ajustada a v1.1 con esa corrección antes de implementar.
+
+**Modelo de datos** — `supabase/migrations/20260726000001_fase7_battle_hud_slots.sql`:
+- `tasks.hud_slot integer check (between 1 and 3)`, nullable.
+- Índice único parcial `(user_id, hud_slot) where hud_slot is not null and status not in ('done', 'follow_up')` — un slot se libera automáticamente en cuanto la tarea sale de esos dos estados.
+- `TaskPatch` (`tasks/api.ts`) ahora incluye `hud_slot`; `completeTask` y `sendTaskToFollowUp` lo limpian (`hud_slot: null`) como parte de la misma mutation, sin estados intermedios — igual que pidió Gemini.
+
+**Decisión de integración no cubierta por la spec** (resuelta sin volver a Gemini, por ser un detalle de ingeniería y no de diseño): equipar una tarea a un slot (`equipTaskToSlot`) también le pone `status = 'in_progress'`. Así la ventana flotante de foco (`FocusFloat`, Fase 6.6, que lee tareas `in_progress`) siempre muestra lo mismo que está equipado en el HUD, sin duplicar el concepto de "tarea activa" en dos mecanismos separados.
+
+**Refactor necesario de `FocusFloat`**: el botón del nav tenía su propio estado de ventana PiP aislado. Como el botón "Atacar" de cada `CombatSlotCard` necesita disparar la *misma* ventana (el navegador solo permite una ventana Document Picture-in-Picture a la vez), se extrajo el estado a `src/features/tasks/FocusFloatContext.tsx` (`FocusFloatProvider` + `useFocusFloat()`), montado una vez en `Layout`. `FocusFloatButton` ahora es un consumidor liviano del contexto; el comportamiento visible no cambió.
+
+**Componentes** (`src/features/battle-hud/`):
+- `api.ts` / `hooks.ts`: `fetchHudTasks`, `fetchEquippableTasks` (backlog triado sin slot), `equipTaskToSlot`, `unequipTaskFromSlot`.
+- `BattleHudPage.tsx`: resumen del jugador (categoría "dominante" = mayor `current_level`, empate por `current_xp` — la spec no definió esta métrica, decisión mía documentada acá) + racha, grid de 3 slots, footer con accesos a Grimorio (Kanban) e Inbox.
+- `CombatSlotCard.tsx`: insignia de dificultad con los emojis literales de la spec (🗡️/⚔️/🗡️✨ — mismo criterio ya usado en `AchievementCelebration` para iconos de logro, no de navegación), barra de HP segmentada (con subtareas: total/restantes: sin subtareas: barra única que desaparece al completar), y las 3 acciones: Atacar (abre `FocusFloat` compartido), Golpe final (`completeTask`), Retirada Táctica (dropdown: Mover a Follow-up con el mismo default de 7 días sin stakeholder que ya usa el botón rápido del Kanban desde Fase 6, o Devolver al Grimorio).
+- `EmptySlotCard.tsx`, `GrimorioDrawer.tsx` (drawer lateral con filtro por categoría, igual patrón visual que el filtro de Calendario/Kanban).
+
+**Simplificación respecto a la spec** (documentada, no oculta): el header de `BattleHudPage` no repite el botón de notificaciones — ya está siempre visible en el nav superior, y duplicarlo iba en contra del objetivo mismo del módulo (menos ruido visual). Si Gemini insiste en tenerlo también ahí, es un ajuste de una línea.
+
+**Routing y nav**: `/` (index route) ahora renderiza `BattleHudPage` en vez de redirigir a `/inbox`. Se agregó "Combate" como primer ítem del nav (ícono `Swords`, `end` para que no quede marcado activo en todas las rutas) y el logomark ahora linkea a `/` en vez de `/inbox`.
+
+**Tokens nuevos** en `index.css`: `--color-surface-card` / `--color-border-card` (valores de la spec de Gemini para dark: `#281c33` / `#3d2a4e`; fallback claro definido por mí ya que la spec solo dio valores oscuros).
+
+### Pendiente de correr manualmente
+1. **SQL Editor de Supabase**: correr `supabase/migrations/20260726000001_fase7_battle_hud_slots.sql` completo. **Sin este paso, la Battle HUD va a fallar** — el cliente ya asume que la columna `hud_slot` existe.
+2. Typecheck (`tsc -b`), `oxlint` y `npm run build` corridos y limpios. No se pudo probar en vivo con datos reales (requiere sesión de Supabase del usuario).
+
 Sin la migración de Fase 6 corrida, el código del cliente asume que existe el status `'follow_up'` y que las subtareas dan XP — crear una tarea con status `'follow_up'` fallaría el check constraint en la base real (ya no aplica: la migración está corrida, se deja como advertencia para entornos nuevos).

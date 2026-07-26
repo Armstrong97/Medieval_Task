@@ -1,48 +1,10 @@
-import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Check, PictureInPicture2 } from 'lucide-react'
 import { useCompleteTask, useInProgressTasks } from '@/features/tasks/hooks'
 import { useCategories } from '@/features/projects/hooks'
-
-// La Document Picture-in-Picture API todavía no está en los tipos de DOM de TS.
-interface DocumentPictureInPictureApi {
-  requestWindow(options?: { width?: number; height?: number }): Promise<Window>
-}
-
-function getPipApi(): DocumentPictureInPictureApi | undefined {
-  return (window as { documentPictureInPicture?: DocumentPictureInPictureApi })
-    .documentPictureInPicture
-}
+import { useFocusFloat } from '@/features/tasks/FocusFloatContext'
 
 const MAX_TASKS = 3
-
-// El documento de la ventana PiP nace vacío: se le copian todas las hojas de
-// estilo de la app (tokens de index.css incluidos, así hereda paleta, fuentes
-// y modo oscuro vía prefers-color-scheme) y un <base> para que las URLs
-// relativas de assets (fuentes autohospedadas) sigan resolviendo.
-function copyStylesInto(pipWindow: Window) {
-  const base = pipWindow.document.createElement('base')
-  base.href = window.location.origin + '/'
-  pipWindow.document.head.appendChild(base)
-
-  for (const styleSheet of Array.from(document.styleSheets)) {
-    try {
-      const cssText = Array.from(styleSheet.cssRules)
-        .map((rule) => rule.cssText)
-        .join('\n')
-      const style = pipWindow.document.createElement('style')
-      style.textContent = cssText
-      pipWindow.document.head.appendChild(style)
-    } catch {
-      if (styleSheet.href) {
-        const link = pipWindow.document.createElement('link')
-        link.rel = 'stylesheet'
-        link.href = styleSheet.href
-        pipWindow.document.head.appendChild(link)
-      }
-    }
-  }
-}
 
 function FocusFloatContent() {
   const { data: inProgress } = useInProgressTasks()
@@ -94,36 +56,25 @@ function FocusFloatContent() {
 }
 
 /**
- * Ventana flotante de foco (Document Picture-in-Picture): mini-ventana
- * siempre-encima y redimensionable con las tareas "En progreso" (máx. 3) y su
- * check de completar. Persiste al cambiar de app/ventana; el navegador exige
- * un gesto del usuario para abrirla, por eso es un botón y no automática al
- * minimizar. Solo disponible en Chrome/Edge de escritorio — el botón no se
- * renderiza si la API no existe.
+ * Botón del nav para la ventana flotante de foco (Document Picture-in-Picture):
+ * mini-ventana siempre-encima y redimensionable con las tareas "En progreso"
+ * (máx. 3) y su check de completar. Persiste al cambiar de app/ventana; el
+ * navegador exige un gesto del usuario para abrirla, por eso es un botón y no
+ * automática al minimizar. Solo disponible en Chrome/Edge de escritorio — el
+ * botón no se renderiza si la API no existe. El estado real vive en
+ * `FocusFloatContext` (compartido con `CombatSlotCard`); acá solo se renderiza
+ * el toggle y el portal del contenido.
  */
 export function FocusFloatButton() {
-  const [pipWindow, setPipWindow] = useState<Window | null>(null)
+  const { pipWindow, supported, open, close } = useFocusFloat()
 
-  if (!getPipApi()) return null
-
-  async function toggle() {
-    if (pipWindow) {
-      pipWindow.close()
-      return
-    }
-    const api = getPipApi()
-    if (!api) return
-    const win = await api.requestWindow({ width: 320, height: 220 })
-    copyStylesInto(win)
-    win.addEventListener('pagehide', () => setPipWindow(null))
-    setPipWindow(win)
-  }
+  if (!supported) return null
 
   return (
     <>
       <button
         type="button"
-        onClick={() => void toggle()}
+        onClick={() => void (pipWindow ? close() : open())}
         title={pipWindow ? 'Cerrar ventana de foco' : 'Ventana flotante de foco'}
         aria-label="Ventana flotante de foco"
         className={`transition-colors ${

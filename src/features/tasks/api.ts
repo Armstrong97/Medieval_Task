@@ -26,6 +26,7 @@ export type TaskPatch = Partial<
     | 'parent_task_id'
     | 'status'
     | 'size'
+    | 'hud_slot'
   >
 >
 
@@ -132,12 +133,14 @@ export async function deleteTask(id: string): Promise<void> {
 }
 
 // Marca la tarea como hecha y la mueve a la columna "Hecho" del tablero al
-// que pertenece (mismo patrón que ya usaba el checkbox del modal).
+// que pertenece (mismo patrón que ya usaba el checkbox del modal). Libera
+// también el slot del Battle HUD si estaba equipada ahí (Fase 7).
 export async function completeTask(task: Pick<Task, 'id' | 'project_id'>): Promise<Task> {
   const columns = await fetchKanbanColumns(task.project_id)
   const doneColumn = columns.find((c) => c.name === 'Hecho')
   return updateTask(task.id, {
     status: 'done',
+    hud_slot: null,
     ...(doneColumn ? { kanban_column_id: doneColumn.id } : {}),
   })
 }
@@ -155,6 +158,51 @@ export async function reopenTask(task: Pick<Task, 'id' | 'project_id'>): Promise
 // "Enviar a Follow-up": libera la tarea de la vista activa del Kanban sin
 // cerrarla — status pasa a 'follow_up', queda fuera del tablero pero visible
 // en la página de Follow-ups hasta que se registre contacto y se complete.
+// También libera el slot del Battle HUD atómicamente si estaba equipada ahí
+// (confirmado con Gemini en la spec del Módulo 1 — sin estado intermedio).
 export async function sendTaskToFollowUp(taskId: string): Promise<Task> {
-  return updateTask(taskId, { status: 'follow_up' })
+  return updateTask(taskId, { status: 'follow_up', hud_slot: null })
+}
+
+// Tareas (y subtareas) completadas hoy — para calcular el XP ganado en el día
+// en el resumen del Inbox. `completed_at` lo pone el trigger `tasks_before_write`.
+export async function fetchTasksCompletedToday(): Promise<Task[]> {
+  const startOfToday = new Date()
+  startOfToday.setHours(0, 0, 0, 0)
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('*')
+    .eq('status', 'done')
+    .gte('completed_at', startOfToday.toISOString())
+  if (error) throw error
+  return data
+}
+
+// Última tarea completada (de nivel superior) — para el "última victoria" del Inbox.
+export async function fetchLastCompletedTask(): Promise<Task | null> {
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('*')
+    .eq('status', 'done')
+    .is('parent_task_id', null)
+    .order('completed_at', { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) throw error
+  return data
+}
+
+// Tarea "Pequeña" activa más urgente — sugerencia de "quick win" en el Inbox.
+export async function fetchQuickWinTask(): Promise<Task | null> {
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('*')
+    .eq('size', 'small')
+    .in('status', ['pending', 'in_progress'])
+    .is('parent_task_id', null)
+    .order('deadline', { ascending: true, nullsFirst: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) throw error
+  return data
 }

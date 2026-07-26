@@ -1,7 +1,8 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom'
+import { createBrowserRouter } from 'react-router-dom'
 import { Layout } from '@/app/Layout'
 import { ProtectedRoute } from '@/app/ProtectedRoute'
 import { LoginPage } from '@/features/auth/components/LoginPage'
+import { BattleHudPage } from '@/features/battle-hud/components/BattleHudPage'
 import { InboxPage } from '@/features/inbox/components/InboxPage'
 import { TriagePage } from '@/features/triage/components/TriagePage'
 import { KanbanPage } from '@/features/kanban/components/KanbanPage'
@@ -21,7 +22,7 @@ export const router = createBrowserRouter([
         path: '/',
         element: <Layout />,
         children: [
-          { index: true, element: <Navigate to="/inbox" replace /> },
+          { index: true, element: <BattleHudPage /> },
           { path: 'inbox', element: <InboxPage /> },
           { path: 'triage', element: <TriagePage /> },
           { path: 'kanban', element: <KanbanPage /> },

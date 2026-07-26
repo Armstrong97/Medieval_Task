@@ -4,6 +4,9 @@ import { Mic, Square, WifiOff } from 'lucide-react'
 import { useCaptureInboxTask, useDeleteTask, useInboxTasks } from '@/features/tasks/hooks'
 import { useOnlineStatus } from '@/utils/useOnlineStatus'
 import { useSpeechDictation } from '@/utils/useSpeechDictation'
+import { InboxEmptyState, InboxTopBar } from '@/features/inbox/components/InboxDashboard'
+import { TaskModal } from '@/features/tasks/components/TaskModal'
+import type { Task } from '@/types/database.types'
 
 export function InboxPage() {
   const [title, setTitle] = useState('')
@@ -12,6 +15,7 @@ export function InboxPage() {
   const captureTask = useCaptureInboxTask()
   const deleteTask = useDeleteTask()
   const online = useOnlineStatus()
+  const [editingTask, setEditingTask] = useState<Task | null>(null)
   const dictation = useSpeechDictation((text) => {
     setTitle((current) => (current ? `${current} ${text}` : text))
     inputRef.current?.focus()
@@ -74,9 +78,8 @@ export function InboxPage() {
 
       <div className="mt-6">
         {isLoading && <p className="text-sm text-fg-muted">Cargando…</p>}
-        {items && items.length === 0 && <p className="text-sm text-fg-muted">Inbox vacío.</p>}
         {items && items.length > 0 && (
-          <ul className="flex flex-col gap-1.5">
+          <ul className="flex flex-col gap-2">
             {items.map((item) => (
               <li
                 key={item.id}
@@ -101,6 +104,24 @@ export function InboxPage() {
           </ul>
         )}
       </div>
+
+      <div className="mt-8 border-t border-border pt-6">
+        <InboxTopBar onOpenTask={setEditingTask} />
+        {items && items.length === 0 && (
+          <div className="mt-3">
+            <InboxEmptyState onOpenTask={setEditingTask} />
+          </div>
+        )}
+      </div>
+
+      {editingTask && (
+        <TaskModal
+          task={editingTask}
+          defaultProjectId={editingTask.project_id}
+          defaultKanbanColumnId=""
+          onClose={() => setEditingTask(null)}
+        />
+      )}
     </div>
   )
 }

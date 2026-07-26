@@ -7,9 +7,12 @@ import {
   fetchBoardTasks,
   fetchInboxTasks,
   fetchInProgressTasks,
+  fetchLastCompletedTask,
+  fetchQuickWinTask,
   fetchSubtasks,
   fetchTaskById,
   fetchTasksByIds,
+  fetchTasksCompletedToday,
   fetchTasksInRange,
   reopenTask,
   sendTaskToFollowUp,
@@ -43,6 +46,27 @@ export function useInProgressTasks() {
   return useQuery({
     queryKey: ['tasks', 'in-progress'],
     queryFn: fetchInProgressTasks,
+  })
+}
+
+export function useTasksCompletedToday() {
+  return useQuery({
+    queryKey: ['tasks', 'completed-today'],
+    queryFn: fetchTasksCompletedToday,
+  })
+}
+
+export function useLastCompletedTask() {
+  return useQuery({
+    queryKey: ['tasks', 'last-completed'],
+    queryFn: fetchLastCompletedTask,
+  })
+}
+
+export function useQuickWinTask() {
+  return useQuery({
+    queryKey: ['tasks', 'quick-win'],
+    queryFn: fetchQuickWinTask,
   })
 }
 
@@ -149,6 +173,7 @@ export function useCaptureInboxTask() {
         status: 'pending',
         size: null,
         xp_reward: 0,
+        hud_slot: null,
         created_at: new Date().toISOString(),
         completed_at: null,
       }

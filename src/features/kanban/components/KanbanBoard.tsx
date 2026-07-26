@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import {
   DndContext,
   PointerSensor,
@@ -30,7 +31,7 @@ const COLUMN_NAME_TO_STATUS: Record<string, 'pending' | 'in_progress' | 'done'> 
   Hecho: 'done',
 }
 
-type DateFilter = 'all' | 'overdue' | 'today' | 'tomorrow' | 'weekend' | 'week' | 'month'
+export type DateFilter = 'all' | 'overdue' | 'today' | 'tomorrow' | 'weekend' | 'week' | 'month'
 
 const DATE_FILTERS: { key: DateFilter; label: string }[] = [
   { key: 'all', label: 'Todas' },
@@ -84,10 +85,13 @@ export function KanbanBoard({
   const updateColumnPosition = useUpdateColumnPosition()
   const createColumn = useCreateColumn()
 
+  const location = useLocation()
+  const initialDateFilter = (location.state as { dateFilter?: DateFilter } | null)?.dateFilter
+
   const [modal, setModal] = useState<
     { mode: 'create'; columnId: string } | { mode: 'edit'; task: Task } | null
   >(null)
-  const [dateFilter, setDateFilter] = useState<DateFilter>('all')
+  const [dateFilter, setDateFilter] = useState<DateFilter>(initialDateFilter ?? 'all')
   const [hiddenCategoryIds, setHiddenCategoryIds] = useState<Set<string>>(new Set())
 
   function toggleCategory(id: string) {

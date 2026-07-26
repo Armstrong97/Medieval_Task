@@ -84,6 +84,7 @@ export interface Database {
           status: TaskStatus
           size: TaskSize | null
           xp_reward: number
+          hud_slot: number | null
           created_at: string
           completed_at: string | null
         }
@@ -99,6 +100,7 @@ export interface Database {
           deadline?: string | null
           status?: TaskStatus
           size?: TaskSize | null
+          hud_slot?: number | null
           created_at?: string
           completed_at?: string | null
         }

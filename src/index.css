@@ -19,6 +19,8 @@
   --color-accent-fg: var(--accent-fg);
   --color-gold: var(--gold);
   --color-gold-bright: var(--gold-bright);
+  --color-surface-card: var(--surface-card);
+  --color-border-card: var(--border-card);
   --color-warn-bg: var(--warn-bg);
   --color-warn-fg: var(--warn-fg);
   --color-warn-border: var(--warn-border);
@@ -42,6 +44,8 @@
   --accent-fg: #ffffff;
   --gold: #b8791a;
   --gold-bright: #8a5a10;
+  --surface-card: #f5f0e6;
+  --border-card: rgba(20, 18, 14, 0.16);
   --warn-bg: #fef3e2;
   --warn-fg: #92400e;
   --warn-border: rgba(217, 119, 6, 0.3);
@@ -60,6 +64,10 @@
     --accent-fg: #241705;
     --gold: #d9a94a;
     --gold-bright: #f0c364;
+    /* Battle HUD (Fase 7, Módulo 1): superficie/borde de las Combat Slot Cards,
+       tokens de la spec de Gemini. */
+    --surface-card: #281c33;
+    --border-card: #3d2a4e;
     --warn-bg: rgba(146, 64, 14, 0.25);
     --warn-fg: #fcd9a8;
     --warn-border: rgba(217, 119, 6, 0.4);
