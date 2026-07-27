@@ -232,6 +232,7 @@ export interface Database {
           last_contacted_at: string
           next_reminder_at: string
           notes: string | null
+          resolved_at: string | null
           created_at: string
         }
         Insert: {
@@ -243,9 +244,28 @@ export interface Database {
           last_contacted_at?: string
           next_reminder_at?: string
           notes?: string | null
+          resolved_at?: string | null
           created_at?: string
         }
         Update: Partial<Database['public']['Tables']['follow_ups']['Insert']>
+        Relationships: []
+      }
+      follow_up_logs: {
+        Row: {
+          id: string
+          user_id: string
+          follow_up_id: string
+          notes: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string
+          follow_up_id: string
+          notes: string
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['follow_up_logs']['Insert']>
         Relationships: []
       }
       notifications: {
@@ -314,5 +334,6 @@ export type ClassRank = Database['public']['Tables']['class_ranks']['Row']
 export type LootDefinition = Database['public']['Tables']['loot_definitions']['Row']
 export type Loot = Database['public']['Tables']['loot']['Row']
 export type FollowUp = Database['public']['Tables']['follow_ups']['Row']
+export type FollowUpLog = Database['public']['Tables']['follow_up_logs']['Row']
 export type AppNotification = Database['public']['Tables']['notifications']['Row']
 export type PushSubscriptionRow = Database['public']['Tables']['push_subscriptions']['Row']

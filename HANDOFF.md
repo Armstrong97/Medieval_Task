@@ -1,12 +1,14 @@
-# Productividad RPG — Documento de continuidad del proyecto
+# Productividad RPG (ahora «Questly») — Documento de continuidad del proyecto
 
-> Generado el 2026-07-25 para retomar el trabajo en otra sesión. Cubre qué es la app, qué se construyó, cómo funciona por dentro, y qué falta. Leelo junto con [`spec-app-productividad-rpg.md`](spec-app-productividad-rpg.md) (el documento de especificaciones original, sin modificar, en la raíz del repo).
+> Generado el 2026-07-25 para retomar el trabajo en otra sesión, actualizado el 2026-07-26 (Fase 8, ver sección 15). Cubre qué es la app, qué se construyó, cómo funciona por dentro, y qué falta. Leelo junto con [`spec-app-productividad-rpg.md`](spec-app-productividad-rpg.md) (el documento de especificaciones original, sin modificar, en la raíz del repo).
 
 ---
 
 ## 1. Qué es esto
 
 Una PWA de productividad personal con gamification tipo RPG, diseñada específicamente para un perfil **TDAH + Altas Capacidades**. No es un to-do app genérico: es una función ejecutiva externa con captura de fricción cero, triage guiado, kanban visual, calendario con deadlines obligatorios, y un sistema RPG (XP, niveles, clases, rangos, loot, streaks) que motiva **sin mecánicas punitivas** — nada de alertas rojas de "fracaso", rachas que castigan al romperse, o culpa visual.
+
+**Rebranding (Fase 8, 2026-07-26)**: el producto se llama oficialmente **Questly** ("Maneja tus misiones. Conquista el caos.") — metadatos, PWA manifest y UI ya actualizados. Este documento conserva su nombre de archivo/título original por continuidad histórica; ver sección 15 para el detalle completo de la segunda ronda de colaboración con Gemini.
 
 Esta restricción de diseño (no punitivo, fricción mínima) es la lente con la que hay que evaluar cualquier decisión de UX futura en este proyecto.
 
@@ -441,3 +443,75 @@ Se corrigió:
 **Nota para el futuro**: `scripts/generate-icons.mjs` + `scripts/icon-any.svg`/`icon-maskable.svg` (el generador de íconos anterior, basado en `sharp`) quedaron desactualizados respecto al nuevo arte — si alguien lo corre de nuevo, va a recrear los archivos viejos (`icon-192.png`, etc.) en rutas que ya no usa nada, sin romper el build pero como archivos sueltos sin conectar. No se tocó ese script por las dudas de que el usuario todavía quiera el arte vectorial original como fuente.
 
 Sin la migración de Fase 6 corrida, el código del cliente asume que existe el status `'follow_up'` y que las subtareas dan XP — crear una tarea con status `'follow_up'` fallaría el check constraint en la base real (ya no aplica: la migración está corrida, se deja como advertencia para entornos nuevos).
+
+---
+
+## 15. Fase 8 — Rediseño "Questly", segunda ronda con Gemini (Pasos 1-9, 2026-07-26)
+
+Continuación de la colaboración descrita en la sección 14, después de cerrarse la Fase 7 (Módulos 1-4). Esta ronda Gemini mandó specs numeradas **"Paso"** (no "Módulo") en archivos sueltos (`PASO_1_...md` a `PASO_9_...md`, fuera del repo, en `Backup Prod App/Gemini Specs/`). Mismo flujo que antes: Gemini especifica, Claude audita la spec contra el estado real del código *antes* de escribir nada, y cualquier conflicto con una decisión ya tomada o con el schema real se lleva de vuelta al usuario en vez de improvisar.
+
+**Patrón que se repitió en casi todos los pasos**: el código de las specs venía copiado de un prototipo de Google AI Studio que no conocía el estado real del repo — nombres de hooks/tipos inventados que no existen, imports sin usar que rompen el build (`noUnusedLocals`), y en un par de casos bugs de lógica reales (no solo de nomenclatura). Se corrigieron todos antes de dar cada paso por cerrado; quedan documentados abajo.
+
+### Paso 1 — Rebranding "Questly" & Login Grimorio
+- Metadatos de marca (`index.html`, `vite.config.ts` → `manifest`) actualizados a **Questly** / "Maneja tus misiones. Conquista el caos.".
+- `LoginPage.tsx` reescrito con el look "Grimorio de Acceso" (pestañas oro/ciruela). `hero_name` se captura en `user_metadata` de Supabase Auth vía `signUp`, sin mostrarse todavía en ningún lado de la UI.
+- Corrección: el redirect post-login apuntaba a `/inbox`; se cambió a `/` porque el índice ya renderiza `BattleHudPage` desde la Fase 7 Módulo 1 — la spec ya traía `/` bien, era el código viejo el desactualizado.
+
+### Paso 1.5 — Sidebar Plegable & App Shell
+- `Layout.tsx` reemplazado: sidebar lateral con overlay de `backdrop-blur` ("aislamiento TDAH"), header fijo, cierre con Escape/cambio de ruta.
+- Los 7 íconos de nav (`public/assets/rpg/nav/*.png`) llegaron sin comprimir de Imagen 3 (~46 MB combinados, mismo problema que los assets RPG de la Fase 7 Módulo 4) — se extendió `scripts/optimize-rpg-assets.mjs` con esos 7 archivos (256px) y se corrió antes de integrarlos (quedaron en ~272 KB).
+- `Logomark.tsx` quedó sin ningún import en toda la app después de este paso y del Paso 1 — no se borró, candidato a limpieza si se confirma que no hace falta.
+
+### Paso 2 — Battle HUD inmersivo
+- `CombatSlotCard`, `EmptySlotCard`, `BattleHudPage` rediseñados: barra de HP segmentada por subtarea, secuencia `shake → kill-flash → completeTask` al asestar el golpe final, tema de color dinámico por categoría.
+- Corrección: la spec importaba el ícono `Check` de lucide sin usarlo en el JSX (el botón de menú era solo texto "⋯") — se sacó del import y se usó `MoreVertical` (que sí estaba importado) en su lugar.
+
+### Paso 3 — Inbox "Pergamino de Captura"
+- `InboxDashboard.tsx`/`InboxPage.tsx` reescritos con el dashboard de métricas (racha/XP/triage/prioridad/alertas) y el cuadro de captura fricción-cero.
+- **Decisión confirmada con el usuario**: el dashboard de métricas queda arriba y la captura abajo — esto revierte el orden que se había pedido explícitamente en la Fase 6.9 (captura primero, dashboard después). Este es el orden vigente ahora.
+- Corrección: la spec tenía un typo de import (`'react me-router-dom'`) con un `Link` duplicado sin usar, y dos íconos (`Trophy`, `Zap`) importados sin renderizarse (el nuevo Empty State usa emojis en vez de esos íconos).
+
+### Paso 4 — Mesa de Estrategia (mazo de cartas 3D)
+- `StrategyTablePage`/`WeaponSelector`/`InboxCardDeck` reescritos con mazo apilado en perspectiva 3D y física de despacho `slide-out` de 450ms antes de la mutation.
+- `DirectEquipToggle.tsx` quedó absorbido como el tercer botón del footer directamente en la página (así lo definió la nueva spec, ya no como componente aparte) — se borró por completo en vez de dejarlo como código muerto, porque solo se usaba ahí.
+
+### Paso 5 — Sala del Jefe de Mazmorra
+- `BossHealthBar`, `PhaseRewardModal`, `BossEncounterPage` con barra de HP masiva, cofres de loot por fase (75/50/25/0%) y modal de recompensa con destello dorado.
+- **Bug real de CSS corregido**: `.chest-icon-phase.active` traía `drop-shadow: ...` como propiedad CSS suelta — eso no existe, `drop-shadow` solo es válido como función dentro de `filter`. El navegador la habría ignorado en silencio y el resplandor dorado del cofre activo nunca se vería. Se integró al `filter` que ya estaba en la misma regla.
+- Mismo patrón de import sin usar (`Swords`, ícono no renderizado) que en el Paso 2.
+
+### Paso 6 — El Grimorio Dual (Kanban)
+- Reemplaza el Kanban de columnas por dos vistas de lista: `GrimorioAccordionView.tsx` (Foco Gradual — acordeón de 3 niveles: Enfrentamiento Activo/Estrategia Próxima/Archivos de la Orden) y `GrimorioTabsView.tsx` (Ámbitos por Clase — sellos de cera + Pendientes/Completadas), con toggle persistido en `localStorage` (`questly_grimorio_mode`).
+- **Conflicto de alcance, confirmado con el usuario → reemplazo literal**: se pierden el drag-and-drop (`@dnd-kit`), el CRUD de columnas custom (+ Columna, mover ‹ ›), la vista por proyecto (ruta `/kanban/:projectId`, eliminada del router) y el deep-link de "vencidas/hoy" que el Inbox mandaba vía `location.state` (Fase 6.9).
+- **Bug real corregido antes de implementar**: la spec llamaba `useBoardTasks(null)`, que en la API existente significa "solo tareas sueltas sin proyecto" (`fetchBoardTasks` filtra `.is('project_id', null)`) — con la vista unificada nueva ("registro general de misiones") eso habría ocultado silenciosamente cualquier tarea que perteneciera a un proyecto. Se agregó `fetchAllBoardTasks`/`useAllBoardTasks` (`tasks/api.ts`/`hooks.ts`) que trae todo junto, sin ese filtro.
+- `KanbanBoard.tsx`, `KanbanColumn.tsx` y los hooks de CRUD de columnas (`useCreateColumn`, `useKanbanColumns`, `useUpdateColumnPosition`) quedaron sin usar pero sin borrar — todo el sistema de drag-and-drop y columnas custom de las Fases 1 y 3. El bundle JS bajó ~36 KB porque ya no se bundlean (nada los importa).
+
+### Paso 7 — El Oráculo del Tiempo Dual (Calendario)
+- Reemplaza el calendario mes/semana/día por `CalendarTimelineView.tsx` (Chrono-Stream vertical, con medidor de energía/fatiga por día) y `CalendarHeatmapView.tsx` (mapa de calor + panel lateral "Jornada Escogida"), toggle persistido en `localStorage` (`questly_calendar_mode`).
+- **Conflicto de alcance, confirmado con el usuario → reemplazo literal**: se pierde navegar a fechas pasadas (el nuevo Oráculo es solo-futuro: hoy + N días), el filtro de categoría y el toggle "Mostrar completadas" (decisión de la Fase 6.7). `CalendarPage.tsx` era el único consumidor de esas features y se sobreescribió entero, así que no quedó nada huérfano para limpiar acá (a diferencia del Kanban).
+- **Bug post-implementación, reportado por el usuario en vivo y corregido**: `rangeStart = new Date()` usaba el instante exacto de "ahora" en vez del inicio del día; como `fetchTasksInRange` filtra con `.gte('deadline', startIso)`, cualquier tarea con deadline más temprano ese mismo día quedaba excluida. Se cambió a `startOfDay(subDays(today, 2))` / `endOfDay(addDays(today, 21))` (2 días de margen atrás por variación de zona horaria, día completo en el límite superior). Los guards `t.deadline &&` antes de cada `isSameDay` ya estaban bien puestos, no hizo falta tocarlos.
+
+### Paso 8 — Salón de Héroes (Progreso)
+- Grid de 2 columnas (5 cols racha/quests/jefes / 7 cols clases/loot) + `ClassDetailModal.tsx` nuevo (pergamino de clase, tabs Misiones Activas/Victorias, barra de XP con destello `.xp-flash-anim`).
+- Varios bugs reales corregidos antes de compilar: `useTasksByCategory` no existía (se agregó en `tasks/api.ts`/`hooks.ts`, mismo patrón que `useTasksByProject`); el tipo `CategoryXp` no existe, el real es `UserCategoryXp`; `useUserAchievements` no existe (se reusó el componente `LootShowcase` ya construido, que además muestra insignias bloqueadas — la spec lo hubiera perdido); `q.title` no existe en la tabla `quests` (solo tiene `type`, no `title` — se agregó un mapa `QUEST_TITLES` derivado de `q.type`, mismo criterio que ya usaba la versión anterior de la página); la sección de Jefes de Mazmorra tenía la barra de HP hardcodeada a `width: '70%'` fijo para todos los proyectos — se reemplazó por el componente `ProjectBossCard` ya existente, que calcula el HP real vía `useBossStats`.
+
+### Paso 9 — Editor de Misiones "Pergamino de Decreto"
+- `TaskModal.tsx` reescrito con chips táctiles de un clic (envergadura/dificultad, plazo rápido, clase/categoría), micro-stepping con barra de integridad HP de subtareas, acordeón `<details>` de notas/proyecto, y sello de guardado animado (`.animate-seal-flash`).
+- Varios bugs reales corregidos: `useCreateSubtask`/`useToggleSubtask`/`useDeleteSubtask` no existían (se usan los hooks genéricos `createTask`/`updateTask`/`deleteTask` ya probados, mismo patrón que la versión anterior del modal); crear un micro-paso sin deadline habría fallado siempre contra la constraint `deadline_required_once_triaged` de la DB (las subtareas la exigen siempre, sin excepción) — el nuevo micro-paso hereda el deadline de la tarea padre automáticamente, sin pedirlo en el formulario; no había validación de deadline obligatorio ni manejo de errores de guardado (si el guardado fallaba, el modal se quedaba colgado sin avisar nada) — se reintegró el estado de error + validación; el input de fecha usaba `deadlineIso.slice(0, 16)` directo sobre el ISO string, mostrando la hora en UTC en vez de la hora local del usuario — se usaron los helpers ya existentes `toDatetimeLocalValue`/`fromDatetimeLocalValue`.
+- **Conflicto de alcance, confirmado con el usuario → reintegrar (no reemplazo literal)**: la spec eliminaba por completo el botón Completar/Reabrir, la estrella ★ de "Prioridad del día" (decisión de la sección 9) y toda la gestión de Follow-up (enviar a seguimiento / cancelar / registrar contacto, Fase 6.2) — las 3 se reintegraron al modal con el estilo visual nuevo de chips, en vez de perderse.
+- Efecto colateral: al sacar la prop `defaultCategoryId` (ya no existe en la firma nueva del modal; solo la usaba el `KanbanBoard.tsx` huérfano del Paso 6), hubo que sacarla también de ese único caller para que el proyecto siguiera compilando — `KanbanBoard.tsx` sigue igual de muerto que antes, solo se mantuvo consistente.
+
+### Estado y commits de la Fase 8
+Los 9 pasos están implementados, verificados uno por uno (`tsc -b` + `oxlint` + `npm run build` limpios, y recarga en caliente sin errores de consola en el navegador) y ya en GitHub, en 3 commits:
+```
+7aa262f Grimorio Dual, Oraculo del Tiempo, Salon de Heroes y Editor de Misiones (Gemini Pasos 6-9)
+da2208a Inbox pergamino, Mesa de Estrategia y Sala del Jefe (Gemini Pasos 3, 4, 5)
+236c651 Rebranding Questly + Sidebar shell + Battle HUD inmersivo (Gemini Pasos 1, 1.5, 2)
+```
+El dev server no se cerró entre pasos en esta sesión (a pedido explícito del usuario) — quedó corriendo en `http://localhost:5173` durante toda la sesión.
+
+**Qué falta / candidatos a limpieza**:
+- Código huérfano sin borrar, a la espera de que el usuario confirme que no hace falta: `KanbanBoard.tsx`, `KanbanColumn.tsx`, hooks de CRUD de columnas (`useCreateColumn`, `useKanbanColumns`, `useUpdateColumnPosition`) — todo el sistema de drag-and-drop de las Fases 1/3 — y `Logomark.tsx`.
+- No hay ningún "Paso 10" especificado todavía por Gemini al cierre de esta sesión.
+- No hubo migraciones SQL nuevas en ninguno de los 9 pasos — todo el trabajo fue frontend (React/TS/CSS) sobre el schema ya existente de las Fases 1-7.
+- `PROJECT_SNAPSHOT.md` se regeneró al final de la sesión (`node scripts/generate-project-snapshot.mjs`) para reflejar el estado post-Fase-8, listo para compartir con Gemini de nuevo si trae el Paso 10.

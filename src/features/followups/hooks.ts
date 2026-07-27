@@ -3,14 +3,24 @@ import {
   createFollowUp,
   deleteFollowUp,
   fetchFollowUpForTask,
+  fetchFollowUpLogs,
   fetchFollowUps,
+  logFollowUpContact,
   registerFollowUpContact,
+  resolveFollowUp,
   updateFollowUp,
 } from '@/features/followups/api'
 import { sendTaskToFollowUp } from '@/features/tasks/api'
 
-export function useFollowUps() {
+export function useActiveFollowUps() {
   return useQuery({ queryKey: ['follow-ups'], queryFn: fetchFollowUps })
+}
+
+export function useFollowUpLogs(followUpId: string) {
+  return useQuery({
+    queryKey: ['follow-ups', 'logs', followUpId],
+    queryFn: () => fetchFollowUpLogs(followUpId),
+  })
 }
 
 export function useFollowUpForTask(taskId: string | null) {
@@ -68,6 +78,31 @@ export function useSendToFollowUp() {
       })
       await sendTaskToFollowUp(input.taskId)
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['follow-ups'] })
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+    },
+  })
+}
+
+// "Registrar Contacto" — Pacto de Custodia (Fase 8, Paso 10).
+export function useLogFollowUpContact() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: logFollowUpContact,
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['follow-ups'] })
+      queryClient.invalidateQueries({ queryKey: ['follow-ups', 'logs', variables.followUpId] })
+    },
+  })
+}
+
+// "Resolver Éxito" — libera la tarea al Grimorio y marca el follow-up
+// como resuelto (no lo borra, conserva su bitácora).
+export function useResolveFollowUp() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: resolveFollowUp,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['follow-ups'] })
       queryClient.invalidateQueries({ queryKey: ['tasks'] })

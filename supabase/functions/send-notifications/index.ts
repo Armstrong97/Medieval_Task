@@ -78,6 +78,7 @@ Deno.serve(async () => {
   const { data: followUps, error: followUpsError } = await supabase
     .from('follow_ups')
     .select('user_id, task_id, stakeholder_name, next_reminder_at')
+    .is('resolved_at', null)
     .lte('next_reminder_at', now.toISOString())
   if (followUpsError) throw followUpsError
 

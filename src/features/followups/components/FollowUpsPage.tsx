@@ -1,103 +1,86 @@
 import { useState } from 'react'
-import { format, isPast } from 'date-fns'
-import { Check } from 'lucide-react'
-import { useFollowUps, useRegisterFollowUpContact } from '@/features/followups/hooks'
-import { useCategories } from '@/features/projects/hooks'
-import { useCompleteTask, useTasksByIds } from '@/features/tasks/hooks'
-import { TaskModal } from '@/features/tasks/components/TaskModal'
-import type { Task } from '@/types/database.types'
+import { isPast } from 'date-fns'
+import { Flame, Shield } from 'lucide-react'
+import { useActiveFollowUps } from '@/features/followups/hooks'
+import { useTasksByIds } from '@/features/tasks/hooks'
+import { FollowUpCard } from '@/features/followups/components/FollowUpCard'
 
 export function FollowUpsPage() {
-  const { data: followUps, isLoading } = useFollowUps()
-  const { data: categories } = useCategories()
+  const { data: followUps, isLoading } = useActiveFollowUps()
   const { data: tasks } = useTasksByIds(followUps?.map((f) => f.task_id) ?? [])
-  const registerContact = useRegisterFollowUpContact()
-  const completeTask = useCompleteTask()
-  const [editingTask, setEditingTask] = useState<Task | null>(null)
+
+  // Estado local para manejar las animaciones de desaparición: el follow-up
+  // sigue en la lista (para que se vea el destello) hasta que la mutation
+  // real invalida la query y desaparece solo en el próximo fetch.
+  const [resolvingIds, setResolvingIds] = useState<Set<string>>(new Set())
 
   const rows = (followUps ?? [])
     .map((followUp) => ({ followUp, task: tasks?.find((t) => t.id === followUp.task_id) }))
     .filter((row) => row.task && row.task.status !== 'done')
 
+  const overdueCount = rows.filter((r) => isPast(new Date(r.followUp.next_reminder_at))).length
+  const waitingCount = rows.length - overdueCount
+
+  function handleResolvedLocally(id: string) {
+    setResolvingIds((prev) => {
+      const next = new Set(prev)
+      next.add(id)
+      return next
+    })
+  }
+
   return (
-    <div className="mx-auto max-w-2xl p-6">
-      <h1 className="font-display text-lg font-semibold tracking-tight text-fg">
-        Follow-ups activos
-      </h1>
-      <p className="mt-1 text-sm text-fg-muted">Ordenados por próximo recordatorio.</p>
-
-      {isLoading && <p className="mt-4 text-sm text-fg-muted">Cargando…</p>}
-
-      {!isLoading && rows.length === 0 && (
-        <p className="mt-4 text-sm text-fg-muted">
-          No hay follow-ups activos. Enviá una tarea a Follow-up desde su tarjeta en el Kanban o
-          desde su modal.
+    <div className="mx-auto max-w-5xl px-4 py-8 md:px-8">
+      {/* Header Titular y Badges */}
+      <header className="mb-10">
+        <h1 className="mb-2 font-display text-3xl font-black uppercase tracking-widest text-accent md:text-4xl">
+          PACTO DE CUSTODIA — SEGUIMIENTOS
+        </h1>
+        <p className="mb-6 font-mono text-xs italic text-fg-muted/60">
+          Misiones delegadas o dependientes de aliados y emisarios.
         </p>
-      )}
 
-      <ul className="mt-4 flex flex-col gap-2">
-        {rows.map(({ followUp, task }) => {
-          const category = categories?.find((c) => c.id === task!.category_id)
-          const due = isPast(new Date(followUp.next_reminder_at))
-          return (
-            <li
+        <div className="flex flex-wrap gap-4">
+          <div className="flex items-center gap-3 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2">
+            <Flame className="h-5 w-5 text-red-500" />
+            <span className="font-mono text-xs font-bold uppercase text-red-400">
+              {overdueCount} Necesitan Contacto Hoy
+            </span>
+          </div>
+          <div className="flex items-center gap-3 rounded-lg border border-sky-500/30 bg-sky-500/10 px-4 py-2">
+            <Shield className="h-5 w-5 text-sky-400" />
+            <span className="font-mono text-xs font-bold uppercase text-sky-400">
+              {waitingCount} En Espera Paciente
+            </span>
+          </div>
+        </div>
+      </header>
+
+      {/* Renderizado de Tarjetas (Grid 2 Columnas) */}
+      <main className="grid grid-cols-1 gap-8 md:grid-cols-2">
+        {isLoading ? (
+          <p className="col-span-full py-12 text-center font-mono text-xs text-fg-muted">
+            Desenrollando pergaminos de custodia...
+          </p>
+        ) : rows.length === 0 ? (
+          <div className="col-span-full py-16 text-center opacity-40">
+            <span className="mb-4 block text-5xl">🕊️</span>
+            <p className="font-display text-lg uppercase tracking-widest">
+              No hay pactos pendientes de respuesta.
+            </p>
+          </div>
+        ) : (
+          rows.map(({ followUp, task }) => (
+            <FollowUpCard
               key={followUp.id}
-              className={`flex items-center gap-3 rounded-lg border p-3 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md ${
-                due ? 'border-warn-border bg-warn-bg' : 'border-dashed border-fg-muted/40 bg-surface'
-              }`}
-            >
-              <button
-                type="button"
-                onClick={() => setEditingTask(task!)}
-                className="flex-1 text-left"
-              >
-                <p className="flex items-center gap-1.5 text-sm font-medium text-fg">
-                  <span title="En seguimiento">👁️</span> {task!.title}
-                </p>
-                <p className="mt-0.5 flex items-center gap-2 font-mono text-xs text-fg-muted">
-                  {category && (
-                    <span className="inline-flex items-center gap-1">
-                      <span
-                        className="h-1.5 w-1.5 rounded-full"
-                        style={{ backgroundColor: category.color_hex }}
-                      />
-                      {category.name}
-                    </span>
-                  )}
-                  {followUp.stakeholder_name && <span>· {followUp.stakeholder_name}</span>}
-                  <span>· próximo: {format(new Date(followUp.next_reminder_at), 'd MMM')}</span>
-                </p>
-              </button>
-              <button
-                type="button"
-                onClick={() => registerContact.mutate(followUp.id)}
-                className="shrink-0 rounded-md border border-border px-2 py-1 text-xs text-fg-muted transition-all duration-150 hover:border-accent/40 hover:bg-surface-2 hover:text-accent active:scale-95"
-              >
-                Registrar contacto
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  completeTask.mutate({ id: task!.id, project_id: task!.project_id })
-                }
-                title="Completar tarea"
-                className="flex shrink-0 items-center gap-1 rounded-md bg-accent px-2 py-1 text-xs font-medium text-accent-fg transition-all duration-150 hover:shadow-[0_0_14px_rgba(217,169,74,0.45)] active:scale-95"
-              >
-                <Check className="h-3.5 w-3.5" />
-              </button>
-            </li>
-          )
-        })}
-      </ul>
-
-      {editingTask && (
-        <TaskModal
-          task={editingTask}
-          defaultProjectId={editingTask.project_id}
-          defaultKanbanColumnId=""
-          onClose={() => setEditingTask(null)}
-        />
-      )}
+              followUp={followUp}
+              task={task!}
+              onResolvedLocally={handleResolvedLocally}
+              isResolvingLocally={resolvingIds.has(followUp.id)}
+            />
+          ))
+        )}
+      </main>
     </div>
   )
 }

@@ -935,3 +935,79 @@ body {
     transition: none;
   }
 }
+
+/* Tarjeta de Pacto de Custodia — ver FollowUpCard.tsx */
+.follow-up-card {
+  background: linear-gradient(165deg, var(--surface) 0%, var(--surface-2) 100%);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--sky-pact, #38bdf8);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.follow-up-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 30px -5px rgba(56, 189, 248, 0.2);
+  border-left-width: 8px;
+}
+
+/* Medidor de Insistencia (Puntos de Intento) */
+.insistence-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.insistence-dot.active {
+  background: #22c55e;
+  box-shadow: 0 0 8px #22c55e;
+  border-color: #4ade80;
+}
+
+.insistence-dot.warning {
+  background: #ef4444;
+  box-shadow: 0 0 8px #ef4444;
+  border-color: #f87171;
+}
+
+/* Acordeón de Bitácora Histórica */
+.bitacora-accordion {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease-out;
+}
+
+.bitacora-accordion.open {
+  max-height: 600px;
+}
+
+/* Modal Pergamino de Registro */
+.modal-parchment-log {
+  background: #f4e4bc;
+  color: #2d241e;
+  box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+  border: 8px solid #2d241e;
+}
+
+/* Animación de Resolución de Follow-Up */
+.animate-success-glow {
+  animation: successFollowUp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes successFollowUp {
+  0% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(1.05); filter: brightness(1.5) saturate(1.5); }
+  100% { transform: scale(0.9); opacity: 0; filter: brightness(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .follow-up-card,
+  .insistence-dot,
+  .bitacora-accordion,
+  .animate-success-glow {
+    animation: none;
+    transition: none;
+  }
+}

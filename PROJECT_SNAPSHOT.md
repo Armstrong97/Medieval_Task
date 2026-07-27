@@ -43,7 +43,9 @@
 │   │   │   └── hooks.ts
 │   │   ├── calendar
 │   │   │   └── components
-│   │   │       └── CalendarPage.tsx
+│   │   │       ├── CalendarHeatmapView.tsx
+│   │   │       ├── CalendarPage.tsx
+│   │   │       └── CalendarTimelineView.tsx
 │   │   ├── followups
 │   │   │   ├── api.ts
 │   │   │   ├── components
@@ -53,6 +55,7 @@
 │   │   │   ├── api.ts
 │   │   │   ├── components
 │   │   │   │   ├── AchievementWatcher.tsx
+│   │   │   │   ├── ClassDetailModal.tsx
 │   │   │   │   ├── LootShowcase.tsx
 │   │   │   │   └── ProgressPage.tsx
 │   │   │   └── hooks.ts
@@ -63,6 +66,8 @@
 │   │   ├── kanban
 │   │   │   ├── api.ts
 │   │   │   ├── components
+│   │   │   │   ├── GrimorioAccordionView.tsx
+│   │   │   │   ├── GrimorioTabsView.tsx
 │   │   │   │   ├── KanbanBoard.tsx
 │   │   │   │   ├── KanbanColumn.tsx
 │   │   │   │   └── KanbanPage.tsx
@@ -93,7 +98,6 @@
 │   │   └── triage
 │   │       ├── api.ts
 │   │       ├── components
-│   │       │   ├── DirectEquipToggle.tsx
 │   │       │   ├── InboxCardDeck.tsx
 │   │       │   ├── StrategyTablePage.tsx
 │   │       │   └── WeaponSelector.tsx
@@ -161,8 +165,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#faf9f6" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)" />
-    <meta name="description" content="Productividad personal con gamification tipo RPG" />
-    <title>Productividad RPG</title>
+    <meta name="description" content="Questly — Sistema de productividad personal y RPG táctico amigable con TDAH." />
+    <title>Questly | Maneja tus misiones</title>
   </head>
   <body>
     <div id="root"></div>
@@ -431,6 +435,13 @@ const TARGETS = [
   { path: 'public/assets/rpg/bosses/dragon.png', size: 512 },
   { path: 'public/assets/rpg/bosses/lich.png', size: 512 },
   { path: 'public/assets/rpg/loot/chest.png', size: 256 },
+  { path: 'public/assets/rpg/nav/combat.png', size: 256 },
+  { path: 'public/assets/rpg/nav/inbox.png', size: 256 },
+  { path: 'public/assets/rpg/nav/strategy.png', size: 256 },
+  { path: 'public/assets/rpg/nav/grimoire.png', size: 256 },
+  { path: 'public/assets/rpg/nav/calendar.png', size: 256 },
+  { path: 'public/assets/rpg/nav/progress.png', size: 256 },
+  { path: 'public/assets/rpg/nav/followups.png', size: 256 },
 ]
 
 for (const { path, size } of TARGETS) {
@@ -466,35 +477,33 @@ export default App
 ### src/app/Layout.tsx
 
 ```tsx
-import { NavLink, Outlet } from 'react-router-dom'
-import {
-  Calendar,
-  Columns3,
-  Flame,
-  Inbox as InboxIcon,
-  Link2,
-  ListChecks,
-  Shield,
-  Swords,
-  Trophy,
-} from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Flame, Shield, Swords } from 'lucide-react'
 import { useStreak } from '@/features/gamification/hooks'
 import { NotificationBell } from '@/features/notifications/components/NotificationBell'
 import { FocusFloatButton } from '@/features/tasks/components/FocusFloat'
 import { FocusFloatProvider } from '@/features/tasks/FocusFloatContext'
 import { ProfileMenu } from '@/features/auth/components/ProfileMenu'
-import { Logomark } from '@/components/ui/Logomark'
 import { AmbientBackground } from '@/components/ui/AmbientBackground'
 import { AchievementWatcher } from '@/features/gamification/components/AchievementWatcher'
+import { NAV_ICONS, type NavIconKey } from '@/utils/rpgAssets'
 
-const navItems = [
-  { to: '/', label: 'Combate', icon: Swords, end: true },
-  { to: '/inbox', label: 'Inbox', icon: InboxIcon },
-  { to: '/triage', label: 'Estrategia', icon: ListChecks },
-  { to: '/kanban', label: 'Kanban', icon: Columns3 },
-  { to: '/calendario', label: 'Calendario', icon: Calendar },
-  { to: '/progreso', label: 'Progreso', icon: Trophy },
-  { to: '/follow-ups', label: 'Follow-ups', icon: Link2 },
+interface NavItem {
+  to: string
+  label: string
+  iconKey: NavIconKey
+  end?: boolean
+}
+
+const navItems: NavItem[] = [
+  { to: '/', label: 'Combate', iconKey: 'combat', end: true },
+  { to: '/inbox', label: 'Inbox', iconKey: 'inbox' },
+  { to: '/triage', label: 'Estrategia', iconKey: 'strategy' },
+  { to: '/kanban', label: 'Grimorio', iconKey: 'grimoire' },
+  { to: '/calendario', label: 'Calendario', iconKey: 'calendar' },
+  { to: '/progreso', label: 'Progreso', iconKey: 'progress' },
+  { to: '/follow-ups', label: 'Follow-ups', iconKey: 'followups' },
 ]
 
 function StreakIndicator() {
@@ -502,14 +511,17 @@ function StreakIndicator() {
   if (!streak) return null
 
   return (
-    <NavLink to="/progreso" className="flex shrink-0 items-center gap-2 text-sm text-fg-muted">
-      <span className="flex items-center gap-1 font-mono">
-        <Flame className="h-4 w-4 text-accent" />
-        {streak.current_streak_days}
+    <NavLink
+      to="/progreso"
+      className="hidden items-center gap-2 rounded-full border border-border bg-surface-2/80 px-3 py-1 font-mono text-xs text-fg-muted sm:flex"
+    >
+      <span className="flex items-center gap-1 font-bold text-accent">
+        <Flame className="h-3.5 w-3.5 text-accent animate-pulse" />
+        {streak.current_streak_days} DÍAS
       </span>
       {streak.shields_available > 0 && (
-        <span className="flex items-center gap-1 font-mono">
-          <Shield className="h-3.5 w-3.5 fill-sky-500 text-sky-500" />
+        <span className="flex items-center gap-1 text-sky-400">
+          <Shield className="h-3 w-3 fill-sky-400" />
           {streak.shields_available}
         </span>
       )}
@@ -518,42 +530,121 @@ function StreakIndicator() {
 }
 
 export function Layout() {
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const location = useLocation()
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setSidebarOpen(false)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
+  useEffect(() => {
+    setSidebarOpen(false)
+  }, [location.pathname])
+
+  const currentItem = navItems.find((item) =>
+    item.end ? location.pathname === item.to : location.pathname.startsWith(item.to) && item.to !== '/',
+  )
+  const pageTitle = currentItem?.label ?? 'Combate'
+
   return (
     <FocusFloatProvider>
       <div className="min-h-dvh text-fg">
         <AmbientBackground />
         <AchievementWatcher />
-        <nav className="flex items-center gap-4 border-b border-border bg-surface/90 px-4 py-2.5 backdrop-blur-sm">
-          <NavLink to="/" className="shrink-0">
-            <Logomark className="h-7 w-7" />
-          </NavLink>
 
-          <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto">
+        {/* Top Header Minimalista */}
+        <header className="fixed top-0 left-0 z-30 flex h-16 w-full items-center justify-between border-b border-border bg-bg/85 px-4 backdrop-blur-md sm:px-6">
+          <div className="flex items-center gap-3">
+            {/* Botón Hamburguesa Rúnico */}
+            <button
+              type="button"
+              onClick={() => setSidebarOpen((v) => !v)}
+              aria-label="Abrir Menú del Héroe"
+              className="group flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-surface/50 transition-all hover:border-accent active:scale-90"
+            >
+              <Swords className="h-5 w-5 text-accent transition-transform group-hover:rotate-12" />
+            </button>
+
+            {/* Identidad en Header */}
+            <div className="flex items-center gap-2">
+              <span className="font-display text-xl font-black tracking-tight text-accent drop-shadow-[0_0_8px_rgba(217,169,74,0.3)]">
+                QUESTLY
+              </span>
+              <span className="select-none font-light text-border">|</span>
+              <span className="font-display text-xs tracking-widest uppercase text-fg-muted">
+                {pageTitle}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <StreakIndicator />
+            <FocusFloatButton />
+            <NotificationBell />
+            <ProfileMenu />
+          </div>
+        </header>
+
+        {/* Overlay con Backdrop Blur (Aislamiento TDAH) */}
+        {sidebarOpen && (
+          <div
+            className="sidebar-overlay"
+            onClick={() => setSidebarOpen(false)}
+            aria-hidden="true"
+          />
+        )}
+
+        {/* Sidebar Lateral Flotante */}
+        <aside
+          className={`sidebar-panel fixed top-0 left-0 z-50 flex h-full flex-col pt-20 pb-6 transition-transform duration-300 ${
+            sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+        >
+          <div className="mb-6 px-6">
+            <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent/60">
+              Menú del Héroe
+            </p>
+          </div>
+
+          <nav className="flex-1 space-y-1 px-2">
             {navItems.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 end={item.end}
                 className={({ isActive }) =>
-                  `flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors ${
-                    isActive ? 'bg-accent/10 text-accent' : 'text-fg-muted hover:text-fg'
+                  `nav-item-link flex items-center gap-3.5 rounded-r-xl px-5 py-3 text-sm font-medium transition-all ${
+                    isActive ? 'active' : 'text-fg-muted'
                   }`
                 }
               >
-                <item.icon className="h-4 w-4" />
-                {item.label}
+                <img
+                  src={NAV_ICONS[item.iconKey]}
+                  alt=""
+                  className="h-6 w-6 object-contain drop-shadow-[0_0_4px_rgba(0,0,0,0.5)]"
+                />
+                <span className="nav-label font-display text-xs tracking-wider uppercase">
+                  {item.label}
+                </span>
               </NavLink>
             ))}
-          </div>
+          </nav>
 
-          <div className="flex shrink-0 items-center gap-3">
-            <FocusFloatButton />
-            <NotificationBell />
-            <StreakIndicator />
-            <ProfileMenu />
+          <div className="mt-auto border-t border-border/40 px-6 pt-4">
+            <p className="font-mono text-[9px] tracking-tight uppercase text-fg-muted/50">
+              QUESTLY v4.0.1 · MISIONES ACTIVAS
+            </p>
           </div>
-        </nav>
-        <Outlet />
+        </aside>
+
+        {/* Contenido Principal con Offset para el Header */}
+        <main className="pt-16">
+          <Outlet />
+        </main>
       </div>
     </FocusFloatProvider>
   )
@@ -706,7 +797,6 @@ export const router = createBrowserRouter([
           { path: 'inbox', element: <InboxPage /> },
           { path: 'triage', element: <StrategyTablePage /> },
           { path: 'kanban', element: <KanbanPage /> },
-          { path: 'kanban/:projectId', element: <KanbanPage /> },
           { path: 'calendario', element: <CalendarPage /> },
           { path: 'progreso', element: <ProgressPage /> },
           { path: 'follow-ups', element: <FollowUpsPage /> },
@@ -983,21 +1073,21 @@ import { useState, type FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/features/auth/AuthProvider'
-import { Logomark } from '@/components/ui/Logomark'
 import { AmbientBackground } from '@/components/ui/AmbientBackground'
 
-type Mode = 'magic-link' | 'password-in' | 'password-up'
+type Mode = 'magic' | 'password' | 'signup'
 
 export function LoginPage() {
   const { session, loading: sessionLoading } = useAuth()
-  const [mode, setMode] = useState<Mode>('magic-link')
+  const [mode, setMode] = useState<Mode>('magic')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [heroName, setHeroName] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState<{ kind: 'info' | 'error'; text: string } | null>(null)
 
   if (!sessionLoading && session) {
-    return <Navigate to="/inbox" replace />
+    return <Navigate to="/" replace />
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -1006,25 +1096,32 @@ export function LoginPage() {
     setMessage(null)
 
     try {
-      if (mode === 'magic-link') {
+      if (mode === 'magic') {
         const { error } = await supabase.auth.signInWithOtp({
           email,
           options: { emailRedirectTo: window.location.origin },
         })
         if (error) throw error
-        setMessage({ kind: 'info', text: 'Revisa tu correo — te mandamos un enlace para entrar.' })
-      } else if (mode === 'password-in') {
+        setMessage({ kind: 'info', text: '¡Enlace de acceso enviado al pergamino de correo!' })
+      } else if (mode === 'password') {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
       } else {
-        const { error } = await supabase.auth.signUp({ email, password })
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { hero_name: heroName.trim() } },
+        })
         if (error) throw error
-        setMessage({ kind: 'info', text: 'Cuenta creada — revisa tu correo si pide confirmación, luego inicia sesión.' })
+        setMessage({
+          kind: 'info',
+          text: 'Tu leyenda comienza ahora. Cuenta creada — revisa tu correo si requiere confirmación.',
+        })
       }
     } catch (err) {
       setMessage({
         kind: 'error',
-        text: err instanceof Error ? err.message : 'Algo no salió bien, probá de nuevo.',
+        text: err instanceof Error ? err.message : 'Algo no salió bien en el hechizo, probá de nuevo.',
       })
     } finally {
       setSubmitting(false)
@@ -1032,91 +1129,150 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-bg p-4">
+    <div className="relative flex min-h-dvh w-full flex-col items-center justify-center overflow-hidden bg-bg px-4 py-8 text-fg">
       <AmbientBackground />
-      <div className="relative w-full max-w-sm rounded-lg border border-border bg-surface p-6 shadow-xl">
-        <div className="flex items-center gap-2.5">
-          <Logomark className="h-9 w-9" />
-          <h1 className="font-display text-lg font-semibold tracking-tight text-fg">
-            Productividad RPG
+
+      <main className="relative z-10 flex w-full max-w-md flex-col items-center">
+        {/* Header Identidad Questly */}
+        <header className="mb-8 text-center">
+          <div className="mb-3 flex justify-center">
+            <div className="h-16 w-16">
+              <svg className="glyph-glow h-full w-full" viewBox="0 0 100 100" fill="none">
+                <path d="M50 5L90 30V70L50 95L10 70V30L50 5Z" stroke="#d9a94a" strokeWidth="2" />
+                <path d="M50 20V80M30 40H70M40 70L60 70" stroke="#d9a94a" strokeWidth="4" strokeLinecap="round" />
+                <circle cx="50" cy="50" r="5" fill="#d9a94a" />
+              </svg>
+            </div>
+          </div>
+          <h1 className="font-display text-4xl font-black tracking-tight text-accent drop-shadow-[0_0_10px_rgba(217,169,74,0.3)] sm:text-5xl">
+            QUESTLY
           </h1>
-        </div>
-
-        <div className="mt-5 flex gap-1 rounded-md bg-surface-2 p-1">
-          {(
-            [
-              { key: 'magic-link', label: 'Enlace mágico' },
-              { key: 'password-in', label: 'Contraseña' },
-              { key: 'password-up', label: 'Crear cuenta' },
-            ] as const
-          ).map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => {
-                setMode(tab.key)
-                setMessage(null)
-              }}
-              className={`flex-1 rounded px-2 py-1.5 text-sm font-medium transition-colors ${
-                mode === tab.key ? 'bg-surface text-fg shadow-sm' : 'text-fg-muted hover:text-fg'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3">
-          <label className="flex flex-col gap-1 text-sm text-fg-muted">
-            Email
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="rounded-md border border-border bg-surface-2 px-3 py-1.5 text-fg outline-none focus:border-accent"
-              placeholder="tu@email.com"
-            />
-          </label>
-
-          {mode !== 'magic-link' && (
-            <label className="flex flex-col gap-1 text-sm text-fg-muted">
-              Contraseña
-              <input
-                type="password"
-                required
-                minLength={6}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="rounded-md border border-border bg-surface-2 px-3 py-1.5 text-fg outline-none focus:border-accent"
-                placeholder="••••••••"
-              />
-            </label>
-          )}
-
-          <button
-            type="submit"
-            disabled={submitting}
-            className="mt-1 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-fg transition-all duration-150 hover:shadow-[0_4px_24px_rgba(240,195,100,0.45)] hover:-translate-y-px active:scale-[0.97] disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none"
-          >
-            {submitting
-              ? 'Un momento…'
-              : mode === 'magic-link'
-                ? 'Enviar enlace'
-                : mode === 'password-in'
-                  ? 'Entrar'
-                  : 'Crear cuenta'}
-          </button>
-        </form>
-
-        {message && (
-          <p
-            className={`mt-3 text-sm ${message.kind === 'error' ? 'text-warn-fg' : 'text-fg-muted'}`}
-          >
-            {message.text}
+          <p className="mt-1 font-display text-xs font-semibold uppercase tracking-[0.2em] text-fg-muted">
+            Maneja tus misiones. Conquista el caos.
           </p>
-        )}
-      </div>
+        </header>
+
+        {/* Grimoire Card Container */}
+        <section className="grimoire-card w-full overflow-hidden rounded-xl border border-border bg-surface">
+          {/* Tabs Selector */}
+          <nav className="flex border-b border-border">
+            {(
+              [
+                { key: 'magic', label: 'Enlace Mágico' },
+                { key: 'password', label: 'Contraseña' },
+                { key: 'signup', label: 'Crear Cuenta' },
+              ] as const
+            ).map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => {
+                  setMode(tab.key)
+                  setMessage(null)
+                }}
+                className={`flex-1 py-3.5 font-mono text-[11px] uppercase tracking-widest transition-all ${
+                  mode === tab.key
+                    ? 'tab-active font-semibold'
+                    : 'text-fg-muted/60 hover:text-fg'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+
+          {/* Form Content */}
+          <div className="p-6 sm:p-8">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+              {mode === 'signup' && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="font-mono text-[10px] font-bold uppercase tracking-widest text-accent/90">
+                    Nombre de Héroe
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej: Galahad"
+                    value={heroName}
+                    onChange={(e) => setHeroName(e.target.value)}
+                    className="input-parchment w-full rounded-md px-4 py-2.5 text-sm text-fg"
+                  />
+                </div>
+              )}
+
+              <div className="flex flex-col gap-1.5">
+                <label className="font-mono text-[10px] font-bold uppercase tracking-widest text-accent/90">
+                  {mode === 'password' ? 'Correo Electrónico' : 'Dirección de Correo'}
+                </label>
+                <input
+                  type="email"
+                  required
+                  placeholder="caballero@reino.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="input-parchment w-full rounded-md px-4 py-2.5 text-sm text-fg"
+                />
+              </div>
+
+              {mode !== 'magic' && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="font-mono text-[10px] font-bold uppercase tracking-widest text-accent/90">
+                    Palabra Secreta
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    minLength={6}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="input-parchment w-full rounded-md px-4 py-2.5 text-sm text-fg"
+                  />
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={submitting}
+                className="btn-prime mt-2 w-full rounded-md py-3.5 font-display text-base tracking-wider disabled:opacity-60"
+              >
+                {submitting
+                  ? 'Invocando…'
+                  : mode === 'magic'
+                    ? 'Enviar Enlace'
+                    : mode === 'password'
+                      ? 'Entrar a la Taberna'
+                      : 'Forjar Destino'}
+              </button>
+
+              {mode === 'magic' && (
+                <p className="text-center font-mono text-[10px] uppercase tracking-wider text-fg-muted/50">
+                  Sin contraseñas, solo magia.
+                </p>
+              )}
+            </form>
+
+            {message && (
+              <div
+                className={`mt-4 rounded-md border p-3 text-center text-xs font-medium ${
+                  message.kind === 'error'
+                    ? 'border-warn-border bg-warn-bg text-warn-fg'
+                    : 'border-accent/40 bg-accent/10 text-accent'
+                }`}
+              >
+                {message.text}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Footer info */}
+        <footer className="mt-8 text-center opacity-40 transition-opacity hover:opacity-100">
+          <p className="font-mono text-[10px] tracking-tighter text-fg-muted">
+            QUESTLY v4.0.1 — SOFTWARE DE GESTIÓN ÉPICA
+          </p>
+        </footer>
+      </main>
     </div>
   )
 }
@@ -1227,20 +1383,20 @@ export async function unequipTaskFromSlot(taskId: string): Promise<Task> {
 ```tsx
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Flame, ScrollText, Zap } from 'lucide-react'
+import { Flame, ScrollText, Shield, Zap } from 'lucide-react'
 import { useHudTasks } from '@/features/battle-hud/hooks'
 import { useCategories } from '@/features/projects/hooks'
 import { useCategoryXp, useClassRanks, useStreak } from '@/features/gamification/hooks'
-import { CategoryIcon } from '@/utils/categoryIcon'
 import { CombatSlotCard } from '@/features/battle-hud/components/CombatSlotCard'
 import { EmptySlotCard } from '@/features/battle-hud/components/EmptySlotCard'
 import { GrimorioDrawer } from '@/features/battle-hud/components/GrimorioDrawer'
 import { TaskModal } from '@/features/tasks/components/TaskModal'
+import { bossAvatarSrc } from '@/utils/rpgAssets'
 import type { Task } from '@/types/database.types'
 
-const SLOTS = [1, 2, 3];
+const SLOTS = [1, 2, 3]
 
-function PlayerSummary() {
+function PlayerSummaryHeader() {
   const { data: categories } = useCategories()
   const { data: categoryXp } = useCategoryXp()
   const { data: classRanks } = useClassRanks()
@@ -1259,30 +1415,52 @@ function PlayerSummary() {
     classRanks?.find((r) => r.category_id === dominant?.category_id && r.rank_order === 1)
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <h1 className="font-display text-xl font-bold tracking-wide text-fg">
-          Dashboard de Enfrentamiento
-        </h1>
-        {dominantCategory && dominant && (
-          <p className="mt-1 flex items-center gap-1.5 text-sm">
-            <CategoryIcon
-              iconName={dominantCategory.icon_name}
-              className="h-4 w-4"
-              style={{ color: dominantCategory.color_hex }}
+    <header className="mb-10 flex flex-col items-center justify-between gap-6 rounded-2xl border border-border bg-surface/40 p-6 backdrop-blur-md md:flex-row">
+      <div className="flex items-center gap-5">
+        <div className="relative">
+          <div className="h-16 w-16 rounded-full border-2 border-accent bg-surface-2 p-1 shadow-[0_0_12px_rgba(217,169,74,0.3)]">
+            <img
+              src={bossAvatarSrc('dragon_default')}
+              className="h-full w-full rounded-full object-cover"
+              alt="Avatar del Héroe"
             />
-            <span className="font-display font-medium" style={{ color: dominantCategory.color_hex }}>
-              {dominantRank?.rank_name ?? dominantCategory.class_name}
+          </div>
+          <div className="absolute -bottom-1 -right-1 rounded border border-bg bg-accent px-1.5 font-mono text-[10px] font-black text-accent-fg">
+            NV. {dominant?.current_level ?? 1}
+          </div>
+        </div>
+
+        <div>
+          <h1 className="font-display text-2xl font-black uppercase tracking-tight text-accent drop-shadow-[0_0_10px_rgba(217,169,74,0.4)]">
+            {dominantRank?.rank_name ?? dominantCategory?.class_name ?? 'Héroe de Questly'}
+          </h1>
+          <div className="mt-1 flex items-center gap-3">
+            <span className="font-mono text-xs uppercase tracking-widest text-fg-muted">
+              Clase: {dominantCategory?.name ?? 'Aventurero'}
             </span>
-            <span className="font-mono text-xs text-fg-muted">· Nv. {dominant.current_level}</span>
-          </p>
-        )}
+            <span className="h-1 w-1 rounded-full bg-border" />
+            <span className="flex items-center gap-1 font-mono text-xs font-bold text-sky-400">
+              <Shield className="h-3.5 w-3.5 fill-sky-400" />
+              {streak?.shields_available ?? 0} ESCUDOS
+            </span>
+          </div>
+        </div>
       </div>
-      <span className="flex items-center gap-1.5 font-mono text-sm text-fg-muted">
-        <Flame className="h-4 w-4 text-accent" />
-        {streak?.current_streak_days ?? 0} <span className="text-xs">días</span>
-      </span>
-    </div>
+
+      <div className="flex items-center gap-6">
+        <div className="text-center">
+          <p className="mb-1 font-mono text-[10px] uppercase text-fg-muted/60">
+            Racha Actual
+          </p>
+          <div className="flex items-center gap-2 rounded-xl border border-accent/20 bg-accent/10 px-4 py-2">
+            <Flame className="h-5 w-5 text-accent animate-bounce" />
+            <span className="font-display text-lg font-bold text-accent">
+              {streak?.current_streak_days ?? 0} DÍAS
+            </span>
+          </div>
+        </div>
+      </div>
+    </header>
   )
 }
 
@@ -1292,41 +1470,61 @@ export function BattleHudPage() {
   const [editingTask, setEditingTask] = useState<Task | null>(null)
 
   return (
-    <div className="mx-auto max-w-5xl p-6">
-      <PlayerSummary />
+    <div className="mx-auto max-w-6xl px-4 py-8 md:px-8">
+      <PlayerSummaryHeader />
 
       {isLoading ? (
-        <p className="mt-6 text-sm text-fg-muted">Cargando…</p>
+        <p className="py-12 text-center font-mono text-sm text-fg-muted">
+          Cargando mesa de combate…
+        </p>
       ) : (
-        <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+        <main className="mb-12 grid grid-cols-1 gap-8 md:grid-cols-3">
           {SLOTS.map((slot) => {
             const task = hudTasks?.find((t) => t.hud_slot === slot)
             return task ? (
-              <CombatSlotCard key={slot} task={task} onOpenTask={setEditingTask} />
+              <CombatSlotCard
+                key={task.id}
+                task={task}
+                onOpenTask={setEditingTask}
+              />
             ) : (
-              <EmptySlotCard key={slot} slot={slot} onEquip={() => setDrawerSlot(slot)} />
+              <EmptySlotCard
+                key={slot}
+                slot={slot}
+                onEquip={() => setDrawerSlot(slot)}
+              />
             )
           })}
-        </div>
+        </main>
       )}
 
-      <div className="mt-6 flex flex-wrap gap-2">
+      {/* Acceso Rápido Inferior */}
+      <footer className="mx-auto flex max-w-xl justify-center gap-4">
         <Link
           to="/kanban"
-          className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm font-medium text-fg-muted transition-colors hover:border-accent/40 hover:text-fg"
+          className="group flex flex-1 items-center justify-center gap-3 rounded-xl border border-border bg-surface/80 py-4 transition-all hover:border-accent"
         >
-          <ScrollText className="h-4 w-4" /> Abrir Grimorio
+          <ScrollText className="h-5 w-5 text-fg-muted transition-colors group-hover:text-accent" />
+          <span className="font-display text-xs font-bold uppercase tracking-widest text-fg-muted transition-colors group-hover:text-fg">
+            Abrir Grimorio
+          </span>
         </Link>
         <Link
           to="/inbox"
-          className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm font-medium text-fg-muted transition-colors hover:border-accent/40 hover:text-fg"
+          className="group flex flex-1 items-center justify-center gap-3 rounded-xl border border-border bg-surface/80 py-4 transition-all hover:border-accent"
         >
-          <Zap className="h-4 w-4" /> Captura rápida
+          <Zap className="h-5 w-5 text-accent" />
+          <span className="font-display text-xs font-bold uppercase tracking-widest text-fg-muted transition-colors group-hover:text-fg">
+            Captura Rápida
+          </span>
         </Link>
-      </div>
+      </footer>
 
       {drawerSlot !== null && (
-        <GrimorioDrawer slot={drawerSlot} onClose={() => setDrawerSlot(null)} />
+        <GrimorioDrawer
+          slot={drawerSlot}
+          onClose={() => setDrawerSlot(null)}
+        />
       )}
 
       {editingTask && (
@@ -1346,7 +1544,7 @@ export function BattleHudPage() {
 
 ```tsx
 import { useState } from 'react'
-import { Check, MoreVertical, PictureInPicture2 } from 'lucide-react'
+import { MoreVertical, PictureInPicture2, Swords } from 'lucide-react'
 import { useCategories } from '@/features/projects/hooks'
 import { useCompleteTask, useSubtasks } from '@/features/tasks/hooks'
 import { useFocusFloat } from '@/features/tasks/FocusFloatContext'
@@ -1355,7 +1553,7 @@ import { useUnequipHudSlot } from '@/features/battle-hud/hooks'
 import { WEAPON_ICONS } from '@/utils/rpgAssets'
 import type { Task, TaskSize } from '@/types/database.types'
 
-const DIFFICULTY_BADGE: Record<TaskSize, { label: string; xp: number }> = {
+const DIFFICULTY_LABEL: Record<TaskSize, { label: string; xp: number }> = {
   small: { label: 'Daga', xp: 10 },
   medium: { label: 'Espada', xp: 25 },
   large: { label: 'Mandoble', xp: 50 },
@@ -1376,95 +1574,146 @@ export function CombatSlotCard({
   const unequip = useUnequipHudSlot()
   const sendToFollowUp = useSendToFollowUp()
   const { open: openFocusFloat } = useFocusFloat()
+
   const [menuOpen, setMenuOpen] = useState(false)
+  const [animatingKill, setAnimatingKill] = useState(false)
+  const [shaking, setShaking] = useState(false)
 
   const category = categories?.find((c) => c.id === task.category_id)
-  const difficulty = task.size ? DIFFICULTY_BADGE[task.size] : null
+  const difficulty = task.size ? DIFFICULTY_LABEL[task.size] : null
 
   const hasSubtasks = !!subtasks && subtasks.length > 0
   const hpTotal = hasSubtasks ? subtasks!.length : 1
   const hpCurrent = hasSubtasks ? subtasks!.filter((s) => s.status !== 'done').length : 1
+  const hpPercent = Math.round((hpCurrent / hpTotal) * 100)
+
+  // Secuencia de animación táctil TDAH al asestar golpe final
+  function handleGolpeFinal() {
+    setShaking(true)
+    setTimeout(() => {
+      setShaking(false)
+      setAnimatingKill(true)
+      setTimeout(() => {
+        completeTask.mutate({ id: task.id, project_id: task.project_id })
+      }, 550)
+    }, 280)
+  }
+
+  const categoryColor = category?.color_hex ?? '#d9a94a'
 
   return (
-    <div
-      className="flex flex-col gap-3 rounded-lg border border-border-card bg-surface-card p-4 shadow-sm"
-      style={{
-        borderColor: category ? `${category.color_hex}55` : undefined,
-        boxShadow: category ? `0 0 16px ${category.color_hex}22` : undefined,
-      }}
+    <article
+      className={`combat-card group flex h-[420px] flex-col rounded-2xl p-6 ${
+        shaking ? 'shake-anim' : ''
+      } ${animatingKill ? 'animate-kill' : ''}`}
+      style={
+        {
+          '--card-theme': categoryColor,
+          '--card-glow': `${categoryColor}33`,
+        } as React.CSSProperties
+      }
     >
-      <div className="flex items-start justify-between gap-2">
-        <button
-          type="button"
-          onClick={() => onOpenTask(task)}
-          className="min-w-0 flex-1 text-left"
+      {/* Header de Categoria e Insignia de Arma */}
+      <div className="mb-4 flex items-start justify-between">
+        <span
+          className="rounded border px-2.5 py-1 font-mono text-[9px] font-black uppercase tracking-widest"
+          style={{
+            backgroundColor: `${categoryColor}20`,
+            color: categoryColor,
+            borderColor: `${categoryColor}40`,
+          }}
         >
-          {category && (
-            <p className="font-mono text-[11px] uppercase tracking-wide" style={{ color: category.color_hex }}>
-              {category.name}
-            </p>
-          )}
-          <p className="mt-0.5 truncate font-display text-base font-semibold text-fg">
-            {task.title}
-          </p>
-        </button>
-        {difficulty && task.size && (
-          <span
-            title={`${difficulty.label} · +${difficulty.xp} XP`}
-            className="flex shrink-0 items-center justify-center rounded-full bg-surface-2 p-1.5"
+          {category?.name ?? 'Misión'}
+        </span>
+        {task.size && (
+          <div
+            className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-black/40 shadow-inner"
+            title={`${difficulty?.label} (${difficulty?.xp} XP)`}
           >
-            <img src={WEAPON_ICONS[task.size]} alt={difficulty.label} className="h-5 w-5 object-contain" />
-          </span>
+            <img
+              src={WEAPON_ICONS[task.size]}
+              alt={difficulty?.label}
+              className="h-6 w-6 object-contain drop-shadow-[0_0_4px_rgba(217,169,74,0.4)]"
+            />
+          </div>
         )}
       </div>
 
-      <div>
-        <div className="flex gap-0.5">
-          {Array.from({ length: hpTotal }).map((_, i) => (
-            <div
-              key={i}
-              className={`h-2 flex-1 rounded-sm transition-colors ${
-                i < hpCurrent ? 'bg-red-500' : 'bg-surface-2'
-              }`}
-            />
-          ))}
-        </div>
-        <p className="mt-1 font-mono text-[11px] text-fg-muted">
-          {hasSubtasks ? `${hpCurrent}/${hpTotal} subtareas restantes` : 'Sin subtareas'}
+      {/* Cuerpo Principal: Titulo & HP */}
+      <div className="flex-1">
+        <button
+          type="button"
+          onClick={() => onOpenTask(task)}
+          className="w-full text-left"
+        >
+          <h2 className="mb-2 font-display text-2xl font-bold leading-tight text-fg transition-colors group-hover:text-accent">
+            {task.title}
+          </h2>
+        </button>
+        <p className="mb-6 font-mono text-xs text-fg-muted/70">
+          {hasSubtasks
+            ? `Submisiones: ${hpTotal - hpCurrent} / ${hpTotal}`
+            : 'Misión Directa'}
         </p>
+
+        {/* Barra de HP Segmentada */}
+        <div className="mb-6 space-y-2">
+          <div className="flex justify-between font-mono text-[10px] uppercase text-fg-muted">
+            <span>Integridad del Enemigo</span>
+            <span className={hpCurrent === 0 ? 'text-red-500 font-bold' : ''}>
+              {hpPercent}%
+            </span>
+          </div>
+          <div
+            className="grid gap-1.5"
+            style={{
+              gridTemplateColumns: `repeat(${Math.max(hpTotal, 1)}, minmax(0, 1fr))`,
+            }}
+          >
+            {Array.from({ length: hpTotal }).map((_, i) => (
+              <div
+                key={i}
+                className={`hp-segment ${i < hpCurrent ? 'active' : ''}`}
+              />
+            ))}
+          </div>
+        </div>
       </div>
 
-      <div className="mt-1 flex items-center gap-1.5 border-t border-border pt-3">
-        <button
-          type="button"
-          onClick={() => void openFocusFloat()}
-          title="Atacar / Entrar en foco"
-          className="flex items-center gap-1 rounded-md border border-border px-2 py-1.5 text-xs text-fg-muted transition-all duration-150 hover:border-accent/40 hover:text-accent active:scale-95"
-        >
-          <PictureInPicture2 className="h-3.5 w-3.5" /> Atacar
-        </button>
-        <button
-          type="button"
-          onClick={() => completeTask.mutate({ id: task.id, project_id: task.project_id })}
-          title="Asestar golpe final"
-          className="flex flex-1 items-center justify-center gap-1 rounded-md bg-accent px-2 py-1.5 text-xs font-semibold text-accent-fg transition-all duration-150 hover:shadow-[0_0_14px_rgba(217,169,74,0.45)] active:scale-95"
-        >
-          <Check className="h-3.5 w-3.5" /> Golpe final
-        </button>
+      {/* Acciones de Combate en el Pie */}
+      <div className="space-y-3 pt-2">
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => void openFocusFloat()}
+            className="flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 py-2.5 font-mono text-[10px] font-black uppercase tracking-widest text-fg-muted transition-all hover:bg-white/10 hover:text-fg active:scale-95"
+          >
+            <PictureInPicture2 className="h-3.5 w-3.5" /> Atacar
+          </button>
+          <button
+            type="button"
+            onClick={handleGolpeFinal}
+            className="btn-prime flex items-center justify-center gap-1.5 rounded-lg py-2.5 font-mono text-[10px] font-black uppercase tracking-widest"
+          >
+            <Swords className="h-3.5 w-3.5" /> Golpe Final
+          </button>
+        </div>
+
         <div className="relative">
           <button
             type="button"
             onClick={() => setMenuOpen((v) => !v)}
-            title="Retirada táctica"
-            aria-label="Retirada táctica"
-            className="flex items-center rounded-md border border-border p-1.5 text-fg-muted transition-colors hover:text-fg"
+            className="w-full py-1.5 font-mono text-[10px] font-bold uppercase tracking-widest text-fg-muted/50 transition-opacity hover:text-fg"
           >
-            <MoreVertical className="h-3.5 w-3.5" />
+            <MoreVertical className="mr-1 inline h-3 w-3" /> Retirada Táctica
           </button>
           {menuOpen && (
             <>
-              <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
-              <div className="modal-panel absolute right-0 bottom-full z-50 mb-2 w-48 rounded-lg border border-border bg-surface p-1 shadow-xl">
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setMenuOpen(false)}
+              />
+              <div className="modal-panel absolute bottom-full right-0 z-50 mb-2 w-52 rounded-xl border border-border bg-surface p-1.5 shadow-2xl">
                 <button
                   type="button"
                   onClick={() => {
@@ -1475,7 +1724,7 @@ export function CombatSlotCard({
                       stakeholderName: null,
                     })
                   }}
-                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-fg-muted transition-colors hover:bg-surface-2 hover:text-sky-500"
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left font-mono text-xs text-fg-muted transition-colors hover:bg-surface-2 hover:text-sky-400"
                 >
                   Mover a Follow-up
                 </button>
@@ -1485,7 +1734,7 @@ export function CombatSlotCard({
                     setMenuOpen(false)
                     unequip.mutate(task.id)
                   }}
-                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-fg-muted transition-colors hover:bg-surface-2 hover:text-fg"
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left font-mono text-xs text-fg-muted transition-colors hover:bg-surface-2 hover:text-fg"
                 >
                   Devolver al Grimorio
                 </button>
@@ -1494,7 +1743,7 @@ export function CombatSlotCard({
           )}
         </div>
       </div>
-    </div>
+    </article>
   )
 }
 ```
@@ -1504,22 +1753,34 @@ export function CombatSlotCard({
 ```tsx
 import { Plus } from 'lucide-react'
 
-const SLOT_NUMERALS = ['I', 'II', 'III']
+const SLOT_ROMAN = ['I', 'II', 'III']
 
-export function EmptySlotCard({ slot, onEquip }: { slot: number; onEquip: () => void }) {
+export function EmptySlotCard({
+  slot,
+  onEquip,
+}: {
+  slot: number
+  onEquip: () => void
+}) {
   return (
-    <button
-      type="button"
-      onClick={onEquip}
-      className="flex min-h-[176px] flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border p-4 text-center transition-all duration-150 hover:border-accent/40 hover:bg-surface/40"
-    >
-      <span className="font-display text-sm tracking-wide text-fg-muted">
-        Slot {SLOT_NUMERALS[slot - 1] ?? slot} Disponible
-      </span>
-      <span className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs font-medium text-fg-muted transition-colors">
-        <Plus className="h-3.5 w-3.5" /> Equipar Misión
-      </span>
-    </button>
+    <article className="empty-slot-card group flex h-[420px] flex-col items-center justify-center rounded-2xl p-6 text-center">
+      <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full border-2 border-border transition-colors group-hover:border-accent">
+        <Plus className="h-8 w-8 text-fg-muted/30 transition-all group-hover:scale-110 group-hover:text-accent" />
+      </div>
+      <h3 className="mb-2 font-display text-xl text-fg-muted/50 group-hover:text-fg">
+        Slot {SLOT_ROMAN[slot - 1] ?? slot} Disponible
+      </h3>
+      <p className="mb-8 max-w-[200px] font-mono text-xs text-fg-muted/40">
+        No hay misiones equipadas en este flanco táctico.
+      </p>
+      <button
+        type="button"
+        onClick={onEquip}
+        className="rounded-full border border-accent px-6 py-2.5 font-display text-xs font-bold uppercase tracking-wider text-accent transition-all hover:bg-accent hover:text-accent-fg active:scale-95"
+      >
+        Equipar Misión
+      </button>
+    </article>
   )
 }
 ```
@@ -1670,314 +1931,253 @@ export function useUnequipHudSlot() {
 }
 ```
 
-### src/features/calendar/components/CalendarPage.tsx
+### src/features/calendar/components/CalendarHeatmapView.tsx
 
 ```tsx
-import { useMemo, useState } from 'react'
-import {
-  addDays,
-  addMonths,
-  addWeeks,
-  eachDayOfInterval,
-  endOfMonth,
-  endOfWeek,
-  format,
-  isPast,
-  isSameDay,
-  isSameMonth,
-  isToday,
-  startOfDay,
-  startOfMonth,
-  startOfWeek,
-  subDays,
-  subMonths,
-  subWeeks,
-} from 'date-fns'
+import { useState } from 'react'
+import { addDays, format, isSameDay } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useCategories } from '@/features/projects/hooks'
-import { useTasksInRange } from '@/features/tasks/hooks'
-import { TaskModal } from '@/features/tasks/components/TaskModal'
-import type { Category, Task } from '@/types/database.types'
+import type { Task } from '@/types/database.types'
 
-type ViewMode = 'month' | 'week' | 'day'
-
-function DayCell({
-  day,
-  dayTasks,
-  categories,
-  faded,
+export function CalendarHeatmapView({
+  tasks,
   onOpenTask,
 }: {
-  day: Date
-  dayTasks: Task[]
-  categories: Category[] | undefined
-  faded: boolean
+  tasks: Task[]
   onOpenTask: (task: Task) => void
 }) {
-  return (
-    <div className={`min-h-24 bg-surface p-1.5 ${faded ? 'opacity-40' : ''}`}>
-      <span
-        className={`font-mono text-xs ${
-          isToday(day)
-            ? 'inline-flex h-5 w-5 items-center justify-center rounded-full bg-accent font-medium text-accent-fg'
-            : 'text-fg-muted'
-        }`}
-      >
-        {format(day, 'd')}
-      </span>
-      <div className="mt-1 flex flex-col gap-0.5">
-        {dayTasks.map((task) => {
-          const category = categories?.find((c) => c.id === task.category_id)
-          const done = task.status === 'done'
-          const overdue = !done && isPast(new Date(task.deadline!))
-          return (
-            <button
-              key={task.id}
-              type="button"
-              onClick={() => onOpenTask(task)}
-              title={task.title}
-              className={`truncate rounded px-1 py-0.5 text-left text-[11px] transition-colors hover:brightness-125 ${
-                overdue
-                  ? 'bg-warn-bg text-warn-fg'
-                  : done
-                    ? 'text-fg-muted/60 line-through'
-                    : 'text-fg-muted'
-              }`}
-              style={!overdue && category ? { backgroundColor: `${category.color_hex}1a` } : undefined}
-            >
-              {task.title}
-            </button>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-function DayListView({
-  dayTasks,
-  categories,
-  onOpenTask,
-}: {
-  dayTasks: Task[]
-  categories: Category[] | undefined
-  onOpenTask: (task: Task) => void
-}) {
-  if (dayTasks.length === 0) {
-    return <p className="mt-4 text-sm text-fg-muted">Nada con deadline este día.</p>
-  }
-
-  return (
-    <ul className="mt-4 flex flex-col gap-2">
-      {dayTasks
-        .slice()
-        .sort((a, b) => new Date(a.deadline!).getTime() - new Date(b.deadline!).getTime())
-        .map((task) => {
-          const category = categories?.find((c) => c.id === task.category_id)
-          const done = task.status === 'done'
-          const overdue = !done && isPast(new Date(task.deadline!))
-          return (
-            <li key={task.id}>
-              <button
-                type="button"
-                onClick={() => onOpenTask(task)}
-                className={`flex w-full items-center gap-3 rounded-lg border p-3 text-left text-sm transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 ${
-                  overdue ? 'border-warn-border bg-warn-bg' : 'border-border bg-surface'
-                } ${done ? 'opacity-60' : ''}`}
-              >
-                <span className="w-12 shrink-0 font-mono text-xs text-fg-muted">
-                  {format(new Date(task.deadline!), 'HH:mm')}
-                </span>
-                {category && (
-                  <span
-                    className="h-2 w-2 shrink-0 rounded-full"
-                    style={{ backgroundColor: category.color_hex }}
-                  />
-                )}
-                <span className={done ? 'flex-1 text-fg-muted line-through' : 'flex-1 text-fg'}>
-                  {task.title}
-                </span>
-              </button>
-            </li>
-          )
-        })}
-    </ul>
-  )
-}
-
-export function CalendarPage() {
-  const [view, setView] = useState<ViewMode>('month')
-  const [anchor, setAnchor] = useState(() => new Date())
-  const [hiddenCategoryIds, setHiddenCategoryIds] = useState<Set<string>>(new Set())
-  const [showCompleted, setShowCompleted] = useState(true)
-  const [editingTask, setEditingTask] = useState<Task | null>(null)
-
   const { data: categories } = useCategories()
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date())
 
-  const rangeStart =
-    view === 'month'
-      ? startOfWeek(startOfMonth(anchor), { weekStartsOn: 1 })
-      : view === 'week'
-        ? startOfWeek(anchor, { weekStartsOn: 1 })
-        : startOfDay(anchor)
-  const rangeEnd =
-    view === 'month'
-      ? endOfWeek(endOfMonth(anchor), { weekStartsOn: 1 })
-      : view === 'week'
-        ? endOfWeek(anchor, { weekStartsOn: 1 })
-        : startOfDay(anchor)
+  // Mostrar 21 días (3 semanas)
+  const startDate = new Date()
+  const days = Array.from({ length: 21 }, (_, i) => addDays(startDate, i))
 
-  const days = useMemo(
-    () => eachDayOfInterval({ start: rangeStart, end: rangeEnd }),
-    [rangeStart, rangeEnd],
-  )
-
-  const { data: tasks } = useTasksInRange(
-    rangeStart.toISOString(),
-    view === 'day' ? addDays(rangeEnd, 1).toISOString() : rangeEnd.toISOString(),
-  )
-
-  const visibleTasks = tasks?.filter(
-    (t) =>
-      !hiddenCategoryIds.has(t.category_id ?? '') && (showCompleted || t.status !== 'done'),
-  )
-
-  function toggleCategory(id: string) {
-    setHiddenCategoryIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
-
-  function goPrev() {
-    setAnchor((d) => (view === 'month' ? subMonths(d, 1) : view === 'week' ? subWeeks(d, 1) : subDays(d, 1)))
-  }
-  function goNext() {
-    setAnchor((d) => (view === 'month' ? addMonths(d, 1) : view === 'week' ? addWeeks(d, 1) : addDays(d, 1)))
-  }
-
-  const title =
-    view === 'month'
-      ? format(anchor, 'MMMM yyyy', { locale: es })
-      : view === 'week'
-        ? `${format(rangeStart, 'd MMM', { locale: es })} – ${format(rangeEnd, 'd MMM', { locale: es })}`
-        : format(anchor, "EEEE d 'de' MMMM", { locale: es })
+  const selectedTasks = tasks
+    .filter((t) => t.deadline && isSameDay(new Date(t.deadline), selectedDate))
+    .sort((a, b) => new Date(a.deadline!).getTime() - new Date(b.deadline!).getTime())
 
   return (
-    <div className="p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={goPrev}
-            className="rounded-md border border-border px-2 py-1 text-sm text-fg-muted transition-colors hover:border-accent/40 hover:text-fg"
-          >
-            ‹
-          </button>
-          <h1 className="min-w-52 text-center font-display text-lg font-semibold capitalize tracking-tight text-fg">
-            {title}
-          </h1>
-          <button
-            type="button"
-            onClick={goNext}
-            className="rounded-md border border-border px-2 py-1 text-sm text-fg-muted transition-colors hover:border-accent/40 hover:text-fg"
-          >
-            ›
-          </button>
-          <button
-            type="button"
-            onClick={() => setAnchor(new Date())}
-            className="ml-2 text-sm text-fg-muted hover:text-fg"
-          >
-            Hoy
-          </button>
+    <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+      {/* Cuadrícula Astral Principal */}
+      <div className="lg:col-span-2 space-y-6">
+        <header className="mb-2">
+          <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-fg-muted/60">
+            Predicción de Carga y Misiones
+          </p>
+        </header>
 
-          <div className="ml-2 flex gap-1 rounded-md bg-surface-2 p-1">
-            {(
-              [
-                { key: 'day', label: 'Día' },
-                { key: 'week', label: 'Semana' },
-                { key: 'month', label: 'Mes' },
-              ] as const
-            ).map((tab) => (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => setView(tab.key)}
-                className={`rounded px-2 py-1 text-xs font-medium ${
-                  view === tab.key ? 'bg-surface text-fg shadow-sm' : 'text-fg-muted hover:text-fg'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+        {/* Encabezados Día de la Semana */}
+        <div className="grid grid-cols-7 text-center font-mono text-[9px] uppercase tracking-widest text-fg-muted/50">
+          <div>Lun</div>
+          <div>Mar</div>
+          <div>Mié</div>
+          <div>Jue</div>
+          <div>Vie</div>
+          <div className="text-amber-500/70">Sáb</div>
+          <div className="text-amber-500/70">Dom</div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="flex cursor-pointer items-center gap-1.5 text-xs text-fg-muted">
-            <input
-              type="checkbox"
-              checked={showCompleted}
-              onChange={(e) => setShowCompleted(e.target.checked)}
-              className="accent-accent"
-            />
-            Mostrar completadas
-          </label>
-          {categories?.map((cat) => {
-            const active = !hiddenCategoryIds.has(cat.id)
+        {/* Celdas de la Cuadrícula */}
+        <div className="grid grid-cols-7 gap-2">
+          {days.map((dayDate) => {
+            const dayTasks = tasks.filter(
+              (t) => t.deadline && isSameDay(new Date(t.deadline), dayDate),
+            )
+            const count = dayTasks.length
+            const isSelected = isSameDay(dayDate, selectedDate)
+
+            const heatClass =
+              count > 3 ? 'heat-high' : count > 1 ? 'heat-mid' : 'heat-low'
+
             return (
-              <button
-                key={cat.id}
-                type="button"
-                onClick={() => toggleCategory(cat.id)}
-                className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${
-                  active ? 'border-transparent text-fg' : 'border-border text-fg-muted/50'
+              <div
+                key={dayDate.toISOString()}
+                onClick={() => setSelectedDate(dayDate)}
+                className={`grid-day-cell rounded-2xl p-2 flex flex-wrap gap-1 content-start ${heatClass} ${
+                  isSelected ? 'selected' : ''
                 }`}
-                style={active ? { backgroundColor: `${cat.color_hex}1a` } : undefined}
               >
-                <span
-                  className="h-1.5 w-1.5 rounded-full"
-                  style={{ backgroundColor: active ? cat.color_hex : undefined }}
-                />
-                {cat.name}
-              </button>
+                {/* Gemas de Categoría */}
+                {dayTasks.map((t) => {
+                  const category = categories?.find((c) => c.id === t.category_id)
+                  const gemColor = category?.color_hex ?? '#d9a94a'
+                  return (
+                    <div
+                      key={t.id}
+                      className="gem-rune"
+                      style={{ backgroundColor: gemColor, color: gemColor }}
+                    />
+                  )
+                })}
+
+                <span className="absolute bottom-1.5 right-2 font-mono text-[9px] text-fg-muted/40 font-bold">
+                  {format(dayDate, 'd')}
+                </span>
+              </div>
             )
           })}
         </div>
-      </div>
 
-      {view === 'day' ? (
-        <DayListView
-          dayTasks={visibleTasks?.filter((t) => t.deadline && isSameDay(new Date(t.deadline), anchor)) ?? []}
-          categories={categories}
-          onOpenTask={setEditingTask}
-        />
-      ) : (
-        <div className="mt-4 grid grid-cols-7 gap-px overflow-hidden rounded-lg border border-border bg-border">
-          {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map((label) => (
-            <div
-              key={label}
-              className="bg-surface-2 px-2 py-1 text-center text-xs font-medium text-fg-muted"
-            >
-              {label}
+        {/* Leyenda de Categorías */}
+        <div className="flex flex-wrap justify-center gap-4 pt-4 border-t border-border/40">
+          {categories?.map((cat) => (
+            <div key={cat.id} className="flex items-center gap-1.5">
+              <span
+                className="h-2 w-2 rounded-full"
+                style={{ backgroundColor: cat.color_hex }}
+              />
+              <span className="font-mono text-[9px] uppercase font-bold text-fg-muted/60">
+                {cat.name}
+              </span>
             </div>
           ))}
-
-          {days.map((day) => (
-            <DayCell
-              key={day.toISOString()}
-              day={day}
-              dayTasks={visibleTasks?.filter((t) => t.deadline && isSameDay(new Date(t.deadline), day)) ?? []}
-              categories={categories}
-              faded={view === 'month' && !isSameMonth(day, anchor)}
-              onOpenTask={setEditingTask}
-            />
-          ))}
         </div>
-      )}
+      </div>
+
+      {/* Panel Lateral: Jornada Escogida */}
+      <aside className="rounded-3xl border border-border bg-surface/40 p-6 backdrop-blur-md flex flex-col h-[520px]">
+        <div className="border-b border-border pb-4 mb-4">
+          <h2 className="font-display text-lg font-bold text-accent uppercase tracking-wide">
+            Jornada Escogida
+          </h2>
+          <p className="font-mono text-[10px] uppercase tracking-widest text-fg-muted/60 mt-0.5">
+            {format(selectedDate, "EEEE d 'de' MMMM", { locale: es })}
+          </p>
+        </div>
+
+        <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+          {selectedTasks.length === 0 ? (
+            <div className="flex h-full flex-col items-center justify-center text-center opacity-40">
+              <span className="text-5xl mb-3">🔮</span>
+              <p className="font-display text-xs uppercase tracking-widest">
+                Escudriña el tablero para ver el destino
+              </p>
+            </div>
+          ) : (
+            selectedTasks.map((task) => {
+              const category = categories?.find((c) => c.id === task.category_id)
+              return (
+                <div
+                  key={task.id}
+                  onClick={() => onOpenTask(task)}
+                  className="cursor-pointer rounded-2xl border border-border bg-black/30 p-3.5 transition-all hover:border-accent"
+                >
+                  <p className="font-mono text-[9px] uppercase text-fg-muted/50 mb-1">
+                    {format(new Date(task.deadline!), 'HH:mm')} HS
+                  </p>
+                  <h4 className="font-display text-sm font-bold text-fg">
+                    {task.title}
+                  </h4>
+                  {category && (
+                    <span
+                      className="mt-2 inline-block rounded px-2 py-0.5 font-mono text-[8px] font-black uppercase"
+                      style={{
+                        backgroundColor: `${category.color_hex}25`,
+                        color: category.color_hex,
+                      }}
+                    >
+                      {category.name}
+                    </span>
+                  )}
+                </div>
+              )
+            })
+          )}
+        </div>
+      </aside>
+    </div>
+  )
+}
+```
+
+### src/features/calendar/components/CalendarPage.tsx
+
+```tsx
+import { useState } from 'react'
+import { addDays, endOfDay, startOfDay, subDays } from 'date-fns'
+import { useTasksInRange } from '@/features/tasks/hooks'
+import { CalendarTimelineView } from '@/features/calendar/components/CalendarTimelineView'
+import { CalendarHeatmapView } from '@/features/calendar/components/CalendarHeatmapView'
+import { TaskModal } from '@/features/tasks/components/TaskModal'
+import type { Task } from '@/types/database.types'
+
+type CalendarMode = 'timeline' | 'heatmap'
+
+export function CalendarPage() {
+  const [mode, setMode] = useState<CalendarMode>(() => {
+    return (localStorage.getItem('questly_calendar_mode') as CalendarMode) || 'timeline'
+  })
+  const [editingTask, setEditingTask] = useState<Task | null>(null)
+
+  // Rango de consulta con margen: 2 días atrás (cubre deadlines de "hoy" ya
+  // pasados en la hora actual y variación de zona horaria) hasta 21 días
+  // adelante, día completo en ambos extremos.
+  const today = new Date()
+  const rangeStart = startOfDay(subDays(today, 2))
+  const rangeEnd = endOfDay(addDays(today, 21))
+
+  const { data: tasks, isLoading } = useTasksInRange(
+    rangeStart.toISOString(),
+    rangeEnd.toISOString(),
+  )
+
+  function handleModeChange(nextMode: CalendarMode) {
+    setMode(nextMode)
+    localStorage.setItem('questly_calendar_mode', nextMode)
+  }
+
+  return (
+    <div className="mx-auto max-w-5xl px-4 py-8 md:px-8">
+      {/* Header Titular & Toggle Dual */}
+      <header className="mb-8 flex flex-col items-center justify-between gap-4 border-b border-border pb-6 md:flex-row">
+        <div>
+          <h1 className="font-display text-3xl font-black uppercase tracking-widest text-accent">
+            EL ORÁCULO DEL TIEMPO
+          </h1>
+          <p className="font-mono text-xs text-fg-muted/70">
+            Alineación temporal de enfrentamientos e hitos.
+          </p>
+        </div>
+
+        {/* Toggle Dual Chrono-Stream / Mapa Astral */}
+        <div className="view-mode-toggle flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => handleModeChange('timeline')}
+            className={`view-mode-btn ${mode === 'timeline' ? 'active' : ''}`}
+          >
+            ⏳ Chrono-Stream
+          </button>
+          <button
+            type="button"
+            onClick={() => handleModeChange('heatmap')}
+            className={`view-mode-btn ${mode === 'heatmap' ? 'active' : ''}`}
+          >
+            🔮 Mapa Astral
+          </button>
+        </div>
+      </header>
+
+      {/* Renderizado de la Vista Seleccionada */}
+      <main>
+        {isLoading ? (
+          <p className="py-12 text-center font-mono text-xs text-fg-muted">
+            Consultando al Oráculo…
+          </p>
+        ) : mode === 'timeline' ? (
+          <CalendarTimelineView
+            tasks={tasks ?? []}
+            onOpenTask={setEditingTask}
+          />
+        ) : (
+          <CalendarHeatmapView
+            tasks={tasks ?? []}
+            onOpenTask={setEditingTask}
+          />
+        )}
+      </main>
 
       {editingTask && (
         <TaskModal
@@ -1987,6 +2187,191 @@ export function CalendarPage() {
           onClose={() => setEditingTask(null)}
         />
       )}
+    </div>
+  )
+}
+```
+
+### src/features/calendar/components/CalendarTimelineView.tsx
+
+```tsx
+import { useState } from 'react'
+import { addDays, format, isToday, isSameDay } from 'date-fns'
+import { es } from 'date-fns/locale'
+import { AlertTriangle, Calendar as CalendarIcon } from 'lucide-react'
+import { useCategories } from '@/features/projects/hooks'
+import type { Task } from '@/types/database.types'
+
+export function CalendarTimelineView({
+  tasks,
+  onOpenTask,
+}: {
+  tasks: Task[]
+  onOpenTask: (task: Task) => void
+}) {
+  const { data: categories } = useCategories()
+  const [daysCount, setDaysCount] = useState<3 | 7 | 14>(7)
+
+  const today = new Date()
+  const days = Array.from({ length: daysCount }, (_, i) => addDays(today, i))
+
+  function scrollToToday() {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Controles de Rango de Días & Ir a Hoy */}
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/50 pb-4">
+        <button
+          type="button"
+          onClick={scrollToToday}
+          className="rounded-full border border-accent/40 bg-accent/10 px-4 py-1.5 font-mono text-[10px] font-black uppercase text-accent transition-all hover:bg-accent hover:text-accent-fg"
+        >
+          Ir a Hoy
+        </button>
+
+        <div className="flex items-center gap-1 rounded-xl border border-border bg-black/40 p-1">
+          {([3, 7, 14] as const).map((count) => (
+            <button
+              key={count}
+              type="button"
+              onClick={() => setDaysCount(count)}
+              className={`rounded-lg px-3 py-1 font-mono text-[10px] font-bold uppercase transition-all ${
+                daysCount === count
+                  ? 'bg-accent text-accent-fg shadow'
+                  : 'text-fg-muted hover:text-fg'
+              }`}
+            >
+              {count} Días
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Stream Vertical Cronológico */}
+      <div className="chrono-stream-line relative space-y-8 pl-4 pr-2">
+        {days.map((dayDate) => {
+          const isDayToday = isToday(dayDate)
+          const dayTasks = tasks.filter(
+            (t) => t.deadline && isSameDay(new Date(t.deadline), dayDate),
+          )
+
+          // Cálculo de consumo de energía (20% por misión)
+          const energyUsage = Math.min(100, dayTasks.length * 20)
+          const isFatigueHigh = energyUsage >= 80
+
+          return (
+            <section
+              key={dayDate.toISOString()}
+              className={`relative py-3 pl-12 pr-4 transition-all ${
+                isDayToday ? 'node-today-active' : ''
+              }`}
+            >
+              {/* Punto del Nodo */}
+              <div className="day-node-dot" />
+
+              {/* Encabezado del Día */}
+              <header className="mb-3 flex items-end justify-between">
+                <div>
+                  <h3
+                    className={`font-display text-base font-bold capitalize ${
+                      isDayToday ? 'text-accent' : 'text-fg-muted/80'
+                    }`}
+                  >
+                    {isDayToday
+                      ? 'Hoy'
+                      : format(dayDate, 'EEEE', { locale: es })}
+                  </h3>
+                  <p className="font-mono text-[10px] uppercase tracking-widest text-fg-muted/50">
+                    {format(dayDate, 'd MMMM', { locale: es })}
+                  </p>
+                </div>
+
+                {/* Medidor de Energía */}
+                <div className="w-28 text-right">
+                  <div className="mb-1 flex justify-between font-mono text-[8px] font-bold uppercase text-fg-muted/60">
+                    <span>Energía</span>
+                    <span className={isFatigueHigh ? 'text-red-400 font-black' : ''}>
+                      {energyUsage}%
+                    </span>
+                  </div>
+                  <div className="energy-meter-track w-full">
+                    <div
+                      className={`h-full transition-all duration-700 ${
+                        isFatigueHigh
+                          ? 'bg-red-500'
+                          : energyUsage > 40
+                            ? 'bg-amber-500'
+                            : 'bg-emerald-500'
+                      }`}
+                      style={{ width: `${energyUsage}%` }}
+                    />
+                  </div>
+                </div>
+              </header>
+
+              {/* Aviso de Fatiga */}
+              {isFatigueHigh && (
+                <div className="mb-3 flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-2 text-red-400">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                  <p className="font-mono text-[9px] font-bold uppercase tracking-tight">
+                    Aviso de Fatiga: Carga de misiones elevada
+                  </p>
+                </div>
+              )}
+
+              {/* Lista de Misiones del Día */}
+              <div className="space-y-2.5">
+                {dayTasks.length === 0 ? (
+                  <p className="font-mono text-[11px] italic text-fg-muted/40">
+                    Sin misiones agendadas para esta fecha.
+                  </p>
+                ) : (
+                  dayTasks.map((task) => {
+                    const category = categories?.find((c) => c.id === task.category_id)
+                    return (
+                      <article
+                        key={task.id}
+                        onClick={() => onOpenTask(task)}
+                        className="mission-scroll-card flex cursor-pointer items-center justify-between rounded-xl p-3.5 transition-all"
+                        style={
+                          category
+                            ? { borderLeftColor: category.color_hex }
+                            : undefined
+                        }
+                      >
+                        <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                          <span className="font-mono text-[10px] text-fg-muted/60">
+                            {format(new Date(task.deadline!), 'HH:mm')}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <h4 className="truncate font-display text-sm font-bold text-fg">
+                              {task.title}
+                            </h4>
+                            {category && (
+                              <span
+                                className="inline-block rounded px-1.5 py-0.5 font-mono text-[8px] font-black uppercase"
+                                style={{
+                                  backgroundColor: `${category.color_hex}25`,
+                                  color: category.color_hex,
+                                }}
+                              >
+                                {category.name}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <CalendarIcon className="h-4 w-4 shrink-0 opacity-20 transition-opacity hover:opacity-100 text-accent" />
+                      </article>
+                    )
+                  })
+                )}
+              </div>
+            </section>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -2439,6 +2824,165 @@ export function AchievementWatcher() {
 }
 ```
 
+### src/features/gamification/components/ClassDetailModal.tsx
+
+```tsx
+import { useState } from 'react'
+import { X, Check } from 'lucide-react'
+import { useTasksByCategory, useCompleteTask } from '@/features/tasks/hooks'
+import type { Category, ClassRank, UserCategoryXp } from '@/types/database.types'
+
+export function ClassDetailModal({
+  category,
+  categoryXp,
+  rank,
+  onClose,
+}: {
+  category: Category
+  categoryXp?: UserCategoryXp
+  rank?: ClassRank
+  onClose: () => void
+}) {
+  const { data: tasks } = useTasksByCategory(category.id)
+  const completeTask = useCompleteTask()
+
+  const [activeTab, setActiveTab] = useState<'active' | 'history'>('active')
+  const [flashing, setFlashing] = useState(false)
+
+  const activeTasks = (tasks ?? []).filter((t) => t.status !== 'done')
+  const historyTasks = (tasks ?? []).filter((t) => t.status === 'done')
+
+  const level = categoryXp?.current_level ?? 1
+  const xpCurrent = categoryXp?.current_xp ?? 0
+  const xpMax = 2000
+  const xpPercent = Math.min(100, Math.round((xpCurrent / xpMax) * 100))
+
+  function handleComplete(taskId: string, projectId: string | null) {
+    setFlashing(true)
+    completeTask.mutate({ id: taskId, project_id: projectId })
+    setTimeout(() => setFlashing(false), 600)
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-bg/90 p-4 backdrop-blur-md"
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="modal-parchment-scroll relative w-full max-w-lg rounded-xl"
+      >
+        {/* Encabezado del Pergamino */}
+        <div className="border-b border-[#2d241e]/20 p-6 text-center">
+          <button
+            type="button"
+            onClick={onClose}
+            className="absolute right-4 top-4 text-xl text-[#2d241e]/60 transition-opacity hover:opacity-100"
+          >
+            <X className="h-6 w-6" />
+          </button>
+          <div className="mb-2 text-5xl">🔮</div>
+          <h2 className="font-display text-3xl font-black uppercase tracking-tight text-[#2d241e]">
+            {rank?.rank_name ?? category.class_name}
+          </h2>
+          <p className="font-mono text-xs font-bold uppercase tracking-widest text-[#2d241e]/60">
+            Clase: {category.name} · Nivel {level}
+          </p>
+        </div>
+
+        {/* Pestañas Internas */}
+        <div className="flex border-b border-[#2d241e]/20 font-mono text-[10px] font-black uppercase tracking-widest">
+          <button
+            type="button"
+            onClick={() => setActiveTab('active')}
+            className={`flex-1 py-3 transition-colors ${
+              activeTab === 'active' ? 'bg-[#2d241e]/10 text-[#2d241e]' : 'text-[#2d241e]/40'
+            }`}
+          >
+            Misiones Activas ({activeTasks.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('history')}
+            className={`flex-1 py-3 transition-colors ${
+              activeTab === 'history' ? 'bg-[#2d241e]/10 text-[#2d241e]' : 'text-[#2d241e]/40'
+            }`}
+          >
+            Victorias ({historyTasks.length})
+          </button>
+        </div>
+
+        {/* Contenido del Modal */}
+        <div className="p-6 space-y-6">
+          {/* Sección de XP */}
+          <div className="space-y-1.5">
+            <div className="flex justify-between font-mono text-[10px] font-bold uppercase text-[#2d241e]">
+              <span>Experiencia de Clase</span>
+              <span>
+                {xpCurrent} / {xpMax} XP
+              </span>
+            </div>
+            <div className="h-3.5 w-full overflow-hidden rounded-full border border-[#2d241e]/20 bg-[#2d241e]/10">
+              <div
+                className={`h-full bg-[#2d241e] transition-all ${flashing ? 'xp-flash-anim' : ''}`}
+                style={{ width: `${xpPercent}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Lista de Misiones */}
+          <div className="max-h-60 overflow-y-auto space-y-2.5 pr-1">
+            {activeTab === 'active' ? (
+              activeTasks.length === 0 ? (
+                <p className="font-mono text-xs text-[#2d241e]/50 italic">Sin misiones pendientes.</p>
+              ) : (
+                activeTasks.map((t) => (
+                  <div
+                    key={t.id}
+                    className="flex items-center justify-between rounded-lg border border-[#2d241e]/10 bg-white/50 p-3.5"
+                  >
+                    <div>
+                      <p className="font-display text-sm font-bold text-[#2d241e]">{t.title}</p>
+                      <p className="font-mono text-[9px] uppercase text-[#2d241e]/60">
+                        RECOMPENSA: +{t.xp_reward || 10} XP
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleComplete(t.id, t.project_id)}
+                      className="rounded bg-[#2d241e] p-2 text-xs font-black text-[#f4e4bc] transition-transform active:scale-95"
+                    >
+                      <Check className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))
+              )
+            ) : historyTasks.length === 0 ? (
+              <p className="font-mono text-xs text-[#2d241e]/50 italic">Ninguna victoria aún.</p>
+            ) : (
+              historyTasks.map((t) => (
+                <div
+                  key={t.id}
+                  className="flex items-center justify-between rounded-lg border border-[#2d241e]/10 bg-white/30 p-3.5 opacity-70"
+                >
+                  <div>
+                    <p className="font-display text-sm font-bold text-[#2d241e] line-through">{t.title}</p>
+                    <p className="font-mono text-[9px] uppercase text-[#2d241e]/60">
+                      RECIBIDO +{t.xp_reward || 10} XP
+                    </p>
+                  </div>
+                  <span className="font-mono text-xs">📜</span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+```
+
 ### src/features/gamification/components/LootShowcase.tsx
 
 ```tsx
@@ -2490,276 +3034,184 @@ export function LootShowcase() {
 ### src/features/gamification/components/ProgressPage.tsx
 
 ```tsx
-import type { CSSProperties } from 'react'
-import { endOfWeek, format, startOfWeek } from 'date-fns'
-import { es } from 'date-fns/locale'
-import { Crown, Flame, Shield } from 'lucide-react'
+import { useState } from 'react'
+import { Flame, Shield } from 'lucide-react'
 import { useCategories, useProjects } from '@/features/projects/hooks'
 import {
   useCategoryXp,
   useClassRanks,
   useStreak,
   useTodayQuests,
-  useWeeklyQuests,
 } from '@/features/gamification/hooks'
-import { useTaskById, useTasksInRange } from '@/features/tasks/hooks'
-import { CategoryIcon } from '@/utils/categoryIcon'
+import { ClassDetailModal } from '@/features/gamification/components/ClassDetailModal'
 import { LootShowcase } from '@/features/gamification/components/LootShowcase'
 import { ProjectBossCard } from '@/features/projects/components/ProjectBossCard'
+import type { Category, QuestType } from '@/types/database.types'
 
-const XP_PER_LEVEL = 100
-
-function rankGlowStyle(rankOrder: number, colorHex: string): CSSProperties {
-  if (rankOrder >= 4) return { boxShadow: `0 0 0 3px ${colorHex}55, 0 0 14px 2px ${colorHex}77` }
-  if (rankOrder === 3) return { boxShadow: `0 0 0 2px ${colorHex}44, 0 0 8px 1px ${colorHex}44` }
-  if (rankOrder === 2) return { boxShadow: `0 0 0 2px ${colorHex}33` }
-  return {}
-}
-
-function PriorityQuestRow() {
-  const { data: todayQuests } = useTodayQuests()
-  const priorityQuest = todayQuests?.find((q) => q.type === 'daily_priority')
-  const { data: priorityTask } = useTaskById(priorityQuest?.task_id ?? null)
-
-  if (!priorityQuest) {
-    return (
-      <p className="text-sm text-fg-muted">
-        Todavía no marcaste una tarea prioritaria de hoy (con la ★ en el modal de la tarea).
-      </p>
-    )
-  }
-
-  return (
-    <p className="flex items-center gap-2 text-sm">
-      <span className={priorityQuest.completed ? 'text-emerald-500' : 'text-fg-muted'}>
-        {priorityQuest.completed ? '✓' : '☆'}
-      </span>
-      <span className="text-fg">{priorityTask?.title ?? 'Cargando…'}</span>
-      {priorityQuest.completed && (
-        <span className="font-mono text-xs text-emerald-500">+{priorityQuest.xp_reward} XP</span>
-      )}
-    </p>
-  )
-}
-
-function WeeklyProjectQuests() {
-  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 })
-  const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 })
-  const weekStartIso = format(weekStart, 'yyyy-MM-dd')
-
-  const { data: projects } = useProjects()
-  const { data: weekTasks } = useTasksInRange(weekStart.toISOString(), weekEnd.toISOString())
-  const { data: weeklyQuests } = useWeeklyQuests(weekStartIso)
-
-  const rows = (projects ?? [])
-    .map((project) => {
-      const tasks = weekTasks?.filter((t) => t.project_id === project.id && t.parent_task_id === null) ?? []
-      const done = tasks.filter((t) => t.status === 'done').length
-      const quest = weeklyQuests?.find((q) => q.project_id === project.id)
-      return { project, total: tasks.length, done, completed: !!quest?.completed }
-    })
-    .filter((row) => row.total > 0)
-
-  if (rows.length === 0) {
-    return (
-      <p className="text-sm text-fg-muted">
-        Ningún proyecto tiene tareas con deadline esta semana todavía.
-      </p>
-    )
-  }
-
-  return (
-    <ul className="flex flex-col gap-2">
-      {rows.map(({ project, total, done, completed }) => (
-        <li key={project.id} className="text-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-fg">{project.name}</span>
-            <span className="font-mono text-xs text-fg-muted">
-              {done}/{total} {completed && <span className="text-emerald-500">· +50 XP ✓</span>}
-            </span>
-          </div>
-          <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
-            <div
-              className="h-full rounded-full bg-accent transition-[width] duration-700 ease-out"
-              style={{ width: `${total ? (done / total) * 100 : 0}%` }}
-            />
-          </div>
-        </li>
-      ))}
-    </ul>
-  )
+// useTodayQuests solo devuelve daily_triage/daily_priority (ver fetchTodayQuests) —
+// la tabla quests no tiene columna "title", así que se deriva acá.
+const QUEST_TITLES: Record<QuestType, string> = {
+  daily_triage: 'Vaciar el Inbox (Triage Diario)',
+  daily_priority: 'Misión Prioritaria del Día',
+  weekly_project: 'Proyecto Semanal',
 }
 
 export function ProgressPage() {
-  const { data: categories } = useCategories()
-  const { data: xp } = useCategoryXp()
   const { data: streak } = useStreak()
   const { data: todayQuests } = useTodayQuests()
+  const { data: categories } = useCategories()
+  const { data: categoryXp } = useCategoryXp()
   const { data: classRanks } = useClassRanks()
   const { data: projects } = useProjects()
 
-  const triageQuest = todayQuests?.find((q) => q.type === 'daily_triage')
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
+
+  // Cálculo de nivel global acumulado
+  const globalLevel = (categoryXp ?? []).reduce((acc, curr) => acc + curr.current_level, 0) || 1
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
-      <h1 className="font-display text-lg font-semibold tracking-tight text-fg">Progreso</h1>
-
-      <div className="mt-4 flex items-center gap-6 rounded-lg border border-border bg-surface p-4">
-        <div className="flex items-center gap-2">
-          <Flame className="h-6 w-6 text-accent" />
-          <div>
-            <p className="font-mono text-xl font-semibold text-fg">
-              {streak?.current_streak_days ?? 0} <span className="text-sm font-normal text-fg-muted">días</span>
-            </p>
-            <p className="font-mono text-xs text-fg-muted">récord: {streak?.longest_streak ?? 0}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-1">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Shield
-              key={i}
-              className={`h-4 w-4 ${
-                i < (streak?.shields_available ?? 0) ? 'fill-sky-500 text-sky-500' : 'text-fg-muted/25'
-              }`}
-            />
-          ))}
-        </div>
-      </div>
-
-      <section className="mt-6">
-        <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-fg-muted">
-          Quests de hoy
-        </h2>
-        <div className="mt-2 flex flex-col gap-2 rounded-lg border border-border bg-surface p-4">
-          <p className="flex items-center gap-2 text-sm">
-            <span className={triageQuest?.completed ? 'text-emerald-500' : 'text-fg-muted'}>
-              {triageQuest?.completed ? '✓' : '○'}
-            </span>
-            <span className="text-fg">Vaciar el inbox (triage diario)</span>
-            {triageQuest?.completed && (
-              <span className="font-mono text-xs text-emerald-500">+{triageQuest.xp_reward} XP</span>
-            )}
+    <div className="mx-auto max-w-6xl px-4 py-8 md:px-8">
+      {/* Header Titular */}
+      <header className="mb-10 flex items-end justify-between border-b border-border pb-6">
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent/70">
+            Estadísticas de Héroe
           </p>
-          <PriorityQuestRow />
+          <h1 className="font-display text-3xl font-black uppercase tracking-widest text-fg md:text-4xl">
+            Salón de Héroes
+          </h1>
         </div>
-      </section>
-
-      <section className="mt-6">
-        <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-fg-muted">
-          Quests semanales ·{' '}
-          <span className="font-mono normal-case tracking-normal">
-            {format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'd MMM', { locale: es })} –{' '}
-            {format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'd MMM', { locale: es })}
-          </span>
-        </h2>
-        <div className="mt-2 rounded-lg border border-border bg-surface p-4">
-          <WeeklyProjectQuests />
+        <div className="text-right">
+          <span className="block font-mono text-[10px] uppercase text-fg-muted">Nivel Global</span>
+          <span className="font-display text-3xl font-black text-accent">{globalLevel}</span>
         </div>
-      </section>
+      </header>
 
-      <section className="mt-6">
-        <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-fg-muted">
-          Jefes de Mazmorra
-        </h2>
-        {projects && projects.length > 0 ? (
-          <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {projects.map((project) => (
-              <ProjectBossCard
-                key={project.id}
-                project={project}
-                category={categories?.find((c) => c.id === project.category_id)}
-              />
-            ))}
-          </div>
-        ) : (
-          <p className="mt-2 text-sm text-fg-muted">Todavía no creaste ningún proyecto.</p>
-        )}
-      </section>
-
-      <section className="mt-6">
-        <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-fg-muted">Clases</h2>
-        <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {categories?.map((cat) => {
-            const catXp = xp?.find((x) => x.category_id === cat.id)
-            const currentXp = catXp?.current_xp ?? 0
-            const level = catXp?.current_level ?? 1
-            const progressInLevel = currentXp % XP_PER_LEVEL
-            const ranksForCat = classRanks?.filter((r) => r.category_id === cat.id) ?? []
-            const currentRank =
-              ranksForCat.find((r) => r.id === catXp?.current_rank_id) ??
-              ranksForCat.find((r) => r.rank_order === 1)
-            const rankOrder = currentRank?.rank_order ?? 1
-
-            return (
-              <div
-                key={cat.id}
-                className="flex items-center gap-3 rounded-lg border border-border bg-surface p-3 transition-transform duration-200 hover:-translate-y-0.5"
-              >
-                <div className="relative shrink-0">
-                  <div
-                    className="flex h-10 w-10 items-center justify-center rounded-full"
-                    style={{
-                      backgroundColor: `${cat.color_hex}22`,
-                      ...rankGlowStyle(rankOrder, cat.color_hex),
-                    }}
-                  >
-                    <CategoryIcon iconName={cat.icon_name} className="h-5 w-5" style={{ color: cat.color_hex }} />
-                  </div>
-                  {rankOrder >= 4 && (
-                    <Crown
-                      className="absolute -right-1 -top-1 h-4 w-4"
-                      style={{ color: cat.color_hex }}
-                      fill={cat.color_hex}
-                    />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline justify-between">
-                    <p className="truncate text-sm text-fg">
-                      <span className="font-medium">{cat.name}</span>{' '}
-                      <span className="font-display font-medium text-fg-muted">
-                        · {currentRank?.rank_name ?? cat.class_name}
-                      </span>
-                    </p>
-                    <p className="shrink-0 font-mono text-xs text-fg-muted">Nv. {level}</p>
-                  </div>
-                  <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
-                    <div
-                      className="h-full rounded-full transition-[width] duration-700 ease-out"
-                      style={{
-                        width: `${progressInLevel}%`,
-                        backgroundColor: cat.color_hex,
-                        boxShadow: `0 0 10px ${cat.color_hex}66`,
-                      }}
-                    />
-                  </div>
-                  <div className="mt-1 flex items-center justify-between">
-                    <p className="font-mono text-xs text-fg-muted">
-                      {progressInLevel}/{XP_PER_LEVEL} XP · {currentXp} total
-                    </p>
-                    <div className="flex gap-0.5">
-                      {[1, 2, 3, 4].map((n) => (
-                        <span
-                          key={n}
-                          className="h-1 w-3 rounded-full bg-surface-2"
-                          style={n <= rankOrder ? { backgroundColor: cat.color_hex } : undefined}
-                        />
-                      ))}
-                    </div>
-                  </div>
+      {/* Grid Principal en 2 Columnas Responsivas */}
+      <main className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+        {/* COLUMNA IZQUIERDA (5 Cols): Azañas & Racha */}
+        <div className="space-y-6 lg:col-span-5">
+          {/* Tarjeta de Racha Activa */}
+          <section className="card-stone-bg streak-glow-card rounded-2xl border-2 border-accent/40 p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Flame className="h-10 w-10 text-accent animate-bounce" />
+                <div>
+                  <h2 className="font-display text-2xl font-bold text-accent">
+                    {streak?.current_streak_days ?? 0} DÍAS
+                  </h2>
+                  <p className="font-mono text-[10px] uppercase text-fg-muted">
+                    Racha de Fuego Activa
+                  </p>
                 </div>
               </div>
-            )
-          })}
-        </div>
-      </section>
+              <div className="rounded-xl border border-border bg-black/40 px-4 py-2 text-center">
+                <span className="flex items-center gap-1 font-mono text-base font-bold text-sky-400">
+                  <Shield className="h-4 w-4 fill-sky-400" />
+                  {streak?.shields_available ?? 0}
+                </span>
+                <p className="font-mono text-[8px] uppercase text-fg-muted/60">Escudos</p>
+              </div>
+            </div>
+          </section>
 
-      <section className="mt-6">
-        <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-fg-muted">Loot</h2>
-        <div className="mt-2 rounded-lg border border-border bg-surface p-4">
-          <LootShowcase />
+          {/* Quests Diarias */}
+          <section className="card-stone-bg rounded-2xl p-6 space-y-4">
+            <h3 className="font-display text-xs uppercase tracking-widest text-fg-muted/60">
+              Misiones de Reconocimiento
+            </h3>
+
+            <div className="space-y-2.5">
+              {todayQuests?.map((q) => (
+                <div
+                  key={q.id}
+                  className="flex items-center justify-between rounded-xl border border-border bg-black/30 p-3"
+                >
+                  <span className="font-display text-xs text-fg">{QUEST_TITLES[q.type]}</span>
+                  <span
+                    className={`font-mono text-[10px] font-bold ${
+                      q.completed ? 'text-emerald-400' : 'text-accent animate-pulse'
+                    }`}
+                  >
+                    {q.completed ? '✓ COMPLETO' : 'PENDIENTE'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Jefes de Mazmorra Compactos */}
+          <section className="space-y-3">
+            <h3 className="font-display text-xs uppercase tracking-widest text-fg-muted/60">
+              Jefes de Mazmorra (Proyectos)
+            </h3>
+            <div className="space-y-2">
+              {projects?.slice(0, 2).map((p) => (
+                <ProjectBossCard
+                  key={p.id}
+                  project={p}
+                  category={categories?.find((c) => c.id === p.category_id)}
+                />
+              ))}
+            </div>
+          </section>
         </div>
-      </section>
+
+        {/* COLUMNA DERECHA (7 Cols): Clases & Botín */}
+        <div className="space-y-8 lg:col-span-7">
+          {/* Grid de 6 Clases RPG */}
+          <section className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            {categories?.map((cat) => {
+              const xpData = categoryXp?.find((x) => x.category_id === cat.id)
+              const rank = classRanks?.find((r) => r.id === xpData?.current_rank_id)
+              const level = xpData?.current_level ?? 1
+              const percent = Math.min(100, Math.round(((xpData?.current_xp ?? 0) / 2000) * 100))
+
+              return (
+                <div
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat)}
+                  className="card-stone-bg card-rune-interactive cursor-pointer rounded-2xl p-4 transition-all"
+                >
+                  <span className="mb-2 block text-2xl">🔮</span>
+                  <h4 className="truncate font-display text-xs font-bold uppercase tracking-widest text-fg">
+                    {rank?.rank_name ?? cat.class_name}
+                  </h4>
+                  <p className="font-mono text-[9px] uppercase text-fg-muted/60 mb-3">
+                    Nv. {level} · {cat.name}
+                  </p>
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-black/40">
+                    <div
+                      className="h-full transition-all duration-500"
+                      style={{ width: `${percent}%`, backgroundColor: cat.color_hex }}
+                    />
+                  </div>
+                </div>
+              )
+            })}
+          </section>
+
+          {/* Galería de Botín */}
+          <section className="card-stone-bg rounded-2xl p-6">
+            <h3 className="mb-4 font-display text-xs uppercase tracking-widest text-fg-muted/60">
+              Insignias de la Orden
+            </h3>
+            <LootShowcase />
+          </section>
+        </div>
+      </main>
+
+      {/* Modal Pergamino de Clase */}
+      {selectedCategory && (
+        <ClassDetailModal
+          category={selectedCategory}
+          categoryXp={categoryXp?.find((x) => x.category_id === selectedCategory.id)}
+          rank={classRanks?.find(
+            (r) => r.id === categoryXp?.find((x) => x.category_id === selectedCategory.id)?.current_rank_id,
+          )}
+          onClose={() => setSelectedCategory(null)}
+        />
+      )}
     </div>
   )
 }
@@ -2869,11 +3321,10 @@ export function useClearTodayPriority() {
 ### src/features/inbox/components/InboxDashboard.tsx
 
 ```tsx
-import { formatDistanceToNow } from 'date-fns'
+import { formatDistanceToNow, isPast, isToday } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { isPast, isToday } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
-import { AlertTriangle, Flame, Sparkles, Star, Trophy, Zap } from 'lucide-react'
+import { AlertTriangle, Flame, Sparkles, Star } from 'lucide-react'
 import {
   useStreak,
   useTodayQuests,
@@ -2887,146 +3338,144 @@ import {
 } from '@/features/tasks/hooks'
 import type { Task } from '@/types/database.types'
 
-function StatusStrip() {
+/** Franja Superior de Resumen (InboxTopBar) */
+export function InboxTopBar({ onOpenTask }: { onOpenTask: (task: Task) => void }) {
   const { data: streak } = useStreak()
   const xpToday = useXpEarnedToday()
   const { data: todayQuests } = useTodayQuests()
-  const triageDone = todayQuests?.find((q) => q.type === 'daily_triage')?.completed ?? false
-
-  return (
-    <div className="flex flex-wrap items-center gap-4 rounded-lg border border-border bg-surface px-4 py-2.5 text-sm">
-      <span className="flex items-center gap-1.5 font-mono text-fg">
-        <Flame className="h-4 w-4 text-accent" />
-        {streak?.current_streak_days ?? 0} <span className="text-fg-muted">días</span>
-      </span>
-      <span className="flex items-center gap-1.5 font-mono text-fg">
-        <Sparkles className="h-4 w-4 text-gold-bright" />+{xpToday ?? 0} <span className="text-fg-muted">XP hoy</span>
-      </span>
-      <span
-        className={`flex items-center gap-1.5 ${triageDone ? 'text-emerald-500' : 'text-fg-muted'}`}
-      >
-        {triageDone ? '✓' : '○'} Triage de hoy
-      </span>
-    </div>
-  )
-}
-
-function PriorityTodayCard({ onOpen }: { onOpen: (task: Task) => void }) {
-  const { data: todayQuests } = useTodayQuests()
-  const priorityQuest = todayQuests?.find((q) => q.type === 'daily_priority')
-  const { data: task } = useTaskById(priorityQuest?.task_id ?? null)
-
-  if (!priorityQuest || !task || task.status === 'done') return null
-
-  return (
-    <button
-      type="button"
-      onClick={() => onOpen(task)}
-      className="flex w-full items-center gap-2 rounded-lg border border-accent/30 bg-accent/5 px-4 py-2.5 text-left text-sm transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md"
-    >
-      <Star className="h-4 w-4 shrink-0 text-accent" />
-      <span className="text-fg-muted">Prioridad de hoy:</span>
-      <span className="flex-1 truncate font-medium text-fg">{task.title}</span>
-    </button>
-  )
-}
-
-function DeadlineCounters() {
   const navigate = useNavigate()
-  const { data: tasks } = useActiveTasksWithDeadline()
+  const { data: activeDeadlines } = useActiveTasksWithDeadline()
 
-  const overdue = tasks?.filter((t) => isPast(new Date(t.deadline!))).length ?? 0
-  const dueToday = tasks?.filter((t) => isToday(new Date(t.deadline!))).length ?? 0
-
-  if (overdue === 0 && dueToday === 0) return null
-
-  return (
-    <button
-      type="button"
-      onClick={() =>
-        navigate('/kanban', { state: { dateFilter: overdue > 0 ? 'overdue' : 'today' } })
-      }
-      className="flex w-full items-center justify-between gap-2 rounded-lg border border-warn-border bg-warn-bg px-4 py-2.5 text-left text-sm text-warn-fg transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md"
-    >
-      <span className="flex items-center gap-1.5">
-        <AlertTriangle className="h-4 w-4 shrink-0" />
-        {overdue > 0 && <span>{overdue} vencida{overdue === 1 ? '' : 's'}</span>}
-        {overdue > 0 && dueToday > 0 && <span>·</span>}
-        {dueToday > 0 && <span>{dueToday} vence{dueToday === 1 ? '' : 'n'} hoy</span>}
-      </span>
-      <span className="shrink-0 underline underline-offset-2">Ver en Kanban →</span>
-    </button>
-  )
-}
-
-/** Franja de estado + prioridad del día + contador de deadlines. Siempre visible. */
-export function InboxTopBar({ onOpenTask }: { onOpenTask: (task: Task) => void }) {
-  return (
-    <div className="flex flex-col gap-3">
-      <StatusStrip />
-      <PriorityTodayCard onOpen={onOpenTask} />
-      <DeadlineCounters />
-    </div>
-  )
-}
-
-function pickEmptyStateMessage(streakDays: number, triageDone: boolean): string {
-  if (triageDone && streakDays >= 7) {
-    return `🔥 Racha de ${streakDays} días y encima ya hiciste el triage de hoy. Sos una máquina.`
-  }
-  if (triageDone) return 'Inbox vacío y triage de hoy hecho — bien ahí.'
-  if (streakDays >= 3) return `Inbox vacío. Llevás ${streakDays} días de racha, no la cortes.`
-  return 'Inbox vacío. Todo tranquilo por acá.'
-}
-
-function LastWinCard() {
-  const { data: task } = useLastCompletedTask()
-  if (!task || !task.completed_at) return null
-
-  return (
-    <div className="flex items-center gap-2 rounded-lg border border-border bg-surface px-4 py-2.5 text-sm">
-      <Trophy className="h-4 w-4 shrink-0 text-gold-bright" />
-      <span className="text-fg-muted">Última victoria:</span>
-      <span className="flex-1 truncate text-fg">{task.title}</span>
-      <span className="shrink-0 font-mono text-xs text-fg-muted">
-        {formatDistanceToNow(new Date(task.completed_at), { addSuffix: true, locale: es })}
-      </span>
-    </div>
-  )
-}
-
-function QuickWinCard({ onOpen }: { onOpen: (task: Task) => void }) {
-  const { data: task } = useQuickWinTask()
-  if (!task) return null
-
-  return (
-    <button
-      type="button"
-      onClick={() => onOpen(task)}
-      className="flex w-full items-center gap-2 rounded-lg border border-dashed border-border px-4 py-2.5 text-left text-sm transition-all duration-150 hover:-translate-y-0.5 hover:border-accent/40"
-    >
-      <Zap className="h-4 w-4 shrink-0 text-fg-muted" />
-      <span className="text-fg-muted">Quick win:</span>
-      <span className="flex-1 truncate text-fg">{task.title}</span>
-      <span className="shrink-0 font-mono text-xs text-gold-bright">+10 XP</span>
-    </button>
-  )
-}
-
-/** Contenido para cuando el inbox está vacío: mensaje con personalidad + última victoria + quick win. */
-export function InboxEmptyState({ onOpenTask }: { onOpenTask: (task: Task) => void }) {
-  const { data: streak } = useStreak()
-  const { data: todayQuests } = useTodayQuests()
   const triageDone = todayQuests?.find((q) => q.type === 'daily_triage')?.completed ?? false
+  const priorityQuest = todayQuests?.find((q) => q.type === 'daily_priority')
+  const { data: priorityTask } = useTaskById(priorityQuest?.task_id ?? null)
+
+  const overdueCount = activeDeadlines?.filter((t) => isPast(new Date(t.deadline!))).length ?? 0
+  const dueTodayCount = activeDeadlines?.filter((t) => isToday(new Date(t.deadline!))).length ?? 0
 
   return (
-    <div className="flex flex-col gap-3">
-      <p className="text-sm text-fg-muted">
-        {pickEmptyStateMessage(streak?.current_streak_days ?? 0, triageDone)}
-      </p>
-      <LastWinCard />
-      <QuickWinCard onOpen={onOpenTask} />
+    <div className="mb-8 flex flex-col gap-3">
+      {/* Grid de Métricas Tácticas */}
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="flex items-center justify-between rounded-xl border border-border bg-black/30 p-3">
+          <span className="font-mono text-xs font-semibold uppercase tracking-tight text-fg-muted/60">Racha</span>
+          <span className="flex items-center gap-1 font-display text-sm font-bold text-accent">
+            <Flame className="h-4 w-4 animate-bounce text-accent" />
+            {streak?.current_streak_days ?? 0} DÍAS
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between rounded-xl border border-border bg-black/30 p-3">
+          <span className="font-mono text-xs font-semibold uppercase tracking-tight text-fg-muted/60">Progreso</span>
+          <span className="flex items-center gap-1 font-mono text-xs font-bold text-sky-400">
+            <Sparkles className="h-3.5 w-3.5" />
+            +{xpToday ?? 0} XP
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between rounded-xl border border-border bg-black/30 p-3">
+          <span className="font-mono text-xs font-semibold uppercase tracking-tight text-fg-muted/60">Triage</span>
+          <span className={`font-mono text-xs font-bold ${triageDone ? 'text-emerald-400' : 'text-fg-muted/50'}`}>
+            {triageDone ? '✓ COMPLETO' : '○ PENDIENTE'}
+          </span>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => navigate('/kanban')}
+          className="flex items-center justify-between rounded-xl border border-orange-500/30 bg-orange-500/10 p-3 transition-colors hover:bg-orange-500/20"
+        >
+          <span className="flex items-center gap-1 font-mono text-xs font-bold uppercase text-orange-400">
+            <Star className="h-3.5 w-3.5 fill-orange-400" /> Prioridad
+          </span>
+          <span className="font-mono text-[10px] font-bold underline text-fg-muted/80">VER GRIMORIO</span>
+        </button>
+      </div>
+
+      {/* Alerta de Deadlines Urgentes */}
+      {(overdueCount > 0 || dueTodayCount > 0) && (
+        <button
+          type="button"
+          onClick={() => navigate('/kanban', { state: { dateFilter: overdueCount > 0 ? 'overdue' : 'today' } })}
+          className="flex w-full items-center justify-between rounded-xl border border-warn-border bg-warn-bg px-4 py-2.5 text-xs text-warn-fg transition-transform hover:-translate-y-0.5"
+        >
+          <span className="flex items-center gap-2 font-mono font-medium">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-warn-fg" />
+            {overdueCount > 0 && <span>{overdueCount} misiones vencidas</span>}
+            {overdueCount > 0 && dueTodayCount > 0 && <span>·</span>}
+            {dueTodayCount > 0 && <span>{dueTodayCount} vencen hoy</span>}
+          </span>
+          <span className="font-mono text-[10px] font-bold underline">RESOLVER EN GRIMORIO →</span>
+        </button>
+      )}
+
+      {/* Tarjeta de Prioridad del Día */}
+      {priorityTask && priorityTask.status !== 'done' && (
+        <button
+          type="button"
+          onClick={() => onOpenTask(priorityTask)}
+          className="flex w-full items-center gap-3 rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 text-left transition-transform hover:-translate-y-0.5"
+        >
+          <Star className="h-4 w-4 shrink-0 text-accent fill-accent" />
+          <span className="font-mono text-xs font-bold uppercase text-accent">Misión Prioritaria:</span>
+          <span className="flex-1 truncate font-display text-sm font-semibold text-fg">{priorityTask.title}</span>
+        </button>
+      )}
     </div>
+  )
+}
+
+/** Empty State Motivacional cuando no hay pergaminos pendientes */
+export function InboxEmptyState({ onOpenTask }: { onOpenTask: (task: Task) => void }) {
+  const { data: lastTask } = useLastCompletedTask()
+  const { data: quickWin } = useQuickWinTask()
+
+  return (
+    <section className="rounded-3xl border-2 border-dashed border-border p-8 text-center bg-surface/20">
+      <div className="mb-4 text-5xl">🏰</div>
+      <h2 className="mb-1 font-display text-xl font-bold uppercase tracking-wide text-accent">
+        ¡Inbox limpio y maza lista para la batalla!
+      </h2>
+      <p className="mb-8 font-mono text-xs text-fg-muted/60">
+        No quedan pergaminos sueltos en tu mesa de trabajo.
+      </p>
+
+      <div className="mx-auto grid max-w-xl grid-cols-1 gap-4 text-left md:grid-cols-2">
+        {/* Última Victoria */}
+        {lastTask && lastTask.completed_at && (
+          <div className="rounded-2xl border border-border bg-surface p-4">
+            <span className="mb-2 block font-mono text-[10px] uppercase text-fg-muted/60">
+              Última Victoria 🏆
+            </span>
+            <p className="mb-1 truncate font-display text-sm font-bold text-fg">
+              {lastTask.title}
+            </p>
+            <p className="font-mono text-[10px] text-emerald-400">
+              COMPLETADO {formatDistanceToNow(new Date(lastTask.completed_at), { addSuffix: true, locale: es }).toUpperCase()}
+            </p>
+          </div>
+        )}
+
+        {/* Quick Win Sugerido */}
+        {quickWin && (
+          <button
+            type="button"
+            onClick={() => onOpenTask(quickWin)}
+            className="group rounded-2xl border border-border bg-surface p-4 text-left transition-all hover:border-sky-400"
+          >
+            <span className="mb-2 block font-mono text-[10px] uppercase text-sky-400">
+              Quick Win ⚡
+            </span>
+            <p className="mb-1 truncate font-display text-sm font-bold text-fg group-hover:text-sky-300">
+              {quickWin.title}
+            </p>
+            <p className="font-mono text-[10px] text-fg-muted/60">
+              GANA +10 XP RÁPIDO
+            </p>
+          </button>
+        )}
+      </div>
+    </section>
   )
 }
 ```
@@ -3036,7 +3485,7 @@ export function InboxEmptyState({ onOpenTask }: { onOpenTask: (task: Task) => vo
 ```tsx
 import { useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { Mic, Square, WifiOff } from 'lucide-react'
+import { Mic, Square, Trash2, WifiOff } from 'lucide-react'
 import { useCaptureInboxTask, useDeleteTask, useInboxTasks } from '@/features/tasks/hooks'
 import { useOnlineStatus } from '@/utils/useOnlineStatus'
 import { useSpeechDictation } from '@/utils/useSpeechDictation'
@@ -3052,6 +3501,7 @@ export function InboxPage() {
   const deleteTask = useDeleteTask()
   const online = useOnlineStatus()
   const [editingTask, setEditingTask] = useState<Task | null>(null)
+
   const dictation = useSpeechDictation((text) => {
     setTitle((current) => (current ? `${current} ${text}` : text))
     inputRef.current?.focus()
@@ -3070,85 +3520,119 @@ export function InboxPage() {
   }
 
   return (
-    <div className="mx-auto max-w-xl p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-lg font-semibold tracking-tight text-fg">Inbox</h1>
-        {!online && (
-          <span className="flex items-center gap-1 rounded-full bg-warn-bg px-2 py-0.5 text-xs text-warn-fg">
-            <WifiOff className="h-3 w-3" /> sin conexión — se guarda igual
-          </span>
-        )}
-      </div>
-      <p className="mt-1 text-sm text-fg-muted">
-        Escribí y enter. Sin categoría, sin proyecto, sin fecha — eso se define después en{' '}
-        <Link to="/triage" className="text-accent underline underline-offset-2">
-          Triage
-        </Link>
-        .
-      </p>
+    <div className="mx-auto max-w-3xl px-4 py-8 md:px-8">
+      {/* Indicadores Superiores */}
+      <InboxTopBar onOpenTask={setEditingTask} />
 
-      <form onSubmit={handleSubmit} className="mt-4 flex gap-2">
-        <input
-          ref={inputRef}
-          autoFocus
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="¿Qué se te ocurrió?"
-          className="w-full rounded-md border border-border bg-surface px-3 py-2 text-fg outline-none focus:border-accent"
-        />
-        {dictation.supported && (
-          <button
-            type="button"
-            onClick={() => (dictation.listening ? dictation.stop() : dictation.start())}
-            title={dictation.listening ? 'Detener dictado' : 'Dictar por voz'}
-            className={`shrink-0 rounded-md border px-3 transition-all duration-150 active:scale-95 ${
-              dictation.listening
-                ? 'border-accent/40 bg-accent/10 text-accent shadow-[0_0_12px_rgba(217,169,74,0.3)] animate-pulse'
-                : 'border-border text-fg-muted hover:bg-surface-2'
-            }`}
-          >
-            {dictation.listening ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-          </button>
-        )}
-      </form>
+      {/* Header Titular */}
+      <header className="mb-8 text-center">
+        <h1 className="mb-2 font-display text-3xl font-black uppercase tracking-widest text-accent md:text-4xl">
+          INBOX — PERGAMINO DE CAPTURA
+        </h1>
+        <p className="mx-auto max-w-lg text-sm text-fg-muted/70">
+          Escribe o dicta libremente. Sin categorías ni fechas — eso se define después en{' '}
+          <Link to="/triage" className="text-accent underline underline-offset-2">
+            Estrategia
+          </Link>
+          .
+        </p>
+      </header>
 
-      <div className="mt-6">
-        {isLoading && <p className="text-sm text-fg-muted">Cargando…</p>}
-        {items && items.length > 0 && (
-          <ul className="flex flex-col gap-2">
-            {items.map((item) => (
-              <li
-                key={item.id}
-                className="flex items-center justify-between gap-2 rounded-md border border-border bg-surface px-3 py-2 text-sm transition-all duration-150 hover:border-accent/30"
+      {/* Caja de Captura Fricción Cero (Sticky Input) */}
+      <section className="sticky top-20 z-30 mb-10">
+        <form onSubmit={handleSubmit} className="input-parchment-inbox flex items-center gap-3 rounded-2xl p-2 backdrop-blur-md">
+          <input
+            ref={inputRef}
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder={dictation.listening ? 'Escuchando tus órdenes...' : '¿Qué nueva misión ha surgido?'}
+            className="flex-1 border-none bg-transparent px-4 py-3 text-base text-fg outline-none placeholder:text-fg-muted/40 md:text-lg"
+          />
+
+          <div className="flex items-center gap-2 pr-1">
+            {dictation.supported && (
+              <button
+                type="button"
+                onClick={() => (dictation.listening ? dictation.stop() : dictation.start())}
+                title={dictation.listening ? 'Detener dictado' : 'Dictar por voz'}
+                className={`flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-90 ${
+                  dictation.listening
+                    ? 'pulse-recording bg-red-500/20 text-red-400'
+                    : 'bg-white/5 text-fg-muted hover:bg-white/10 hover:text-fg'
+                }`}
               >
-                <span className="text-fg">
-                  {item.title}
+                {dictation.listening ? <Square className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+              </button>
+            )}
+
+            <button
+              type="submit"
+              disabled={!title.trim() || captureTask.isPending}
+              className="btn-prime rounded-xl px-5 py-3 font-mono text-xs font-black uppercase tracking-widest disabled:opacity-50"
+            >
+              Capturar
+            </button>
+          </div>
+        </form>
+
+        <div className="mt-2.5 flex justify-between px-3">
+          <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-fg-muted/50">
+            <span className={`h-1.5 w-1.5 rounded-full ${online ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+            {online ? 'Conexión Estable' : 'Modo Offline Resiliente'}
+          </span>
+          {!online && (
+            <span className="font-mono text-[10px] uppercase tracking-widest text-amber-400">
+              <WifiOff className="mr-1 inline h-3 w-3" /> Guarda localmente
+            </span>
+          )}
+        </div>
+      </section>
+
+      {/* Lista de Capturas Pendientes */}
+      <section className="mb-12 space-y-3">
+        {isLoading && (
+          <p className="py-6 text-center font-mono text-xs text-fg-muted">
+            Cargando pergaminos...
+          </p>
+        )}
+
+        {items && items.length > 0 && (
+          <div className="space-y-3">
+            {items.map((item) => (
+              <div
+                key={item.id}
+                className="inbox-item-card group flex items-center justify-between rounded-xl p-4 transition-all hover:border-accent"
+              >
+                <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                  <span className="text-lg opacity-40 transition-opacity group-hover:opacity-100 group-hover:text-accent">
+                    📜
+                  </span>
+                  <p className="truncate font-medium text-fg">{item.title}</p>
                   {item.id.startsWith('optimistic-') && (
-                    <span className="ml-2 text-xs text-fg-muted">pendiente de sincronizar</span>
+                    <span className="font-mono text-[10px] text-fg-muted/50">
+                      (sincronizando...)
+                    </span>
                   )}
-                </span>
+                </div>
+
                 <button
                   type="button"
                   onClick={() => deleteTask.mutate(item.id)}
-                  className="shrink-0 text-fg-muted hover:text-fg"
-                  aria-label="Descartar"
+                  aria-label="Descartar captura"
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-fg-muted/40 transition-all hover:bg-red-500/20 hover:text-red-400 opacity-0 group-hover:opacity-100"
                 >
-                  ×
+                  <Trash2 className="h-4 w-4" />
                 </button>
-              </li>
+              </div>
             ))}
-          </ul>
-        )}
-      </div>
-
-      <div className="mt-8 border-t border-border pt-6">
-        <InboxTopBar onOpenTask={setEditingTask} />
-        {items && items.length === 0 && (
-          <div className="mt-3">
-            <InboxEmptyState onOpenTask={setEditingTask} />
           </div>
         )}
-      </div>
+
+        {items && items.length === 0 && !isLoading && (
+          <InboxEmptyState onOpenTask={setEditingTask} />
+        )}
+      </section>
 
       {editingTask && (
         <TaskModal
@@ -3220,6 +3704,487 @@ export async function updateColumnPosition(id: string, position: number): Promis
 export async function deleteColumn(id: string): Promise<void> {
   const { error } = await supabase.from('kanban_columns').delete().eq('id', id)
   if (error) throw error
+}
+```
+
+### src/features/kanban/components/GrimorioAccordionView.tsx
+
+```tsx
+import { useState } from 'react'
+import { ChevronDown, Search } from 'lucide-react'
+import { format, differenceInDays } from 'date-fns'
+import { useCategories } from '@/features/projects/hooks'
+import { useCompleteTask } from '@/features/tasks/hooks'
+import { WEAPON_ICONS } from '@/utils/rpgAssets'
+import type { Category, Task } from '@/types/database.types'
+
+export function GrimorioAccordionView({
+  tasks,
+  onOpenTask,
+}: {
+  tasks: Task[]
+  onOpenTask: (task: Task) => void
+}) {
+  const { data: categories } = useCategories()
+  const completeTask = useCompleteTask()
+
+  const [search, setSearch] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [openSections, setOpenSections] = useState({
+    active: true,
+    upcoming: true,
+    archive: false,
+  })
+
+  function toggleSection(key: 'active' | 'upcoming' | 'archive') {
+    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  const filtered = tasks.filter((t) => {
+    const matchesSearch = t.title.toLowerCase().includes(search.toLowerCase())
+    const matchesCat = !selectedCategory || t.category_id === selectedCategory
+    return matchesSearch && matchesCat
+  })
+
+  const now = new Date()
+  const activeTasks = filtered.filter((t) => t.hud_slot !== null && t.status !== 'done')
+  const upcomingTasks = filtered.filter((t) => {
+    if (t.hud_slot !== null || t.status === 'done') return false
+    if (!t.deadline) return true
+    const days = differenceInDays(new Date(t.deadline), now)
+    return days <= 3
+  })
+  const archiveTasks = filtered.filter((t) => {
+    if (t.hud_slot !== null || t.status === 'done') return false
+    if (!t.deadline) return false
+    const days = differenceInDays(new Date(t.deadline), now)
+    return days > 3
+  })
+
+  return (
+    <div className="space-y-6">
+      {/* Buscador & Filtros Rápidos */}
+      <div className="space-y-3">
+        <div className="relative">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar misiones o pergaminos..."
+            className="w-full rounded-2xl border border-border bg-black/40 py-3.5 pl-11 pr-4 text-sm text-fg outline-none transition-all focus:border-accent"
+          />
+          <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 opacity-40 text-fg" />
+        </div>
+
+        <div className="flex flex-wrap justify-center gap-2">
+          <button
+            type="button"
+            onClick={() => setSelectedCategory(null)}
+            className={`rounded-full px-3.5 py-1 font-mono text-[10px] font-bold uppercase tracking-widest transition-all ${
+              !selectedCategory
+                ? 'bg-accent text-accent-fg'
+                : 'border border-border text-fg-muted hover:text-fg'
+            }`}
+          >
+            Todas
+          </button>
+          {categories?.map((cat) => (
+            <button
+              key={cat.id}
+              type="button"
+              onClick={() => setSelectedCategory(cat.id)}
+              className={`rounded-full border px-3.5 py-1 font-mono text-[10px] font-bold uppercase tracking-widest transition-all ${
+                selectedCategory === cat.id
+                  ? 'border-transparent text-fg'
+                  : 'border-border text-fg-muted/60 hover:text-fg'
+              }`}
+              style={
+                selectedCategory === cat.id
+                  ? { backgroundColor: `${cat.color_hex}33`, borderColor: cat.color_hex }
+                  : undefined
+              }
+            >
+              {cat.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Acordeón de 3 Secciones */}
+      <div className="space-y-4">
+        {/* I. Enfrentamiento Activo */}
+        <section className={`accordion-section rounded-2xl border border-border bg-surface/30 ${openSections.active ? 'active' : ''}`}>
+          <button
+            type="button"
+            onClick={() => toggleSection('active')}
+            className="flex w-full items-center justify-between border-b border-accent/40 bg-surface/80 p-4"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-xl">⚔️</span>
+              <h2 className="font-display text-sm font-bold uppercase tracking-widest text-accent">
+                Enfrentamiento Activo (HUD)
+              </h2>
+              <span className="rounded-full bg-accent px-2 font-mono text-[10px] font-bold text-accent-fg">
+                {activeTasks.length}
+              </span>
+            </div>
+            <ChevronDown className="chevron-icon h-4 w-4 text-fg-muted transition-transform" />
+          </button>
+          <div className="accordion-content-panel space-y-2.5 p-4">
+            {activeTasks.length === 0 ? (
+              <p className="font-mono text-xs text-fg-muted/50">Sin misiones equipadas en combate.</p>
+            ) : (
+              activeTasks.map((task) => (
+                <RenderMissionCard
+                  key={task.id}
+                  task={task}
+                  categories={categories}
+                  onOpenTask={onOpenTask}
+                  onComplete={() => completeTask.mutate({ id: task.id, project_id: task.project_id })}
+                />
+              ))
+            )}
+          </div>
+        </section>
+
+        {/* II. Estrategia Próxima */}
+        <section className={`accordion-section rounded-2xl border border-border bg-surface/30 ${openSections.upcoming ? 'active' : ''}`}>
+          <button
+            type="button"
+            onClick={() => toggleSection('upcoming')}
+            className="flex w-full items-center justify-between border-b border-border bg-surface/80 p-4"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-xl">📜</span>
+              <h2 className="font-display text-sm font-bold uppercase tracking-widest text-fg">
+                Estrategia Próxima (Hoy - 3 Días)
+              </h2>
+              <span className="rounded-full bg-border px-2 font-mono text-[10px] font-bold text-fg">
+                {upcomingTasks.length}
+              </span>
+            </div>
+            <ChevronDown className="chevron-icon h-4 w-4 text-fg-muted transition-transform" />
+          </button>
+          <div className="accordion-content-panel space-y-2.5 p-4">
+            {upcomingTasks.length === 0 ? (
+              <p className="font-mono text-xs text-fg-muted/50">No hay urgencias inmediatas.</p>
+            ) : (
+              upcomingTasks.map((task) => (
+                <RenderMissionCard
+                  key={task.id}
+                  task={task}
+                  categories={categories}
+                  onOpenTask={onOpenTask}
+                  onComplete={() => completeTask.mutate({ id: task.id, project_id: task.project_id })}
+                />
+              ))
+            )}
+          </div>
+        </section>
+
+        {/* III. Archivos de la Orden */}
+        <section className={`accordion-section rounded-2xl border border-border bg-surface/30 ${openSections.archive ? 'active' : ''}`}>
+          <button
+            type="button"
+            onClick={() => toggleSection('archive')}
+            className="flex w-full items-center justify-between border-b border-border bg-surface/80 p-4"
+          >
+            <div className="flex items-center gap-3 opacity-60">
+              <span className="text-xl">🏛️</span>
+              <h2 className="font-display text-sm font-bold uppercase tracking-widest text-fg">
+                Archivos de la Orden (Backlog Futuro)
+              </h2>
+              <span className="rounded-full bg-border px-2 font-mono text-[10px] font-bold text-fg">
+                {archiveTasks.length}
+              </span>
+            </div>
+            <ChevronDown className="chevron-icon h-4 w-4 text-fg-muted transition-transform" />
+          </button>
+          <div className="accordion-content-panel space-y-2.5 p-4">
+            {archiveTasks.length === 0 ? (
+              <p className="font-mono text-xs text-fg-muted/50">El archivo está vacío.</p>
+            ) : (
+              archiveTasks.map((task) => (
+                <RenderMissionCard
+                  key={task.id}
+                  task={task}
+                  categories={categories}
+                  onOpenTask={onOpenTask}
+                  onComplete={() => completeTask.mutate({ id: task.id, project_id: task.project_id })}
+                />
+              ))
+            )}
+          </div>
+        </section>
+      </div>
+    </div>
+  )
+}
+
+function RenderMissionCard({
+  task,
+  categories,
+  onOpenTask,
+  onComplete,
+}: {
+  task: Task
+  categories?: Category[]
+  onOpenTask: (t: Task) => void
+  onComplete: () => void
+}) {
+  const category = categories?.find((c) => c.id === task.category_id)
+
+  return (
+    <div className="mission-scroll-card flex items-center justify-between rounded-xl p-3.5 transition-all">
+      <button
+        type="button"
+        onClick={() => onOpenTask(task)}
+        className="min-w-0 flex-1 text-left"
+      >
+        <div className="flex items-center gap-2">
+          {task.size && (
+            <img
+              src={WEAPON_ICONS[task.size]}
+              alt=""
+              className="h-4 w-4 object-contain opacity-70"
+            />
+          )}
+          <h3 className="truncate font-display text-sm font-bold text-fg">{task.title}</h3>
+        </div>
+        <div className="mt-1 flex items-center gap-2 font-mono text-[10px]">
+          {category && (
+            <span
+              className="rounded px-1.5 py-0.5 font-black uppercase"
+              style={{
+                backgroundColor: `${category.color_hex}25`,
+                color: category.color_hex,
+              }}
+            >
+              {category.name}
+            </span>
+          )}
+          {task.deadline && (
+            <span className="text-fg-muted/60 uppercase">
+              {format(new Date(task.deadline), 'd MMM')}
+            </span>
+          )}
+        </div>
+      </button>
+
+      <div className="flex items-center gap-3">
+        {task.hud_slot !== null && (
+          <span className="animate-pulse font-mono text-[10px] font-black text-accent">
+            SLOT {task.hud_slot}
+          </span>
+        )}
+        <button
+          type="button"
+          onClick={onComplete}
+          className="flex h-7 w-7 items-center justify-center rounded border border-border text-xs transition-colors hover:border-accent hover:text-accent"
+        >
+          ✓
+        </button>
+      </div>
+    </div>
+  )
+}
+```
+
+### src/features/kanban/components/GrimorioTabsView.tsx
+
+```tsx
+import { useState } from 'react'
+import { useCategories } from '@/features/projects/hooks'
+import { useCompleteTask } from '@/features/tasks/hooks'
+import type { Category, Task } from '@/types/database.types'
+
+const CLASS_ICONS: Record<string, string> = {
+  Concentrix: '🔮',
+  Delorean: '🪓',
+  Estudios: '📜',
+  Hobbies: '🎮',
+  Personal: '🛡️',
+  Hogar: '🌿',
+}
+
+export function GrimorioTabsView({
+  tasks,
+  onOpenTask,
+}: {
+  tasks: Task[]
+  onOpenTask: (task: Task) => void
+}) {
+  const { data: categories } = useCategories()
+  const completeTask = useCompleteTask()
+  const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null)
+
+  const filteredTasks = tasks.filter((t) =>
+    activeCategoryId ? t.category_id === activeCategoryId : true,
+  )
+
+  const pending = filteredTasks.filter((t) => t.status !== 'done')
+  const completed = filteredTasks.filter((t) => t.status === 'done')
+
+  return (
+    <div className="space-y-8">
+      {/* Navegación por Sellos de Cera (Wax Seals) */}
+      <nav className="flex flex-wrap justify-center gap-3 md:gap-5">
+        <button
+          type="button"
+          onClick={() => setActiveCategoryId(null)}
+          className={`wax-seal-btn flex w-20 flex-col items-center rounded-xl border-2 border-border bg-surface p-3 text-center md:w-24 ${
+            !activeCategoryId ? 'active' : ''
+          }`}
+        >
+          <span className="mb-1 text-2xl">🏺</span>
+          <span className="font-mono text-[9px] font-bold uppercase tracking-tighter text-fg">
+            Todas
+          </span>
+          <span className="mt-1 font-mono text-[10px] text-fg-muted/60">
+            {tasks.filter((t) => t.status !== 'done').length}
+          </span>
+        </button>
+
+        {categories?.map((cat) => {
+          const catCount = tasks.filter((t) => t.category_id === cat.id && t.status !== 'done').length
+          const icon = CLASS_ICONS[cat.name] ?? '🛡️'
+          const isActive = activeCategoryId === cat.id
+
+          return (
+            <button
+              key={cat.id}
+              type="button"
+              onClick={() => setActiveCategoryId(cat.id)}
+              className={`wax-seal-btn flex w-20 flex-col items-center rounded-xl border-2 border-border bg-surface p-3 text-center md:w-24 ${
+                isActive ? 'active' : ''
+              }`}
+            >
+              <span className="mb-1 text-2xl">{icon}</span>
+              <span className="truncate font-mono text-[9px] font-bold uppercase tracking-tighter text-fg">
+                {cat.class_name}
+              </span>
+              <span className="mt-1 font-mono text-[10px] text-fg-muted/60">{catCount}</span>
+            </button>
+          )
+        })}
+      </nav>
+
+      {/* Grid de 2 Sub-Columnas: Pendientes & Completadas */}
+      <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+        {/* Pendientes */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-2.5 border-b border-border pb-2.5">
+            <span className="text-xl">⏳</span>
+            <h2 className="font-display text-base font-bold uppercase tracking-widest text-accent">
+              Misiones Pendientes
+            </h2>
+            <span className="font-mono text-xs font-bold text-fg-muted">({pending.length})</span>
+          </div>
+
+          <div className="space-y-3">
+            {pending.length === 0 ? (
+              <p className="font-mono text-xs text-fg-muted/50">Sin tareas pendientes en este ámbito.</p>
+            ) : (
+              pending.map((task) => (
+                <RenderTabCard
+                  key={task.id}
+                  task={task}
+                  categories={categories}
+                  onOpenTask={onOpenTask}
+                  onComplete={() => completeTask.mutate({ id: task.id, project_id: task.project_id })}
+                />
+              ))
+            )}
+          </div>
+        </section>
+
+        {/* Completadas Recientemente */}
+        <section className="space-y-4 opacity-75">
+          <div className="flex items-center gap-2.5 border-b border-border pb-2.5">
+            <span className="text-xl">🏆</span>
+            <h2 className="font-display text-base font-bold uppercase tracking-widest text-fg-muted">
+              Completadas Recientemente
+            </h2>
+            <span className="font-mono text-xs font-bold text-fg-muted">({completed.length})</span>
+          </div>
+
+          <div className="space-y-3">
+            {completed.length === 0 ? (
+              <p className="font-mono text-xs text-fg-muted/50">Ninguna victoria registrada aquí aún.</p>
+            ) : (
+              completed.slice(0, 10).map((task) => (
+                <RenderTabCard
+                  key={task.id}
+                  task={task}
+                  categories={categories}
+                  onOpenTask={onOpenTask}
+                  onComplete={() => {}}
+                  isDone
+                />
+              ))
+            )}
+          </div>
+        </section>
+      </div>
+    </div>
+  )
+}
+
+function RenderTabCard({
+  task,
+  categories,
+  onOpenTask,
+  onComplete,
+  isDone = false,
+}: {
+  task: Task
+  categories?: Category[]
+  onOpenTask: (t: Task) => void
+  onComplete: () => void
+  isDone?: boolean
+}) {
+  const category = categories?.find((c) => c.id === task.category_id)
+
+  return (
+    <div
+      className={`mission-scroll-card flex items-center justify-between rounded-xl p-4 transition-all ${
+        isDone ? 'opacity-60 line-through' : ''
+      }`}
+    >
+      <button
+        type="button"
+        onClick={() => onOpenTask(task)}
+        className="min-w-0 flex-1 text-left"
+      >
+        <h3 className="truncate font-display text-sm font-bold text-fg">{task.title}</h3>
+        <div className="mt-1 flex items-center gap-3 font-mono text-[10px]">
+          {category && (
+            <span
+              className="rounded px-2 py-0.5 uppercase"
+              style={{ backgroundColor: `${category.color_hex}25`, color: category.color_hex }}
+            >
+              {category.name}
+            </span>
+          )}
+          {task.size && (
+            <span className="font-bold text-fg-muted/70">
+              +{task.xp_reward || 10} XP
+            </span>
+          )}
+        </div>
+      </button>
+
+      {!isDone && (
+        <button
+          type="button"
+          onClick={onComplete}
+          className="flex h-8 w-8 items-center justify-center rounded border border-border text-xs transition-colors hover:border-accent hover:text-accent"
+        >
+          ✓
+        </button>
+      )}
+    </div>
+  )
 }
 ```
 
@@ -3301,10 +4266,8 @@ function matchesDateFilter(task: Task, filter: DateFilter, now: Date): boolean {
 
 export function KanbanBoard({
   projectId,
-  categoryId,
 }: {
   projectId: string | null
-  categoryId: string | null
 }) {
   const { data: columns, isLoading: columnsLoading } = useKanbanColumns(projectId)
   const { data: tasks, isLoading: tasksLoading } = useBoardTasks(projectId)
@@ -3449,7 +4412,6 @@ export function KanbanBoard({
           task={modal.mode === 'edit' ? modal.task : null}
           defaultProjectId={projectId}
           defaultKanbanColumnId={modal.mode === 'create' ? modal.columnId : ''}
-          defaultCategoryId={categoryId}
           onClose={() => setModal(null)}
         />
       )}
@@ -3598,47 +4560,87 @@ export function KanbanColumn({
 ### src/features/kanban/components/KanbanPage.tsx
 
 ```tsx
-import { useNavigate, useParams } from 'react-router-dom'
-import { useProjects } from '@/features/projects/hooks'
-import { KanbanBoard } from '@/features/kanban/components/KanbanBoard'
+import { useState } from 'react'
+import { useAllBoardTasks } from '@/features/tasks/hooks'
+import { GrimorioAccordionView } from '@/features/kanban/components/GrimorioAccordionView'
+import { GrimorioTabsView } from '@/features/kanban/components/GrimorioTabsView'
+import { TaskModal } from '@/features/tasks/components/TaskModal'
+import type { Task } from '@/types/database.types'
+
+type GrimorioMode = 'foco' | 'ambitos'
 
 export function KanbanPage() {
-  const { projectId } = useParams<{ projectId?: string }>()
-  const navigate = useNavigate()
-  const { data: projects } = useProjects()
+  const [mode, setMode] = useState<GrimorioMode>(() => {
+    return (localStorage.getItem('questly_grimorio_mode') as GrimorioMode) || 'foco'
+  })
+  const [editingTask, setEditingTask] = useState<Task | null>(null)
 
-  const activeProjectId = projectId ?? null
-  const activeProject = projects?.find((p) => p.id === activeProjectId) ?? null
+  const { data: tasks, isLoading } = useAllBoardTasks()
+
+  function handleModeChange(nextMode: GrimorioMode) {
+    setMode(nextMode)
+    localStorage.setItem('questly_grimorio_mode', nextMode)
+  }
 
   return (
-    <div>
-      <div className="flex items-center gap-2 overflow-x-auto border-b border-border px-6 py-3">
-        <button
-          type="button"
-          onClick={() => navigate('/kanban')}
-          className={`shrink-0 rounded-full px-3 py-1 text-sm font-medium ${
-            !activeProjectId ? 'bg-accent text-accent-fg' : 'text-fg-muted hover:bg-surface-2'
-          }`}
-        >
-          Tareas sueltas
-        </button>
-        {projects?.map((project) => (
-          <button
-            key={project.id}
-            type="button"
-            onClick={() => navigate(`/kanban/${project.id}`)}
-            className={`shrink-0 rounded-full px-3 py-1 text-sm font-medium ${
-              activeProjectId === project.id
-                ? 'bg-accent text-accent-fg'
-                : 'text-fg-muted hover:bg-surface-2'
-            }`}
-          >
-            {project.name}
-          </button>
-        ))}
-      </div>
+    <div className="mx-auto max-w-5xl px-4 py-8 md:px-8">
+      {/* Header Titular & Toggle de Modo Dual */}
+      <header className="mb-8 flex flex-col items-center justify-between gap-4 border-b border-border pb-6 md:flex-row">
+        <div>
+          <h1 className="font-display text-3xl font-black uppercase tracking-widest text-accent">
+            EL GRIMORIO
+          </h1>
+          <p className="font-mono text-xs text-fg-muted/70">
+            Registro general de misiones y decretos.
+          </p>
+        </div>
 
-      <KanbanBoard projectId={activeProjectId} categoryId={activeProject?.category_id ?? null} />
+        {/* Toggle Dual Foco / Ámbitos */}
+        <div className="view-mode-toggle flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => handleModeChange('foco')}
+            className={`view-mode-btn ${mode === 'foco' ? 'active' : ''}`}
+          >
+            📜 Foco Gradual
+          </button>
+          <button
+            type="button"
+            onClick={() => handleModeChange('ambitos')}
+            className={`view-mode-btn ${mode === 'ambitos' ? 'active' : ''}`}
+          >
+            🛡️ Ámbitos por Clase
+          </button>
+        </div>
+      </header>
+
+      {/* Renderizado de la Vista Seleccionada */}
+      <main>
+        {isLoading ? (
+          <p className="py-12 text-center font-mono text-xs text-fg-muted">
+            Abriendo pergaminos del Grimorio…
+          </p>
+        ) : mode === 'foco' ? (
+          <GrimorioAccordionView
+            tasks={tasks ?? []}
+            onOpenTask={setEditingTask}
+          />
+        ) : (
+          <GrimorioTabsView
+            tasks={tasks ?? []}
+            onOpenTask={setEditingTask}
+          />
+        )}
+      </main>
+
+      {editingTask && (
+        <TaskModal
+          task={editingTask}
+          defaultProjectId={editingTask.project_id}
+          defaultKanbanColumnId=""
+          onClose={() => setEditingTask(null)}
+        />
+      )}
     </div>
   )
 }
@@ -4142,9 +5144,9 @@ export async function claimBossPhase(projectId: string, phase: number): Promise<
 ```tsx
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Swords } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { useBossStats, useCategories, useClaimBossPhase, useProjectById } from '@/features/projects/hooks'
-import { useTasksByProject } from '@/features/tasks/hooks'
+import { useCompleteTask, useTasksByProject } from '@/features/tasks/hooks'
 import { useEquipHudSlot, useHudTasks } from '@/features/battle-hud/hooks'
 import { BOSS_PHASES } from '@/features/projects/api'
 import { BossHealthBar } from '@/features/projects/components/BossHealthBar'
@@ -4164,15 +5166,17 @@ export function BossEncounterPage() {
   const claimPhase = useClaimBossPhase()
   const { data: hudTasks } = useHudTasks()
   const equipToHud = useEquipHudSlot()
+  const completeTask = useCompleteTask()
 
   const [rewardModal, setRewardModal] = useState<{ phase: number; xp: number } | null>(null)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
 
   const category = categories?.find((c) => c.id === project?.category_id)
   const occupiedSlots = new Set((hudTasks ?? []).map((t) => t.hud_slot))
-  const firstFreeSlot = [1, 2, 3].find((s) => !occupiedSlots.has(s))
+  const firstFreeSlot = [1, 2, 3].find((s) => !occupiedSlots.has(s)) ?? null
   const missions = (tasks ?? []).filter((t) => t.status === 'pending' || t.status === 'in_progress')
 
+  // Evaluar reclamo automático de fases alcanzadas
   useEffect(() => {
     if (!project || !stats || claimPhase.isPending) return
     const toClaim = BOSS_PHASES.find(
@@ -4188,86 +5192,114 @@ export function BossEncounterPage() {
   }, [project, stats])
 
   if (!project || !stats) {
-    return <p className="p-6 text-sm text-fg-muted">Cargando…</p>
+    return <p className="py-12 text-center font-mono text-sm text-fg-muted">Entrando en la mazmorra…</p>
   }
 
   return (
-    <div className="mx-auto max-w-2xl p-6">
-      <Link
-        to="/kanban"
-        className="flex items-center gap-1.5 text-sm text-fg-muted transition-colors hover:text-fg"
-      >
-        <ArrowLeft className="h-3.5 w-3.5" /> Volver al Grimorio
-      </Link>
+    <div className="mx-auto max-w-4xl px-4 py-8 md:px-8">
+      {/* Botón de Retorno */}
+      <nav className="mb-6">
+        <Link
+          to="/kanban"
+          className="flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-fg-muted transition-colors hover:text-accent"
+        >
+          <ArrowLeft className="h-4 w-4" /> Volver al Grimorio
+        </Link>
+      </nav>
 
-      <div className="mt-4 flex items-start gap-3">
-        <img
-          src={bossAvatarSrc(project.boss_avatar)}
-          alt={project.boss_title}
-          className="h-16 w-16 shrink-0 rounded-full object-cover shadow-[0_0_16px_rgba(0,0,0,0.3)]"
-        />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm text-fg-muted">{project.name}</p>
-          <h1 className="font-display text-xl font-bold tracking-wide text-fg">{project.boss_title}</h1>
-        </div>
-        {category && (
-          <span
-            className="shrink-0 rounded-full px-2 py-1 text-xs font-medium"
-            style={{ backgroundColor: `${category.color_hex}22`, color: category.color_hex }}
+      {/* Header Perfil del Jefe */}
+      <header className="mb-10 flex flex-col items-center text-center">
+        <div className="relative mb-4">
+          <div className="h-32 w-32 rounded-full border-4 border-border bg-surface-2 p-1 shadow-[0_0_40px_rgba(124,58,237,0.3)]">
+            <img
+              src={bossAvatarSrc(project.boss_avatar)}
+              alt={project.boss_title}
+              className="h-full w-full rounded-full object-cover bg-black/40"
+            />
+          </div>
+          <div
+            className="absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border-2 border-bg px-4 py-0.5 font-mono text-[10px] font-black uppercase tracking-tighter text-fg shadow-lg"
+            style={{ backgroundColor: category?.color_hex ?? '#7c3aed' }}
           >
-            {category.name}
-          </span>
-        )}
-      </div>
+            {category?.name ?? 'Proyecto'} / {category?.class_name ?? 'Clase'}
+          </div>
+        </div>
 
-      <div className="mt-5 rounded-lg border border-border-card bg-surface-card p-4">
+        <h1 className="mb-1 font-display text-3xl font-black tracking-widest text-fg drop-shadow-md md:text-4xl">
+          {project.boss_title.toUpperCase()}
+        </h1>
+        <p className="font-display text-sm font-semibold uppercase tracking-[0.25em] text-accent/80">
+          {project.name}
+        </p>
+      </header>
+
+      {/* Barra de Salud Dinámica */}
+      <section className="mb-12">
         <BossHealthBar
           totalHp={stats.totalHp}
           currentHp={stats.currentHp}
           percentRemaining={stats.percentRemaining}
           phasesClaimed={project.phases_claimed}
         />
-      </div>
+      </section>
 
-      <section className="mt-6">
-        <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-fg-muted">
-          Misiones del combate
+      {/* Secuencia de Ataques (Misiones) */}
+      <section className="mb-16 space-y-4">
+        <h2 className="font-display text-xs uppercase tracking-[0.3em] text-fg-muted/60">
+          Misiones de Ataque Disponibles
         </h2>
+
         {missions.length === 0 ? (
-          <p className="mt-2 text-sm text-fg-muted">No hay misiones activas en este proyecto.</p>
+          <p className="py-6 font-mono text-xs text-fg-muted">
+            No hay ataques activos en esta mazmorra.
+          </p>
         ) : (
-          <ul className="mt-2 flex flex-col gap-2">
+          <div className="space-y-3">
             {missions.map((task) => (
-              <li
+              <article
                 key={task.id}
-                className="flex items-center gap-2 rounded-md border border-border bg-surface p-2.5 text-sm"
+                className="attack-card-item flex items-center justify-between rounded-xl p-4 transition-all"
               >
                 <button
                   type="button"
                   onClick={() => setEditingTask(task)}
-                  className="min-w-0 flex-1 truncate text-left text-fg"
+                  className="min-w-0 flex-1 text-left"
                 >
-                  {task.title}
+                  <h3 className="truncate font-display text-base font-bold text-fg">
+                    {task.title}
+                  </h3>
+                  <p className="font-mono text-[10px] uppercase text-fg-muted/60">
+                    Recompensa: +{task.xp_reward || 10} XP
+                  </p>
                 </button>
-                <button
-                  type="button"
-                  disabled={!firstFreeSlot || task.hud_slot !== null}
-                  onClick={() => firstFreeSlot && equipToHud.mutate({ taskId: task.id, slot: firstFreeSlot })}
-                  title={
-                    task.hud_slot !== null
-                      ? 'Ya está equipada en el HUD'
-                      : firstFreeSlot
-                        ? `Equipar en Slot ${firstFreeSlot}`
-                        : 'Los 3 slots de combate están ocupados'
-                  }
-                  className="flex shrink-0 items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-fg-muted transition-all duration-150 hover:border-accent/40 hover:text-accent disabled:opacity-40 disabled:hover:border-border disabled:hover:text-fg-muted"
-                >
-                  <Swords className="h-3.5 w-3.5" />
-                  {task.hud_slot !== null ? 'En HUD' : 'Equipar'}
-                </button>
-              </li>
+
+                <div className="flex items-center gap-2.5">
+                  <button
+                    type="button"
+                    disabled={!firstFreeSlot || task.hud_slot !== null}
+                    onClick={() =>
+                      firstFreeSlot && equipToHud.mutate({ taskId: task.id, slot: firstFreeSlot })
+                    }
+                    className={`rounded px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-widest transition-all ${
+                      task.hud_slot !== null
+                        ? 'border border-accent/40 bg-accent/20 text-accent'
+                        : 'border border-white/10 bg-white/5 text-fg-muted hover:bg-white/10 hover:text-fg disabled:opacity-40'
+                    }`}
+                  >
+                    {task.hud_slot !== null ? 'En HUD' : '⚔️ Equipar'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => completeTask.mutate({ id: task.id, project_id: task.project_id })}
+                    className="rounded border border-red-600/40 bg-red-600/20 px-4 py-2 font-mono text-[10px] font-black uppercase tracking-widest text-red-400 transition-all hover:bg-red-600 hover:text-white"
+                  >
+                    Golpear
+                  </button>
+                </div>
+              </article>
             ))}
-          </ul>
+          </div>
         )}
       </section>
 
@@ -4310,43 +5342,56 @@ export function BossHealthBar({
   phasesClaimed: number[]
 }) {
   return (
-    <div>
-      <div className="flex items-baseline justify-between">
-        <span className="font-display text-sm uppercase tracking-wide text-fg-muted">HP del jefe</span>
-        <span className="font-mono text-lg font-semibold text-fg">
+    <div className="space-y-4">
+      {/* Indicadores Numéricos */}
+      <div className="flex items-end justify-between px-1">
+        <span className="font-display text-lg font-bold tracking-tight text-red-500">
+          VIDA DEL JEFE
+        </span>
+        <span className="font-mono text-xl font-black text-fg">
           {currentHp} / {totalHp} HP
         </span>
       </div>
-      <div className="relative mt-2 h-4 overflow-hidden rounded-full border border-border-card bg-surface-2">
+
+      {/* Barra de Salud Masiva */}
+      <div className="boss-hp-container relative h-10 w-full overflow-hidden rounded-xl bg-black/60">
         <div
-          className="h-full rounded-full transition-[width] duration-700 ease-out"
-          style={{
-            width: `${percentRemaining}%`,
-            background: 'linear-gradient(90deg, var(--hp-critical), var(--hp-full))',
-            boxShadow: '0 0 12px var(--hp-full)',
-          }}
+          className="boss-hp-fill h-full"
+          style={{ width: `${Math.max(0, Math.min(100, percentRemaining))}%` }}
         />
+        {/* Marcas de Fase (75%, 50%, 25%) */}
         {BOSS_PHASES.filter((p) => p > 0).map((phase) => (
           <div
             key={phase}
-            className="absolute top-0 h-full w-px bg-black/25"
+            className="phase-mark-line"
             style={{ left: `${phase}%` }}
           />
         ))}
       </div>
-      <div className="mt-2 flex justify-between px-0.5">
+
+      {/* Cofres de Loot de Fase */}
+      <div className="flex justify-between px-2 pt-1">
         {BOSS_PHASES.map((phase) => {
           const claimed = phasesClaimed.includes(phase)
+          const isReached = percentRemaining <= phase
+          const isActive = claimed || isReached
+
           return (
-            <img
+            <div
               key={phase}
-              src={LOOT_ICONS.chest_phase}
-              alt={phase === 0 ? 'Jefe derrotado' : `Fase ${phase}% de HP`}
-              title={phase === 0 ? 'Jefe derrotado' : `Fase ${phase}% de HP`}
-              className={`h-6 w-6 object-contain transition-all duration-300 ${
-                claimed ? 'opacity-100 drop-shadow-[0_0_6px_var(--phase-shield)]' : 'opacity-30 grayscale'
+              className={`chest-icon-phase flex flex-col items-center gap-1.5 ${
+                isActive ? 'active' : ''
               }`}
-            />
+            >
+              <img
+                src={LOOT_ICONS.chest_phase}
+                alt={phase === 0 ? 'Victoria final' : `Fase ${phase}%`}
+                className="h-8 w-8 object-contain"
+              />
+              <span className="font-mono text-[9px] uppercase tracking-widest text-fg-muted/70">
+                {phase === 0 ? 'Victoria' : `${phase}% Loot`}
+              </span>
+            </div>
           )
         })}
       </div>
@@ -4361,7 +5406,7 @@ export function BossHealthBar({
 import { useEffect, useRef } from 'react'
 import { LOOT_ICONS } from '@/utils/rpgAssets'
 
-const AUTO_DISMISS_MS = 3400
+const AUTO_DISMISS_MS = 4000
 
 export function PhaseRewardModal({
   phase,
@@ -4377,64 +5422,55 @@ export function PhaseRewardModal({
 
   useEffect(() => {
     const timer = window.setTimeout(onDone, AUTO_DISMISS_MS)
-
-    const stage = stageRef.current
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (stage && !reduceMotion) {
-      const rect = { w: stage.clientWidth, h: stage.clientHeight }
-      const particles: HTMLDivElement[] = []
-      for (let i = 0; i < 26; i++) {
-        const p = document.createElement('div')
-        p.className = 'achievement-burst'
-        const angle = (Math.PI * 2 * i) / 26 + Math.random() * 0.3
-        const dist = 90 + Math.random() * 70
-        const dx = Math.cos(angle) * dist
-        const dy = Math.sin(angle) * dist
-        p.style.left = `${rect.w / 2}px`
-        p.style.top = `${rect.h / 2}px`
-        stage.appendChild(p)
-        p.animate(
-          [
-            { transform: 'translate(0, 0) scale(1)', opacity: 1 },
-            { transform: `translate(${dx}px, ${dy}px) scale(0)`, opacity: 0 },
-          ],
-          { duration: 700 + Math.random() * 300, easing: 'cubic-bezier(.16,1,.3,1)', delay: 150 },
-        )
-        particles.push(p)
-      }
-      return () => {
-        window.clearTimeout(timer)
-        particles.forEach((p) => p.remove())
-      }
-    }
-
     return () => window.clearTimeout(timer)
-  }, [phase, onDone])
+  }, [onDone])
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-bg/85 p-6 backdrop-blur-md"
       onClick={onDone}
       role="status"
-      aria-live="polite"
     >
-      <div ref={stageRef} className="relative flex h-72 w-full max-w-sm items-center justify-center">
-        <div className="achievement-modal relative rounded-2xl border border-gold bg-surface px-10 py-8 text-center">
-          <div className="mx-auto mb-3.5 flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[radial-gradient(circle_at_35%_30%,var(--gold-bright),var(--gold)_60%,#7a5a1e_100%)] shadow-[inset_0_0_12px_rgba(0,0,0,0.35)]">
-            {isDefeat ? (
-              <span className="text-3xl">🏆</span>
-            ) : (
-              <img src={LOOT_ICONS.chest_phase} alt="Cofre de fase" className="h-11 w-11 object-contain" />
-            )}
-          </div>
-          <div className="mb-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-gold-bright">
-            {isDefeat ? 'Jefe derrotado' : `Fase ${phase}% rota`}
-          </div>
-          <div className="font-display text-2xl font-black tracking-wide text-fg">
-            {isDefeat ? '¡Victoria!' : '¡Golpe crítico!'}
-          </div>
-          <p className="mt-1.5 text-sm text-fg-muted">+{xp} XP</p>
+      <div
+        ref={stageRef}
+        onClick={(e) => e.stopPropagation()}
+        className="modal-panel relative w-full max-w-sm rounded-3xl border-2 border-accent bg-surface p-8 text-center shadow-[0_0_100px_rgba(217,169,74,0.3)]"
+      >
+        <div className="gold-shimmer-bg pointer-events-none absolute inset-0 rounded-3xl opacity-30" />
+
+        <div className="mb-4 flex justify-center">
+          {isDefeat ? (
+            <span className="animate-bounce text-6xl">🏆</span>
+          ) : (
+            <img
+              src={LOOT_ICONS.chest_phase}
+              alt="Cofre de fase"
+              className="h-16 w-16 animate-bounce object-contain drop-shadow-[0_0_12px_rgba(217,169,74,0.6)]"
+            />
+          )}
         </div>
+
+        <h2 className="mb-1 font-display text-2xl font-black uppercase tracking-tighter text-accent">
+          {isDefeat ? '¡JEFE DERROTADO!' : '¡GOLPE CRÍTICO!'}
+        </h2>
+        <p className="mb-6 font-display text-xs tracking-widest text-fg-muted uppercase">
+          {isDefeat ? 'PROYECTO CONQUISTADO' : `FASE ${phase}% ROTA`}
+        </p>
+
+        <div className="mb-6 rounded-2xl border border-border bg-black/40 p-4">
+          <p className="mb-1 font-mono text-[10px] uppercase text-fg-muted/60">
+            Tesoro Desbloqueado
+          </p>
+          <p className="font-mono text-xl font-black text-sky-400">+{xp} XP EXTRA</p>
+        </div>
+
+        <button
+          type="button"
+          onClick={onDone}
+          className="btn-prime w-full rounded-xl py-3.5 font-display text-xs font-black uppercase tracking-widest"
+        >
+          Reclamar Botín
+        </button>
       </div>
     </div>
   )
@@ -4639,6 +5675,19 @@ export async function fetchTasksByProject(projectId: string): Promise<Task[]> {
   return data
 }
 
+// Todas las tareas de nivel superior de una categoría, sin filtrar por
+// status — usada por ClassDetailModal (Fase 7, Módulo 8) para listar
+// misiones activas/completadas de esa clase.
+export async function fetchTasksByCategory(categoryId: string): Promise<Task[]> {
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('*')
+    .eq('category_id', categoryId)
+    .is('parent_task_id', null)
+  if (error) throw error
+  return data
+}
+
 export async function fetchInboxTasks(): Promise<Task[]> {
   const { data, error } = await supabase
     .from('tasks')
@@ -4660,6 +5709,20 @@ export async function fetchBoardTasks(projectId: string | null): Promise<Task[]>
   const { data, error } = await (projectId
     ? query.eq('project_id', projectId)
     : query.is('project_id', null))
+  if (error) throw error
+  return data
+}
+
+// A diferencia de fetchBoardTasks(null) (que trae solo tareas sueltas), esta
+// trae TODAS las misiones trianas sin importar proyecto — la usa El Grimorio
+// (Fase 7, Módulo 6), que unifica proyectos y tareas sueltas en una sola vista.
+export async function fetchAllBoardTasks(): Promise<Task[]> {
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('*')
+    .is('parent_task_id', null)
+    .not('kanban_column_id', 'is', null)
+    .neq('status', 'follow_up')
   if (error) throw error
   return data
 }
@@ -5056,10 +6119,10 @@ export function TaskCard({ task, onOpen }: { task: Task; onOpen: (task: Task) =>
 ### src/features/tasks/components/TaskModal.tsx
 
 ```tsx
-import { useState, type FormEvent } from 'react'
-import { Check, Link2, Undo2 } from 'lucide-react'
-import { Modal } from '@/components/ui/Modal'
-import { useCategories } from '@/features/projects/hooks'
+import { useEffect, useState } from 'react'
+import { X, Trash2, Swords, Check, Undo2, Link2 } from 'lucide-react'
+import { addDays } from 'date-fns'
+import { useCategories, useProjects } from '@/features/projects/hooks'
 import {
   useCompleteTask,
   useCreateTask,
@@ -5068,6 +6131,7 @@ import {
   useSubtasks,
   useUpdateTask,
 } from '@/features/tasks/hooks'
+import { useEquipHudSlot, useHudTasks } from '@/features/battle-hud/hooks'
 import {
   useClearTodayPriority,
   useSetTodayPriority,
@@ -5080,54 +6144,86 @@ import {
   useSendToFollowUp,
 } from '@/features/followups/hooks'
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '@/utils/datetime'
+import { WEAPON_ICONS } from '@/utils/rpgAssets'
 import type { Task, TaskSize } from '@/types/database.types'
 
 const DEFAULT_FOLLOW_UP_INTERVAL_DAYS = 7
-
-const SIZE_OPTIONS: { value: TaskSize; label: string; xp: number }[] = [
-  { value: 'small', label: 'Pequeña', xp: 10 },
-  { value: 'medium', label: 'Mediana', xp: 25 },
-  { value: 'large', label: 'Grande', xp: 50 },
-]
 
 export function TaskModal({
   task,
   defaultProjectId,
   defaultKanbanColumnId,
-  defaultCategoryId,
   onClose,
 }: {
-  task: Task | null
-  defaultProjectId: string | null
-  defaultKanbanColumnId: string
-  defaultCategoryId?: string | null
+  task?: Task | null
+  defaultProjectId?: string | null
+  defaultKanbanColumnId?: string
   onClose: () => void
 }) {
+  const isEditing = !!task
   const { data: categories } = useCategories()
+  const { data: projects } = useProjects()
+  const { data: hudTasks } = useHudTasks()
+
   const createTask = useCreateTask()
   const updateTask = useUpdateTask()
   const deleteTask = useDeleteTask()
   const completeTask = useCompleteTask()
   const reopenTask = useReopenTask()
+  const equipToHud = useEquipHudSlot()
+
+  // Subtareas de la misión (micro-pasos)
   const { data: subtasks } = useSubtasks(task?.id ?? null)
+
+  // Prioridad del día
   const { data: todayQuests } = useTodayQuests()
   const setTodayPriority = useSetTodayPriority()
   const clearTodayPriority = useClearTodayPriority()
+  const priorityQuest = todayQuests?.find((q) => q.type === 'daily_priority')
+  const isTodayPriority = !!task && priorityQuest?.task_id === task.id
+  const canBePriority = !!task && task.parent_task_id === null
+
+  // Follow-up
   const { data: existingFollowUp } = useFollowUpForTask(task?.id ?? null)
   const sendToFollowUp = useSendToFollowUp()
   const deleteFollowUp = useDeleteFollowUp()
   const registerContact = useRegisterFollowUpContact()
-
-  const [title, setTitle] = useState(task?.title ?? '')
-  const [description, setDescription] = useState(task?.description ?? '')
-  const [categoryId, setCategoryId] = useState(task?.category_id ?? defaultCategoryId ?? '')
-  const [deadline, setDeadline] = useState(toDatetimeLocalValue(task?.deadline ?? null))
-  const [size, setSize] = useState<TaskSize | null>(task?.size ?? null)
-  const [error, setError] = useState<string | null>(null)
-  const [saving, setSaving] = useState(false)
   const [showFollowUpForm, setShowFollowUpForm] = useState(false)
   const [followUpIntervalDays, setFollowUpIntervalDays] = useState(DEFAULT_FOLLOW_UP_INTERVAL_DAYS)
   const [followUpStakeholder, setFollowUpStakeholder] = useState('')
+
+  // Estados del Formulario
+  const [title, setTitle] = useState(task?.title ?? '')
+  const [size, setSize] = useState<TaskSize>(task?.size ?? 'small')
+  const [categoryId, setCategoryId] = useState<string>(task?.category_id ?? '')
+  const [projectId, setProjectId] = useState<string | null>(task?.project_id ?? defaultProjectId ?? null)
+  const [deadline, setDeadline] = useState<string>(toDatetimeLocalValue(task?.deadline ?? null))
+  const [description, setDescription] = useState<string>(task?.description ?? '')
+  const [newSubtaskText, setNewSubtaskText] = useState('')
+  const [sealing, setSealing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  // Asignar primer categoría por defecto si está vacía
+  useEffect(() => {
+    if (!categoryId && categories && categories.length > 0) {
+      setCategoryId(categories[0].id)
+    }
+  }, [categories, categoryId])
+
+  // Cálculo de porcentaje de HP/Integridad por subtareas
+  const totalSub = subtasks?.length ?? 0
+  const doneSub = subtasks?.filter((s) => s.status === 'done').length ?? 0
+  const hpPercent = totalSub > 0 ? Math.round((doneSub / totalSub) * 100) : 0
+
+  const occupiedSlots = new Set((hudTasks ?? []).map((t) => t.hud_slot))
+  const firstFreeSlot = [1, 2, 3].find((s) => !occupiedSlots.has(s)) ?? null
+
+  function setQuickDeadline(daysFromNow: number) {
+    const d = addDays(new Date(), daysFromNow)
+    d.setHours(18, 0, 0, 0)
+    setDeadline(toDatetimeLocalValue(d.toISOString()))
+  }
 
   function handleComplete() {
     if (!task) return
@@ -5157,345 +6253,471 @@ export function TaskModal({
     reopenTask.mutate({ id: task.id, project_id: task.project_id })
   }
 
-  const priorityQuest = todayQuests?.find((q) => q.type === 'daily_priority')
-  const isTodayPriority = !!task && priorityQuest?.task_id === task.id
-  const canBePriority = !!task && task.parent_task_id === null
+  function handleAddSubtask() {
+    if (!newSubtaskText.trim() || !task) return
+    // Las subtareas siempre requieren deadline (constraint de la DB) — se
+    // hereda el de la tarea padre para no agregarle fricción al micro-paso.
+    createTask.mutate({
+      title: newSubtaskText.trim(),
+      parent_task_id: task.id,
+      project_id: task.project_id,
+      deadline: task.deadline,
+    })
+    setNewSubtaskText('')
+  }
 
-  const [newSubtaskTitle, setNewSubtaskTitle] = useState('')
-  const [newSubtaskDeadline, setNewSubtaskDeadline] = useState('')
-
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault()
-    if (!title.trim() || !deadline) {
-      setError('Título y deadline son obligatorios.')
+  function handleSubmit() {
+    if (!title.trim() || !categoryId) return
+    if (!deadline) {
+      setError('El deadline es obligatorio para sellar el decreto.')
       return
     }
     setError(null)
-    setSaving(true)
-    try {
-      if (task) {
-        await updateTask.mutateAsync({
-          id: task.id,
-          patch: {
-            title: title.trim(),
-            description: description.trim() || null,
-            category_id: categoryId || null,
-            deadline: fromDatetimeLocalValue(deadline),
-            size,
-          },
-        })
-      } else {
-        await createTask.mutateAsync({
-          title: title.trim(),
-          description: description.trim() || null,
-          category_id: categoryId || null,
-          deadline: fromDatetimeLocalValue(deadline),
-          project_id: defaultProjectId,
-          kanban_column_id: defaultKanbanColumnId,
-          size,
-        })
+    setSealing(true)
+
+    const payload = {
+      title: title.trim(),
+      size,
+      category_id: categoryId,
+      project_id: projectId,
+      deadline: fromDatetimeLocalValue(deadline),
+      description: description.trim() || null,
+    }
+
+    setTimeout(async () => {
+      setSaving(true)
+      try {
+        if (isEditing && task) {
+          await updateTask.mutateAsync({ id: task.id, patch: payload })
+        } else {
+          await createTask.mutateAsync({ ...payload, kanban_column_id: defaultKanbanColumnId ?? '' })
+        }
+        onClose()
+      } catch (err) {
+        setSealing(false)
+        setError(err instanceof Error ? err.message : 'No se pudo sellar el decreto.')
+      } finally {
+        setSaving(false)
       }
-
-      onClose()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo guardar.')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  async function handleAddSubtask(event: FormEvent) {
-    event.preventDefault()
-    if (!task || !newSubtaskTitle.trim() || !newSubtaskDeadline) return
-    try {
-      await createTask.mutateAsync({
-        title: newSubtaskTitle.trim(),
-        parent_task_id: task.id,
-        project_id: task.project_id,
-        deadline: fromDatetimeLocalValue(newSubtaskDeadline),
-      })
-      setNewSubtaskTitle('')
-      setNewSubtaskDeadline('')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo crear la subtarea.')
-    }
-  }
-
-  function handleDelete() {
-    if (!task) return
-    if (!window.confirm('¿Borrar esta tarea?')) return
-    deleteTask.mutate(task.id)
-    onClose()
+    }, 450)
   }
 
   return (
-    <Modal onClose={onClose}>
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="font-display text-base font-semibold tracking-tight text-fg">
-          {task ? 'Editar tarea' : 'Nueva tarea'}
-        </h2>
-        {task &&
-          (task.status === 'done' ? (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-bg/80 p-4 backdrop-blur-md"
+      onClick={onClose}
+    >
+      <main
+        onClick={(e) => e.stopPropagation()}
+        className={`grimoire-editor-modal relative flex w-full max-w-2xl flex-col rounded-3xl ${
+          sealing ? 'animate-seal-flash' : ''
+        }`}
+      >
+        {/* Encabezado con Estado y Acciones Rápidas */}
+        <header className="flex items-center justify-between gap-3 border-b border-white/5 p-6">
+          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 font-mono text-[10px] font-bold text-fg-muted">
+            {task?.hud_slot !== null && task?.hud_slot !== undefined
+              ? `⚔️ EQUIPADO EN HUD SLOT ${task.hud_slot}`
+              : '📜 EN EL GRIMORIO'}
+          </span>
+
+          <div className="flex items-center gap-2">
+            {isEditing &&
+              task &&
+              (task.status === 'done' ? (
+                <button
+                  type="button"
+                  onClick={handleReopen}
+                  className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-widest text-fg-muted transition-colors hover:text-fg"
+                >
+                  <Undo2 className="h-3.5 w-3.5" /> Reabrir
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleComplete}
+                  className="btn-prime flex items-center gap-1.5 rounded-full px-4 py-1.5 font-mono text-[10px] font-black uppercase tracking-widest"
+                >
+                  <Check className="h-3.5 w-3.5" /> Completar
+                </button>
+              ))}
             <button
               type="button"
-              onClick={handleReopen}
-              className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-sm font-medium text-fg-muted transition-colors hover:text-fg"
+              onClick={onClose}
+              className="flex h-9 w-9 items-center justify-center rounded-full text-fg-muted transition-colors hover:bg-white/5 hover:text-fg"
             >
-              <Undo2 className="h-4 w-4" /> Reabrir
+              <X className="h-5 w-5" />
             </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleComplete}
-              className="flex items-center gap-1.5 rounded-full bg-accent px-3 py-1.5 text-sm font-semibold text-accent-fg transition-all duration-150 hover:shadow-[0_0_18px_rgba(217,169,74,0.45)] active:scale-95"
-            >
-              <Check className="h-4 w-4" /> Completar
-            </button>
-          ))}
-      </div>
+          </div>
+        </header>
 
-      <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3">
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Título"
-          autoFocus
-          className="rounded-md border border-border bg-surface-2 px-3 py-1.5 text-sm text-fg outline-none focus:border-accent"
-        />
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Descripción (opcional)"
-          rows={2}
-          className="rounded-md border border-border bg-surface-2 px-3 py-1.5 text-sm text-fg outline-none focus:border-accent"
-        />
-        <div className="flex gap-2">
-          <select
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-            className="flex-1 rounded-md border border-border bg-surface-2 px-3 py-1.5 text-sm text-fg outline-none focus:border-accent"
-          >
-            <option value="" disabled>
-              Categoría
-            </option>
-            {categories?.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
-          <input
-            type="datetime-local"
-            value={deadline}
-            onChange={(e) => setDeadline(e.target.value)}
-            className="flex-1 rounded-md border border-border bg-surface-2 px-3 py-1.5 text-sm text-fg outline-none focus:border-accent"
-          />
-        </div>
-
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex gap-1">
-            {SIZE_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setSize(size === opt.value ? null : opt.value)}
-                title={`+${opt.xp} XP`}
-                className={`rounded-md border px-2 py-1 font-mono text-xs transition-all duration-150 active:scale-95 ${
-                  size === opt.value
-                    ? 'border-accent bg-accent text-accent-fg shadow-[0_0_12px_rgba(217,169,74,0.35)]'
-                    : 'border-border text-fg-muted hover:bg-surface-2'
-                }`}
-              >
-                {opt.label} <span className="opacity-60">+{opt.xp}</span>
-              </button>
-            ))}
+        {/* Cuerpo Principal del Formulario */}
+        <div className="space-y-8 p-6 md:p-8">
+          {/* Título Principal */}
+          <div className="space-y-1.5">
+            <label className="font-mono text-[10px] font-bold uppercase tracking-[0.3em] text-accent/70">
+              Decreto de Misión
+            </label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="¿Cuál es la nueva misión?"
+              className="w-full border-none bg-transparent p-0 font-display text-2xl font-bold text-fg outline-none placeholder:text-fg-muted/30 md:text-3xl"
+            />
           </div>
 
-          {canBePriority && task && (
-            <button
-              type="button"
-              onClick={() =>
-                isTodayPriority ? clearTodayPriority.mutate() : setTodayPriority.mutate(task.id)
-              }
-              title="Prioridad de hoy"
-              className={`text-lg leading-none transition-all duration-150 hover:scale-110 active:scale-95 ${
-                isTodayPriority ? 'text-accent drop-shadow-[0_0_6px_rgba(217,169,74,0.6)]' : 'text-fg-muted/40 hover:text-accent/60'
-              }`}
-            >
-              {isTodayPriority ? '★' : '☆'}
-            </button>
-          )}
-        </div>
-
-        {task && task.status !== 'follow_up' && task.status !== 'done' && (
-          <div className="rounded-md border border-border p-2">
-            {showFollowUpForm ? (
-              <div className="flex flex-col gap-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <label className="flex items-center gap-1.5 text-xs text-fg-muted">
-                    Cada
-                    <input
-                      type="number"
-                      min={1}
-                      value={followUpIntervalDays}
-                      onChange={(e) => setFollowUpIntervalDays(Number(e.target.value) || 1)}
-                      className="w-14 rounded border border-border bg-surface-2 px-1.5 py-1 font-mono text-sm text-fg"
-                    />
-                    días
-                  </label>
-                  <input
-                    value={followUpStakeholder}
-                    onChange={(e) => setFollowUpStakeholder(e.target.value)}
-                    placeholder="Nombre del stakeholder (opcional)"
-                    className="flex-1 rounded border border-border bg-surface-2 px-2 py-1 text-sm text-fg"
-                  />
-                </div>
-                <div className="flex gap-2">
+          {/* Grid: Envergadura (XP) & Plazo de Entrega */}
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+            {/* Chips de Envergadura (XP / Arma) */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="font-mono text-[10px] uppercase tracking-widest text-fg-muted/60">
+                  Envergadura (Dificultad & XP)
+                </p>
+                {canBePriority && task && (
                   <button
                     type="button"
-                    onClick={handleConfirmFollowUp}
-                    className="rounded-md bg-sky-500/15 px-3 py-1 text-xs font-medium text-sky-500 transition-colors hover:bg-sky-500/25"
+                    onClick={() =>
+                      isTodayPriority ? clearTodayPriority.mutate() : setTodayPriority.mutate(task.id)
+                    }
+                    title="Prioridad de hoy"
+                    className={`text-base leading-none transition-all duration-150 hover:scale-110 active:scale-95 ${
+                      isTodayPriority
+                        ? 'text-accent drop-shadow-[0_0_6px_rgba(217,169,74,0.6)]'
+                        : 'text-fg-muted/40 hover:text-accent/60'
+                    }`}
                   >
-                    Confirmar seguimiento
+                    {isTodayPriority ? '★' : '☆'}
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowFollowUpForm(false)}
-                    className="rounded-md px-3 py-1 text-xs text-fg-muted hover:bg-surface-2"
-                  >
-                    Cancelar
-                  </button>
-                </div>
+                )}
               </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setShowFollowUpForm(true)}
-                className="flex items-center gap-1.5 text-sm text-fg-muted transition-colors hover:text-sky-500"
-              >
-                <Link2 className="h-3.5 w-3.5" /> Enviar a Follow-up
-              </button>
-            )}
-          </div>
-        )}
-
-        {existingFollowUp && (
-          <div className="rounded-md border border-sky-500/30 bg-sky-500/5 p-2">
-            <p className="flex items-center gap-1.5 text-sm text-fg">
-              <Link2 className="h-3.5 w-3.5 text-sky-500" />
-              En seguimiento
-              {existingFollowUp.stakeholder_name ? ` con ${existingFollowUp.stakeholder_name}` : ''} · cada{' '}
-              {existingFollowUp.interval_days} días
-            </p>
-            <div className="mt-1.5 flex items-center justify-between text-xs text-fg-muted">
-              <span className="font-mono">
-                Próximo recordatorio:{' '}
-                {toDatetimeLocalValue(existingFollowUp.next_reminder_at).slice(0, 10)}
-              </span>
               <div className="flex gap-2">
+                {(
+                  [
+                    { key: 'small', icon: WEAPON_ICONS.small, xp: '+10', cls: 'active-weapon-small' },
+                    { key: 'medium', icon: WEAPON_ICONS.medium, xp: '+25', cls: 'active-weapon-medium' },
+                    { key: 'large', icon: WEAPON_ICONS.large, xp: '+50', cls: 'active-weapon-large' },
+                  ] as const
+                ).map((w) => {
+                  const isActive = size === w.key
+                  return (
+                    <button
+                      key={w.key}
+                      type="button"
+                      onClick={() => setSize(w.key)}
+                      className={`tactile-chip flex flex-1 flex-col items-center gap-1 rounded-xl py-3 ${
+                        isActive ? w.cls : ''
+                      }`}
+                    >
+                      <img src={w.icon} alt="" className="h-6 w-6 object-contain" />
+                      <span className="font-mono text-[9px] font-black uppercase">{w.xp} XP</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Chips de Plazo Rápidos */}
+            <div className="space-y-3">
+              <p className="font-mono text-[10px] uppercase tracking-widest text-fg-muted/60">
+                Plazo de Entrega
+              </p>
+              <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  onClick={handleCancelFollowUp}
-                  className="rounded border border-border px-2 py-0.5 text-fg-muted transition-colors hover:bg-surface-2"
+                  onClick={() => setQuickDeadline(0)}
+                  className="tactile-chip rounded-full px-4 py-2 font-mono text-[10px] font-bold uppercase active-gold"
                 >
-                  Cancelar seguimiento
+                  Hoy
                 </button>
                 <button
                   type="button"
-                  onClick={() => registerContact.mutate(existingFollowUp.id)}
-                  className="rounded border border-border px-2 py-0.5 text-fg-muted transition-colors hover:bg-surface-2"
+                  onClick={() => setQuickDeadline(1)}
+                  className="tactile-chip rounded-full px-4 py-2 font-mono text-[10px] font-bold uppercase"
                 >
-                  Registrar contacto ahora
+                  Mañana
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setQuickDeadline(3)}
+                  className="tactile-chip rounded-full px-4 py-2 font-mono text-[10px] font-bold uppercase"
+                >
+                  Finde
+                </button>
+                <input
+                  type="datetime-local"
+                  value={deadline}
+                  onChange={(e) => setDeadline(e.target.value)}
+                  className="tactile-chip rounded-full px-3 py-1.5 font-mono text-[10px] text-fg outline-none"
+                />
               </div>
             </div>
           </div>
-        )}
 
-        {error && <p className="text-sm text-warn-fg">{error}</p>}
+          {/* Chips de Clase / Ámbitos */}
+          <div className="space-y-3">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-fg-muted/60">
+              Ámbito de la Orden (Clase)
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {categories?.map((cat) => {
+                const isActive = categoryId === cat.id
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setCategoryId(cat.id)}
+                    className={`tactile-chip rounded-xl px-4 py-2 font-mono text-[10px] font-bold uppercase ${
+                      isActive ? 'active-gold' : ''
+                    }`}
+                  >
+                    {cat.name} ({cat.class_name})
+                  </button>
+                )
+              })}
+            </div>
+          </div>
 
-        <div className="mt-1 flex gap-2">
-          <button
-            type="submit"
-            disabled={saving}
-            className="flex-1 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-fg transition-all duration-150 hover:shadow-[0_4px_20px_rgba(217,169,74,0.4)] active:scale-[0.98] disabled:opacity-60 disabled:hover:shadow-none"
-          >
-            Guardar
-          </button>
-          {task && (
-            <button
-              type="button"
-              onClick={handleDelete}
-              className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-fg-muted transition-colors hover:bg-surface-2 hover:text-warn-fg"
-            >
-              Borrar
-            </button>
+          {/* Seguimiento (Follow-up) */}
+          {isEditing && task && task.status !== 'done' && (
+            <div className="space-y-3 rounded-2xl border border-white/5 bg-black/20 p-5">
+              <p className="font-mono text-[10px] uppercase tracking-widest text-fg-muted/60">
+                Seguimiento (Follow-up)
+              </p>
+
+              {existingFollowUp ? (
+                <div className="space-y-2.5">
+                  <p className="font-mono text-xs text-fg">
+                    En seguimiento
+                    {existingFollowUp.stakeholder_name ? ` con ${existingFollowUp.stakeholder_name}` : ''} · cada{' '}
+                    {existingFollowUp.interval_days} días
+                  </p>
+                  <p className="font-mono text-[10px] text-fg-muted/60">
+                    Próximo recordatorio: {toDatetimeLocalValue(existingFollowUp.next_reminder_at).slice(0, 10)}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={handleCancelFollowUp}
+                      className="tactile-chip rounded-full px-4 py-2 font-mono text-[10px] font-bold uppercase"
+                    >
+                      Cancelar seguimiento
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => registerContact.mutate(existingFollowUp.id)}
+                      className="tactile-chip rounded-full px-4 py-2 font-mono text-[10px] font-bold uppercase"
+                    >
+                      Registrar contacto ahora
+                    </button>
+                  </div>
+                </div>
+              ) : task.status !== 'follow_up' ? (
+                showFollowUpForm ? (
+                  <div className="space-y-2.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <label className="flex items-center gap-1.5 font-mono text-[10px] text-fg-muted">
+                        Cada
+                        <input
+                          type="number"
+                          min={1}
+                          value={followUpIntervalDays}
+                          onChange={(e) => setFollowUpIntervalDays(Number(e.target.value) || 1)}
+                          className="w-14 rounded-lg border border-white/10 bg-black/30 px-2 py-1 font-mono text-xs text-fg outline-none focus:border-accent"
+                        />
+                        días
+                      </label>
+                      <input
+                        value={followUpStakeholder}
+                        onChange={(e) => setFollowUpStakeholder(e.target.value)}
+                        placeholder="Nombre del stakeholder (opcional)"
+                        className="flex-1 rounded-lg border border-white/10 bg-black/30 px-3 py-1.5 font-mono text-xs text-fg outline-none focus:border-accent"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleConfirmFollowUp}
+                        className="tactile-chip active-gold rounded-full px-4 py-2 font-mono text-[10px] font-bold uppercase"
+                      >
+                        Confirmar seguimiento
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowFollowUpForm(false)}
+                        className="tactile-chip rounded-full px-4 py-2 font-mono text-[10px] font-bold uppercase"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowFollowUpForm(true)}
+                    className="tactile-chip flex w-fit items-center gap-1.5 rounded-full px-4 py-2 font-mono text-[10px] font-bold uppercase"
+                  >
+                    <Link2 className="h-3.5 w-3.5" /> Enviar a Follow-up
+                  </button>
+                )
+              ) : null}
+            </div>
           )}
-        </div>
-      </form>
 
-      {task && (
-        <div className="mt-5 border-t border-border pt-4">
-          <h3 className="text-sm font-medium text-fg-muted">Subtareas</h3>
-          <ul className="mt-2 flex flex-col gap-1.5">
-            {subtasks?.map((subtask) => (
-              <li key={subtask.id} className="flex items-center gap-2 text-sm">
+          {/* Micro-Stepping (Submisiones & Integridad HP) */}
+          {isEditing && task && (
+            <div className="space-y-4 rounded-2xl border border-white/5 bg-black/20 p-5">
+              <div className="flex items-center justify-between">
+                <p className="font-mono text-[10px] uppercase tracking-widest text-fg-muted/60">
+                  Integridad de la Quest (Submisiones)
+                </p>
+                <span className="font-mono text-[10px] font-bold text-accent">{hpPercent}%</span>
+              </div>
+
+              <div className="quest-hp-track">
+                <div className="quest-hp-fill" style={{ width: `${hpPercent}%` }} />
+              </div>
+
+              {/* Lista de Submisiones Existentes */}
+              <div className="space-y-2 pt-1">
+                {subtasks?.map((st) => (
+                  <div key={st.id} className="flex items-center justify-between gap-3">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateTask.mutate({
+                          id: st.id,
+                          patch: { status: st.status === 'done' ? 'pending' : 'done' },
+                        })
+                      }
+                      className={`flex h-5 w-5 items-center justify-center rounded border font-mono text-[10px] transition-all ${
+                        st.status === 'done' ? 'border-accent bg-accent text-accent-fg' : 'border-white/20'
+                      }`}
+                    >
+                      {st.status === 'done' ? '✓' : ''}
+                    </button>
+                    <span
+                      className={`flex-1 text-xs text-fg ${
+                        st.status === 'done' ? 'line-through opacity-40' : ''
+                      }`}
+                    >
+                      {st.title}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => deleteTask.mutate(st.id)}
+                      className="text-fg-muted/40 transition-colors hover:text-red-400"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Agregar nueva Submisión */}
+              <div className="flex gap-2 pt-2">
                 <input
-                  type="checkbox"
-                  checked={subtask.status === 'done'}
-                  onChange={(e) =>
-                    updateTask.mutate({
-                      id: subtask.id,
-                      patch: { status: e.target.checked ? 'done' : 'pending' },
-                    })
-                  }
-                  className="accent-accent"
+                  type="text"
+                  value={newSubtaskText}
+                  onChange={(e) => setNewSubtaskText(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddSubtask()}
+                  placeholder="+ Añadir Micro-paso (2 min)..."
+                  className="flex-1 rounded-lg border border-dashed border-white/10 bg-transparent px-3 py-2 font-mono text-xs text-fg outline-none focus:border-accent"
                 />
-                <span
-                  className={subtask.status === 'done' ? 'flex-1 text-fg-muted line-through' : 'flex-1 text-fg'}
-                >
-                  {subtask.title}
-                </span>
-                {subtask.deadline && (
-                  <span className="font-mono text-xs text-fg-muted">
-                    {toDatetimeLocalValue(subtask.deadline).slice(0, 10)}
-                  </span>
-                )}
                 <button
                   type="button"
-                  onClick={() => deleteTask.mutate(subtask.id)}
-                  className="text-fg-muted hover:text-fg"
-                  aria-label="Borrar subtarea"
+                  onClick={handleAddSubtask}
+                  className="rounded-lg border border-border bg-white/5 px-3 py-2 font-mono text-xs font-bold text-fg hover:bg-white/10"
                 >
-                  ×
+                  Añadir
                 </button>
-              </li>
-            ))}
-          </ul>
+              </div>
+            </div>
+          )}
 
-          <form onSubmit={handleAddSubtask} className="mt-2 flex gap-2">
-            <input
-              value={newSubtaskTitle}
-              onChange={(e) => setNewSubtaskTitle(e.target.value)}
-              placeholder="Nueva subtarea"
-              className="flex-1 rounded-md border border-border bg-surface-2 px-2 py-1 text-sm text-fg outline-none focus:border-accent"
-            />
-            <input
-              type="datetime-local"
-              value={newSubtaskDeadline}
-              onChange={(e) => setNewSubtaskDeadline(e.target.value)}
-              className="rounded-md border border-border bg-surface-2 px-2 py-1 text-sm text-fg outline-none focus:border-accent"
-            />
-            <button
-              type="submit"
-              className="rounded-md border border-border px-2 py-1 text-sm text-fg-muted hover:bg-surface-2"
-            >
-              +
-            </button>
-          </form>
+          {/* Acordeón Oculto de Notas y Proyecto Complejo */}
+          <details className="group">
+            <summary className="flex cursor-pointer items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-fg-muted/40 transition-all hover:text-fg group-open:text-accent">
+              <span className="transition-transform group-open:rotate-90">▶</span> 📜 Notas y
+              Detalles Arcanos
+            </summary>
+            <div className="space-y-4 pt-4">
+              {/* Selección de Proyecto */}
+              <div className="space-y-1">
+                <label className="font-mono text-[9px] uppercase text-fg-muted/50">
+                  Proyecto Asociado (Mazmorra)
+                </label>
+                <select
+                  value={projectId ?? ''}
+                  onChange={(e) => setProjectId(e.target.value || null)}
+                  className="w-full rounded-xl border border-border bg-black/40 p-3 font-mono text-xs font-bold uppercase text-fg"
+                >
+                  <option value="">Sin Proyecto (Misión Suelta)</option>
+                  {projects?.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Textarea de Notas */}
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Escribe aquí los detalles del hechizo, links o instrucciones..."
+                className="h-24 w-full resize-none rounded-xl border border-white/5 bg-black/30 p-4 text-sm text-fg outline-none focus:border-accent/30"
+              />
+            </div>
+          </details>
+
+          {error && <p className="font-mono text-xs font-medium text-warn-fg">{error}</p>}
         </div>
-      )}
-    </Modal>
+
+        {/* Footer de Acciones Principales */}
+        <footer className="flex flex-col gap-3 border-t border-white/5 bg-black/20 p-6 md:flex-row md:p-8">
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={!title.trim() || !categoryId || saving}
+            className="btn-prime flex-1 rounded-xl py-4 font-display text-sm font-black uppercase tracking-widest disabled:opacity-40"
+          >
+            📜 Sellar Decreto
+          </button>
+
+          <div className="flex gap-2">
+            {isEditing && task && firstFreeSlot !== null && task.hud_slot === null && (
+              <button
+                type="button"
+                onClick={() => {
+                  equipToHud.mutate({ taskId: task.id, slot: firstFreeSlot })
+                  onClose()
+                }}
+                className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-5 py-4 font-mono text-[10px] font-black uppercase tracking-widest text-fg hover:bg-white/10"
+              >
+                <Swords className="h-4 w-4" /> Equipar
+              </button>
+            )}
+
+            {isEditing && task && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (!window.confirm('¿Borrar esta tarea?')) return
+                  deleteTask.mutate(task.id)
+                  onClose()
+                }}
+                className="rounded-xl border border-red-900/30 bg-red-950/20 px-5 py-4 text-red-500 hover:bg-red-900/40"
+                title="Descartar Misión"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </footer>
+      </main>
+    </div>
   )
 }
 ```
@@ -5601,6 +6823,7 @@ import {
   createTask,
   deleteTask,
   fetchActiveTasksWithDeadline,
+  fetchAllBoardTasks,
   fetchBoardTasks,
   fetchInboxTasks,
   fetchInProgressTasks,
@@ -5608,6 +6831,7 @@ import {
   fetchQuickWinTask,
   fetchSubtasks,
   fetchTaskById,
+  fetchTasksByCategory,
   fetchTasksByIds,
   fetchTasksByProject,
   fetchTasksCompletedToday,
@@ -5637,6 +6861,13 @@ export function useTasksByProject(projectId: string) {
   return useQuery({
     queryKey: ['tasks', 'by-project', projectId],
     queryFn: () => fetchTasksByProject(projectId),
+  })
+}
+
+export function useTasksByCategory(categoryId: string) {
+  return useQuery({
+    queryKey: ['tasks', 'by-category', categoryId],
+    queryFn: () => fetchTasksByCategory(categoryId),
   })
 }
 
@@ -5686,6 +6917,13 @@ export function useBoardTasks(projectId: string | null) {
   return useQuery({
     queryKey: ['tasks', 'board', projectId],
     queryFn: () => fetchBoardTasks(projectId),
+  })
+}
+
+export function useAllBoardTasks() {
+  return useQuery({
+    queryKey: ['tasks', 'board', 'all'],
+    queryFn: fetchAllBoardTasks,
   })
 }
 
@@ -5852,45 +7090,18 @@ export async function dispatchTriagedTask(input: DispatchInput): Promise<Task> {
 }
 ```
 
-### src/features/triage/components/DirectEquipToggle.tsx
-
-```tsx
-import { Swords } from 'lucide-react'
-
-export function DirectEquipToggle({
-  disabled,
-  onClick,
-}: {
-  disabled: boolean
-  onClick: () => void
-}) {
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onClick}
-      title={disabled ? 'Los 3 slots de combate están ocupados' : 'Guardar y equipar de inmediato en el Battle HUD'}
-      className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-accent/40 px-3 py-1.5 text-sm font-medium text-accent transition-all duration-150 hover:bg-accent/10 active:scale-[0.98] disabled:opacity-40 disabled:hover:bg-transparent"
-    >
-      <Swords className="h-4 w-4" /> Equipar en Combate
-    </button>
-  )
-}
-```
-
 ### src/features/triage/components/InboxCardDeck.tsx
 
 ```tsx
 import { addDays, format } from 'date-fns'
 
-function quickDeadline(daysFromNow: number): string {
+function getQuickDeadlineIso(daysFromNow: number): string {
   const d = addDays(new Date(), daysFromNow)
   d.setHours(18, 0, 0, 0)
   return format(d, "yyyy-MM-dd'T'HH:mm")
 }
 
 export function InboxCardDeck({
-  remainingCount,
   title,
   onTitleChange,
   deadline,
@@ -5903,49 +7114,38 @@ export function InboxCardDeck({
   onDeadlineChange: (deadline: string) => void
 }) {
   return (
-    <div className="relative">
-      {/* Cartas apiladas detrás — sugieren cuántas misiones más esperan */}
-      {remainingCount > 2 && (
-        <div className="absolute inset-x-4 -top-2 h-full rounded-lg border border-border-card bg-surface-card/60" />
-      )}
-      {remainingCount > 1 && (
-        <div className="absolute inset-x-2 -top-1 h-full rounded-lg border border-border-card bg-surface-card/80" />
-      )}
+    <div className="space-y-4">
+      {/* Título de la Misión con Borde de Tinta */}
+      <input
+        type="text"
+        value={title}
+        onChange={(e) => onTitleChange(e.target.value)}
+        placeholder="Título de la misión..."
+        className="w-full border-b border-white/10 bg-transparent pb-2 font-display text-2xl font-bold text-accent outline-none transition-colors focus:border-accent"
+      />
 
-      <div className="relative rounded-lg border border-border-card bg-surface-card p-4">
-        <textarea
-          value={title}
-          onChange={(e) => onTitleChange(e.target.value)}
-          rows={2}
-          className="w-full resize-none bg-transparent font-display text-lg font-semibold text-fg outline-none"
-          placeholder="Título de la misión"
+      {/* Shortcuts de Fecha / Deadline */}
+      <div className="flex flex-wrap gap-2.5">
+        <button
+          type="button"
+          onClick={() => onDeadlineChange(getQuickDeadlineIso(0))}
+          className="rounded-lg border border-border bg-white/5 px-3.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-widest text-fg-muted transition-all hover:bg-white/10 hover:text-fg active:scale-95"
+        >
+          Hoy
+        </button>
+        <button
+          type="button"
+          onClick={() => onDeadlineChange(getQuickDeadlineIso(1))}
+          className="rounded-lg border border-border bg-white/5 px-3.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-widest text-fg-muted transition-all hover:bg-white/10 hover:text-fg active:scale-95"
+        >
+          Mañana
+        </button>
+        <input
+          type="datetime-local"
+          value={deadline}
+          onChange={(e) => onDeadlineChange(e.target.value)}
+          className="rounded-lg border border-border bg-white/5 px-3 py-1.5 font-mono text-[10px] font-bold uppercase text-fg-muted outline-none focus:border-accent"
         />
-
-        <label className="mt-3 flex flex-col gap-1 text-sm text-fg-muted">
-          Deadline
-          <div className="flex flex-wrap gap-1.5">
-            <input
-              type="datetime-local"
-              value={deadline}
-              onChange={(e) => onDeadlineChange(e.target.value)}
-              className="min-w-0 flex-1 rounded-md border border-border bg-surface px-3 py-1.5 text-fg outline-none focus:border-accent"
-            />
-            <button
-              type="button"
-              onClick={() => onDeadlineChange(quickDeadline(0))}
-              className="rounded-md border border-border px-2.5 py-1.5 text-xs text-fg-muted transition-colors hover:border-accent/40 hover:text-accent"
-            >
-              Hoy
-            </button>
-            <button
-              type="button"
-              onClick={() => onDeadlineChange(quickDeadline(1))}
-              className="rounded-md border border-border px-2.5 py-1.5 text-xs text-fg-muted transition-colors hover:border-accent/40 hover:text-accent"
-            >
-              Mañana
-            </button>
-          </div>
-        </label>
       </div>
     </div>
   )
@@ -5956,14 +7156,14 @@ export function InboxCardDeck({
 
 ```tsx
 import { useEffect, useState } from 'react'
-import { Link2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Link2, Swords } from 'lucide-react'
 import { useCategories, useCreateProject, useProjects } from '@/features/projects/hooks'
 import { useHudTasks } from '@/features/battle-hud/hooks'
 import { useTriageSession } from '@/features/triage/hooks'
 import { fromDatetimeLocalValue } from '@/utils/datetime'
 import { WeaponSelector } from '@/features/triage/components/WeaponSelector'
 import { InboxCardDeck } from '@/features/triage/components/InboxCardDeck'
-import { DirectEquipToggle } from '@/features/triage/components/DirectEquipToggle'
 import type { TaskSize } from '@/types/database.types'
 import type { DispatchOutcome } from '@/features/triage/api'
 
@@ -5984,8 +7184,9 @@ export function StrategyTablePage() {
   const [deadline, setDeadline] = useState('')
   const [size, setSize] = useState<TaskSize | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [animatingOut, setAnimatingOut] = useState(false)
 
-  // Cada vez que cambia la carta activa, el formulario arranca de cero.
+  // Reset del formulario cuando entra una nueva carta
   useEffect(() => {
     setTitle(current?.title ?? '')
     setCategoryId('')
@@ -5994,6 +7195,7 @@ export function StrategyTablePage() {
     setDeadline('')
     setSize(null)
     setError(null)
+    setAnimatingOut(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current?.id])
 
@@ -6009,146 +7211,199 @@ export function StrategyTablePage() {
       return
     }
     if (!categoryId) {
-      setError('Elegí una categoría.')
+      setError('Elegí una categoría para tu clase.')
       return
     }
     if (!deadline) {
-      setError('El deadline es obligatorio para sacarla del inbox.')
+      setError('El deadline es obligatorio para despachar el pergamino.')
       return
     }
     if (!size) {
-      setError('Elegí un arma (define el tamaño y el XP).')
+      setError('Selecciona un arma (define la dificultad y XP).')
       return
     }
     if (projectChoice === NEW_PROJECT && !newProjectName.trim()) {
-      setError('Ponele nombre al proyecto nuevo.')
+      setError('Ponele nombre al nuevo proyecto.')
       return
     }
 
-    try {
-      let projectId: string | null = null
-      if (projectChoice === NEW_PROJECT) {
-        const project = await createProject.mutateAsync({ name: newProjectName.trim(), categoryId })
-        projectId = project.id
-      } else if (projectChoice !== NO_PROJECT) {
-        projectId = projectChoice
-      }
+    // Iniciar física de deslizamiento
+    setAnimatingOut(true)
 
-      await dispatch.mutateAsync({
-        taskId: current.id,
-        title: title.trim(),
-        categoryId,
-        projectId,
-        deadlineIso: fromDatetimeLocalValue(deadline),
-        size,
-        outcome,
-        hudSlot: outcome === 'equip' ? firstFreeSlot : null,
-      })
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo despachar la misión, probá de nuevo.')
-    }
+    setTimeout(async () => {
+      try {
+        let projectId: string | null = null
+        if (projectChoice === NEW_PROJECT) {
+          const project = await createProject.mutateAsync({ name: newProjectName.trim(), categoryId })
+          projectId = project.id
+        } else if (projectChoice !== NO_PROJECT) {
+          projectId = projectChoice
+        }
+
+        await dispatch.mutateAsync({
+          taskId: current.id,
+          title: title.trim(),
+          categoryId,
+          projectId,
+          deadlineIso: fromDatetimeLocalValue(deadline),
+          size,
+          outcome,
+          hudSlot: outcome === 'equip' ? firstFreeSlot : null,
+        })
+      } catch (err) {
+        setAnimatingOut(false)
+        setError(err instanceof Error ? err.message : 'No se pudo despachar la carta.')
+      }
+    }, 450)
   }
 
   if (isLoading) {
-    return <p className="p-6 text-sm text-fg-muted">Cargando…</p>
+    return <p className="py-12 text-center font-mono text-sm text-fg-muted">Cargando mesa táctica…</p>
   }
 
+  // Vista de Victoria (Inbox Vacío / Maza Limpia)
   if (!current) {
     return (
-      <div className="mx-auto max-w-lg p-6 text-center">
-        <h1 className="font-display text-lg font-semibold tracking-tight text-fg">Mesa de Estrategia</h1>
-        <p className="mt-4 font-display text-xl font-bold text-gold-bright">Maza Limpia — ¡Inbox Vacío!</p>
-        <p className="mt-2 text-sm text-fg-muted">No hay misiones capturadas esperando triage.</p>
+      <div className="mx-auto flex min-h-[70vh] max-w-lg flex-col items-center justify-center px-4 py-8 text-center">
+        <div className="mb-6 text-7xl">🏰</div>
+        <h1 className="mb-2 font-display text-4xl font-black uppercase tracking-tighter text-accent">
+          Maza Limpia
+        </h1>
+        <p className="mb-8 font-display text-lg italic text-fg-muted">
+          ¡Inbox Vacío, Comandante! Todos los pergaminos fueron asignados.
+        </p>
+        <Link
+          to="/"
+          className="btn-prime rounded-full px-8 py-3.5 font-display text-xs font-bold uppercase tracking-widest"
+        >
+          Ir al Battle HUD
+        </Link>
       </div>
     )
   }
 
   return (
-    <div className="mx-auto max-w-lg p-6">
-      <div className="flex items-baseline justify-between">
-        <h1 className="font-display text-lg font-semibold tracking-tight text-fg">Mesa de Estrategia</h1>
-        <span className="font-mono text-sm text-fg-muted">{remainingCount} en el inbox</span>
-      </div>
+    <div className="mx-auto flex max-w-4xl flex-col items-center px-4 py-6 md:px-8">
+      {/* Header Contador */}
+      <header className="mb-6 flex w-full max-w-xl items-center justify-between">
+        <h1 className="font-display text-lg font-bold tracking-wide text-fg">
+          Mesa de Estrategia
+        </h1>
+        <span className="rounded-full border border-border bg-black/40 px-3 py-1 font-mono text-[10px] font-bold text-accent">
+          {remainingCount} PERGAMINOS PENDIENTES
+        </span>
+      </header>
 
-      <div className="mt-4">
-        <InboxCardDeck
-          remainingCount={remainingCount}
-          title={title}
-          onTitleChange={setTitle}
-          deadline={deadline}
-          onDeadlineChange={setDeadline}
-        />
-      </div>
+      {/* Escenario del Mazo Táctico */}
+      <main className="deck-container relative w-full max-w-xl">
+        {/* Cartas Apiladas Detrás (Visual Stack) */}
+        {remainingCount > 1 && <div className="card-bg-visual card-stack-1" />}
+        {remainingCount > 2 && <div className="card-bg-visual card-stack-2" />}
 
-      <div className="mt-4 flex flex-col gap-3 rounded-lg border border-border bg-surface p-4">
-        <div className="flex gap-2">
-          <select
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-            className="flex-1 rounded-md border border-border bg-surface-2 px-3 py-1.5 text-sm text-fg outline-none focus:border-accent"
-          >
-            <option value="" disabled>
-              Categoría
-            </option>
-            {categories?.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
-          <select
-            value={projectChoice}
-            onChange={(e) => setProjectChoice(e.target.value)}
-            className="flex-1 rounded-md border border-border bg-surface-2 px-3 py-1.5 text-sm text-fg outline-none focus:border-accent"
-          >
-            <option value={NO_PROJECT}>Tareas sueltas</option>
-            {projects?.map((project) => (
-              <option key={project.id} value={project.id}>
-                {project.name}
-              </option>
-            ))}
-            <option value={NEW_PROJECT}>+ Crear proyecto nuevo…</option>
-          </select>
-        </div>
-
-        {projectChoice === NEW_PROJECT && (
-          <input
-            value={newProjectName}
-            onChange={(e) => setNewProjectName(e.target.value)}
-            placeholder="Nombre del proyecto"
-            className="rounded-md border border-border bg-surface-2 px-3 py-1.5 text-sm text-fg outline-none focus:border-accent"
+        {/* Carta Activa */}
+        <article
+          className={`active-strategy-card relative z-10 flex flex-col gap-6 rounded-3xl p-6 md:p-8 ${
+            animatingOut ? 'slide-out-right' : ''
+          }`}
+        >
+          {/* Título & Deadline */}
+          <InboxCardDeck
+            remainingCount={remainingCount}
+            title={title}
+            onTitleChange={setTitle}
+            deadline={deadline}
+            onDeadlineChange={setDeadline}
           />
-        )}
 
-        <WeaponSelector value={size} onChange={setSize} />
+          {/* Selector de Armas / Dificultad */}
+          <WeaponSelector value={size} onChange={setSize} />
 
-        {error && <p className="text-sm text-warn-fg">{error}</p>}
+          {/* Categoría y Proyecto */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="font-mono text-[9px] uppercase tracking-widest text-fg-muted/50">
+                Categoría / Clase
+              </label>
+              <select
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value)}
+                className="parchment-select w-full rounded-xl p-3 font-mono text-xs font-bold uppercase tracking-wider"
+              >
+                <option value="" disabled>
+                  Elegir Clase
+                </option>
+                {categories?.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name} ({cat.class_name})
+                  </option>
+                ))}
+              </select>
+            </div>
 
-        <div className="mt-1 flex gap-2">
-          <button
-            type="button"
-            onClick={() => void handleDispatch('grimorio')}
-            disabled={dispatch.isPending}
-            className="flex-1 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-fg transition-all duration-150 hover:shadow-[0_4px_20px_rgba(217,169,74,0.4)] active:scale-[0.98] disabled:opacity-60"
-          >
-            Despachar al Grimorio
-          </button>
-          <DirectEquipToggle
-            disabled={dispatch.isPending || firstFreeSlot === null}
-            onClick={() => void handleDispatch('equip')}
-          />
-        </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => void handleDispatch('follow_up')}
-            disabled={dispatch.isPending}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-sky-500/40 px-3 py-1.5 text-sm font-medium text-sky-500 transition-colors hover:bg-sky-500/10 disabled:opacity-60"
-          >
-            <Link2 className="h-4 w-4" /> Mover a Seguimiento
-          </button>
-        </div>
-      </div>
+            <div className="space-y-1.5">
+              <label className="font-mono text-[9px] uppercase tracking-widest text-fg-muted/50">
+                Proyecto / Destino
+              </label>
+              <select
+                value={projectChoice}
+                onChange={(e) => setProjectChoice(e.target.value)}
+                className="parchment-select w-full rounded-xl p-3 font-mono text-xs font-bold uppercase tracking-wider"
+              >
+                <option value={NO_PROJECT}>Misiones Sueltas</option>
+                {projects?.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+                <option value={NEW_PROJECT}>+ Crear Proyecto…</option>
+              </select>
+            </div>
+          </div>
+
+          {projectChoice === NEW_PROJECT && (
+            <input
+              type="text"
+              value={newProjectName}
+              onChange={(e) => setNewProjectName(e.target.value)}
+              placeholder="Nombre del nuevo proyecto..."
+              className="input-parchment w-full rounded-xl p-3 text-sm text-fg"
+            />
+          )}
+
+          {error && <p className="font-mono text-xs font-medium text-warn-fg">{error}</p>}
+
+          {/* Botones de Despacho Inmediato */}
+          <footer className="mt-2 flex flex-col gap-3">
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => void handleDispatch('grimorio')}
+                disabled={dispatch.isPending}
+                className="rounded-xl border border-border py-3.5 font-mono text-[10px] font-black uppercase tracking-widest text-fg transition-all hover:bg-white/5 active:scale-95 disabled:opacity-50"
+              >
+                Despachar al Grimorio
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleDispatch('follow_up')}
+                disabled={dispatch.isPending}
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-sky-900/50 py-3.5 font-mono text-[10px] font-black uppercase tracking-widest text-sky-400 transition-all hover:bg-sky-400/10 active:scale-95 disabled:opacity-50"
+              >
+                <Link2 className="h-3.5 w-3.5" /> Seguimiento
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => void handleDispatch('equip')}
+              disabled={dispatch.isPending || firstFreeSlot === null}
+              className="btn-prime flex w-full items-center justify-center gap-2 rounded-xl py-4 font-display text-sm font-black uppercase tracking-widest disabled:opacity-40"
+            >
+              <Swords className="h-4 w-4" /> Equipar en Combate
+            </button>
+          </footer>
+        </article>
+      </main>
     </div>
   )
 }
@@ -6160,10 +7415,10 @@ export function StrategyTablePage() {
 import { WEAPON_ICONS } from '@/utils/rpgAssets'
 import type { TaskSize } from '@/types/database.types'
 
-const WEAPONS: { value: TaskSize; label: string; xp: number; color: string }[] = [
-  { value: 'small', label: 'Daga', xp: 10, color: 'var(--weapon-daga)' },
-  { value: 'medium', label: 'Espada', xp: 25, color: 'var(--weapon-espada)' },
-  { value: 'large', label: 'Mandoble', xp: 50, color: 'var(--weapon-mandoble)' },
+const WEAPONS: { value: TaskSize; label: string; xp: number; type: string }[] = [
+  { value: 'small', label: 'Daga', xp: 10, type: 'small' },
+  { value: 'medium', label: 'Espada', xp: 25, type: 'medium' },
+  { value: 'large', label: 'Mandoble', xp: 50, type: 'large' },
 ]
 
 export function WeaponSelector({
@@ -6174,29 +7429,35 @@ export function WeaponSelector({
   onChange: (size: TaskSize) => void
 }) {
   return (
-    <div className="grid grid-cols-3 gap-2">
-      {WEAPONS.map((weapon) => {
-        const selected = value === weapon.value
-        return (
-          <button
-            key={weapon.value}
-            type="button"
-            onClick={() => onChange(weapon.value)}
-            className="flex flex-col items-center gap-1 rounded-lg border p-3 text-center transition-all duration-150 active:scale-95"
-            style={{
-              borderColor: selected ? weapon.color : 'var(--border-card)',
-              backgroundColor: selected ? `${weapon.color}1a` : 'var(--surface-card)',
-              boxShadow: selected ? `0 0 16px ${weapon.color}55` : undefined,
-            }}
-          >
-            <img src={WEAPON_ICONS[weapon.value]} alt={weapon.label} className="h-10 w-10 object-contain" />
-            <span className="font-display text-sm font-semibold" style={{ color: selected ? weapon.color : undefined }}>
-              {weapon.label}
-            </span>
-            <span className="font-mono text-xs text-fg-muted">+{weapon.xp} XP</span>
-          </button>
-        )
-      })}
+    <div className="space-y-2">
+      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-muted/60">
+        Seleccionar Envergadura (Dificultad)
+      </p>
+      <div className="grid grid-cols-3 gap-3">
+        {WEAPONS.map((weapon) => {
+          const selected = value === weapon.value
+          return (
+            <button
+              key={weapon.value}
+              type="button"
+              data-type={weapon.type}
+              onClick={() => onChange(weapon.value)}
+              className={`weapon-card-btn group flex flex-col items-center gap-2 rounded-xl p-3 text-center ${
+                selected ? 'active' : 'hover:border-accent/40'
+              }`}
+            >
+              <img
+                src={WEAPON_ICONS[weapon.value]}
+                alt={weapon.label}
+                className="h-9 w-9 object-contain transition-transform group-hover:scale-110 drop-shadow-[0_0_6px_rgba(0,0,0,0.5)]"
+              />
+              <span className="font-mono text-[9px] font-black uppercase tracking-tight text-fg">
+                {weapon.label} (+{weapon.xp} XP)
+              </span>
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -6471,6 +7732,705 @@ body {
   .modal-backdrop,
   .modal-panel {
     animation: none;
+  }
+}
+
+/* Grimorio de Acceso (ver LoginPage.tsx) */
+.grimoire-card {
+  background: linear-gradient(165deg, var(--surface) 0%, var(--surface-2) 100%);
+  border: 2px solid var(--border);
+  box-shadow: 0 0 50px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(61, 42, 78, 0.3);
+}
+
+.input-parchment {
+  background-color: rgba(18, 12, 24, 0.7);
+  border: 1px solid var(--border);
+  transition: all 0.3s ease;
+}
+
+.input-parchment:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 10px rgba(217, 169, 74, 0.2);
+  outline: none;
+  background-color: rgba(30, 21, 38, 0.9);
+}
+
+.btn-prime {
+  background: linear-gradient(180deg, var(--gold) 0%, #b3862e 100%);
+  color: #120c18;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 0 #7a5a1d, 0 10px 20px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.btn-prime:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 #7a5a1d, 0 15px 25px rgba(217, 169, 74, 0.25);
+}
+
+.btn-prime:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #7a5a1d;
+}
+
+.tab-active {
+  color: var(--gold) !important;
+  border-bottom: 2px solid var(--gold);
+  text-shadow: 0 0 8px rgba(217, 169, 74, 0.5);
+  background: linear-gradient(to top, rgba(217, 169, 74, 0.08), transparent);
+}
+
+.glyph-glow {
+  filter: drop-shadow(0 0 5px var(--gold));
+  animation: pulse-glyph 4s infinite ease-in-out;
+}
+
+@keyframes pulse-glyph {
+  0%, 100% { filter: drop-shadow(0 0 2px var(--gold)); opacity: 0.8; }
+  50% { filter: drop-shadow(0 0 12px var(--gold)); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glyph-glow {
+    animation: none;
+  }
+}
+
+/* Sidebar & Navegación Lateral (ver Layout.tsx) */
+.sidebar-panel {
+  width: 280px;
+  background: linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%);
+  border-right: 2px solid var(--border);
+  box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Efecto Aislamiento TDAH (Overlay de desenfoque de fondo) */
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(18, 12, 24, 0.6);
+  backdrop-filter: blur(8px);
+  z-index: 40;
+  transition: all 0.3s ease;
+}
+
+/* Items de Navegación */
+.nav-item-link {
+  position: relative;
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
+}
+
+.nav-item-link:hover {
+  transform: translateX(4px);
+  color: var(--accent);
+  background-color: rgba(217, 169, 74, 0.06);
+}
+
+.nav-item-link.active {
+  border-left-color: var(--accent);
+  background: linear-gradient(90deg, rgba(217, 169, 74, 0.12), transparent);
+  color: var(--accent);
+}
+
+.nav-item-link.active .nav-label {
+  text-shadow: 0 0 10px rgba(217, 169, 74, 0.4);
+  font-weight: 700;
+}
+
+/* Tarjeta de Combate Rúnica (ver CombatSlotCard.tsx) */
+.combat-card {
+  background: linear-gradient(165deg, var(--surface) 0%, var(--surface-2) 100%);
+  border: 2px solid var(--border);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
+}
+
+.combat-card:hover {
+  transform: translateY(-6px);
+  border-color: var(--card-theme, var(--gold));
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.7), 0 0 20px var(--card-glow, rgba(217, 169, 74, 0.2));
+}
+
+/* Barra de Salud Segmentada (HP) */
+.hp-segment {
+  height: 8px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+
+.hp-segment.active {
+  background: linear-gradient(to bottom, #ef4444, #991b1b);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+}
+
+/* Slot Vacío Rúnico */
+.empty-slot-card {
+  border: 2px dashed var(--border);
+  background: rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.empty-slot-card:hover {
+  border-color: var(--gold);
+  background: rgba(217, 169, 74, 0.03);
+}
+
+/* Animaciones Feedback TDAH (Shake & Kill Flash) */
+.shake-anim {
+  animation: shake-effect 0.3s ease-in-out;
+}
+
+@keyframes shake-effect {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.animate-kill {
+  animation: kill-flash 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes kill-flash {
+  0% { transform: scale(1); filter: brightness(1); }
+  20% { transform: scale(1.05); filter: brightness(2.5); }
+  100% { transform: scale(0.1); opacity: 0; filter: brightness(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shake-anim,
+  .animate-kill {
+    animation: none;
+  }
+}
+
+/* Input Pergamino de Captura Rápida (ver InboxPage.tsx) */
+.input-parchment-inbox {
+  background: rgba(30, 21, 38, 0.6);
+  border: 2px solid var(--border);
+  box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.input-parchment-inbox:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 20px rgba(217, 169, 74, 0.15), inset 0 0 10px rgba(0, 0, 0, 0.3);
+  transform: translateY(-1px);
+}
+
+/* Estado Grabando (Dictado por Voz) */
+.pulse-recording {
+  animation: recording-pulse 1.5s infinite;
+}
+
+@keyframes recording-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+/* Animación Entrada de Pergamino */
+.inbox-item-card {
+  animation: slideInPergamino 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  background: linear-gradient(90deg, var(--surface) 0%, var(--surface-2) 100%);
+  border-left: 4px solid var(--border);
+}
+
+@keyframes slideInPergamino {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-recording,
+  .inbox-item-card {
+    animation: none;
+  }
+}
+
+/* Perspectiva y Pila de Cartas de Estrategia (ver StrategyTablePage.tsx) */
+.deck-container {
+  perspective: 1000px;
+}
+
+.card-bg-visual {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 1.5rem;
+  z-index: 0;
+  transition: all 0.4s ease;
+}
+
+.card-stack-1 {
+  transform: translateZ(-20px) translateY(10px) rotate(-1deg);
+  opacity: 0.8;
+}
+
+.card-stack-2 {
+  transform: translateZ(-40px) translateY(20px) rotate(1.5deg);
+  opacity: 0.5;
+}
+
+/* Carta Activa y Deslizamiento de Despacho */
+.active-strategy-card {
+  background: linear-gradient(165deg, var(--surface) 0%, var(--surface-2) 100%);
+  border: 2px solid var(--border);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.4s ease;
+}
+
+.slide-out-right {
+  transform: translateX(120vw) rotate(20deg) !important;
+  opacity: 0 !important;
+}
+
+/* Botones Selector de Armas */
+.weapon-card-btn {
+  border: 2px solid var(--border);
+  background: rgba(0, 0, 0, 0.3);
+  transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.weapon-card-btn.active[data-type="small"] {
+  border-color: var(--weapon-daga, #059669);
+  box-shadow: 0 0 16px rgba(5, 150, 105, 0.4);
+  transform: scale(1.04);
+}
+
+.weapon-card-btn.active[data-type="medium"] {
+  border-color: var(--weapon-espada, #2563eb);
+  box-shadow: 0 0 16px rgba(37, 99, 235, 0.4);
+  transform: scale(1.04);
+}
+
+.weapon-card-btn.active[data-type="large"] {
+  border-color: var(--weapon-mandoble, #d9a94a);
+  box-shadow: 0 0 16px rgba(217, 169, 74, 0.4);
+  transform: scale(1.04);
+}
+
+/* Selects con Estilo Pergamino Oscuro */
+.parchment-select {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.parchment-select:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .active-strategy-card {
+    transition: opacity 0.4s ease;
+  }
+}
+
+/* Barra de Salud del Jefe de Mazmorra (ver BossHealthBar.tsx) */
+.boss-hp-container {
+  box-shadow: 0 0 30px rgba(220, 38, 38, 0.25);
+  border: 2px solid var(--border);
+}
+
+.boss-hp-fill {
+  background: linear-gradient(90deg, #991b1b 0%, #dc2626 50%, #ef4444 100%);
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
+  transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.phase-mark-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.25);
+  z-index: 10;
+}
+
+/* Cofres de Loot de Fase */
+.chest-icon-phase {
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  filter: grayscale(1) opacity(0.35);
+}
+
+.chest-icon-phase.active {
+  filter: grayscale(0) opacity(1) drop-shadow(0 0 12px var(--gold));
+  transform: scale(1.2);
+}
+
+/* Tarjetas de Ataque / Misión de Proyecto */
+.attack-card-item {
+  background: linear-gradient(165deg, var(--surface) 0%, var(--surface-2) 100%);
+  border: 1px solid var(--border);
+  transition: all 0.25s ease;
+}
+
+.attack-card-item:hover {
+  border-color: var(--accent);
+  transform: translateX(4px);
+}
+
+/* Modal de Recompensa con Destello de Oro */
+.gold-shimmer-bg {
+  background: linear-gradient(90deg, transparent, rgba(217, 169, 74, 0.2), transparent);
+  background-size: 200% 100%;
+  animation: goldShimmer 2.2s infinite linear;
+}
+
+@keyframes goldShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gold-shimmer-bg {
+    animation: none;
+  }
+}
+
+/* Toggle de Modo de Vista (Foco Gradual vs Ámbitos) — ver KanbanPage.tsx */
+.view-mode-toggle {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  padding: 4px;
+}
+
+.view-mode-btn {
+  border-radius: 9999px;
+  padding: 6px 16px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--fg-muted);
+  transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.view-mode-btn.active {
+  background: var(--gold);
+  color: var(--plum-dark, #120c18);
+  box-shadow: 0 0 12px rgba(217, 169, 74, 0.35);
+}
+
+/* Acordeón de Foco Gradual */
+.accordion-content-panel {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.accordion-section.active .accordion-content-panel {
+  max-height: 2500px;
+}
+
+.accordion-section.active .chevron-icon {
+  transform: rotate(180deg);
+}
+
+/* Sellos de Cera (Wax Seals) */
+.wax-seal-btn {
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  filter: grayscale(0.5) brightness(0.85);
+  position: relative;
+}
+
+.wax-seal-btn:hover {
+  transform: translateY(-2px) scale(1.03);
+  filter: grayscale(0.1) brightness(1);
+}
+
+.wax-seal-btn.active {
+  filter: grayscale(0) brightness(1.2);
+  transform: translateY(-4px);
+  box-shadow: 0 0 20px rgba(217, 169, 74, 0.4);
+  border-color: var(--gold) !important;
+}
+
+.wax-seal-btn.active::after {
+  content: "";
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid var(--gold);
+}
+
+/* Tarjeta Pergamino de Misión */
+.mission-scroll-card {
+  background: linear-gradient(90deg, var(--surface) 0%, var(--surface-2) 100%);
+  border-left: 3px solid var(--border);
+  transition: all 0.25s ease;
+}
+
+.mission-scroll-card:hover {
+  border-left-color: var(--accent);
+  transform: translateX(4px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .view-mode-btn,
+  .wax-seal-btn,
+  .mission-scroll-card,
+  .accordion-content-panel {
+    transition: none;
+  }
+}
+
+/* Chrono-Stream Vertical (Línea de Tiempo) — ver CalendarTimelineView.tsx */
+.chrono-stream-line::before {
+  content: "";
+  position: absolute;
+  left: 24px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, transparent, var(--border) 5%, var(--border) 95%, transparent);
+  z-index: 0;
+}
+
+.day-node-dot {
+  width: 12px;
+  height: 12px;
+  background: var(--surface-2);
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  position: absolute;
+  left: 19px;
+  top: 14px;
+}
+
+/* Destello del Nodo HOY */
+.node-today-active {
+  background: rgba(217, 169, 74, 0.04);
+  border-radius: 1rem;
+  border: 1px solid rgba(217, 169, 74, 0.2);
+}
+
+.node-today-active .day-node-dot {
+  background: var(--gold);
+  border-color: #ffffff;
+  box-shadow: 0 0 15px var(--gold);
+  animation: pulseRuneHalo 2s infinite;
+}
+
+@keyframes pulseRuneHalo {
+  0% { transform: scale(1); box-shadow: 0 0 10px var(--gold); }
+  50% { transform: scale(1.3); box-shadow: 0 0 25px var(--gold); }
+  100% { transform: scale(1); box-shadow: 0 0 10px var(--gold); }
+}
+
+/* Medidor de Energía Diario */
+.energy-meter-track {
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+/* Cuadrícula de Mapa de Calor Astral */
+.grid-day-cell {
+  aspect-ratio: 1 / 1;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  cursor: pointer;
+}
+
+.grid-day-cell:hover {
+  border-color: var(--gold);
+  transform: scale(1.04);
+  z-index: 10;
+}
+
+.grid-day-cell.selected {
+  border-color: var(--gold);
+  box-shadow: 0 0 15px rgba(217, 169, 74, 0.4);
+  background: rgba(217, 169, 74, 0.08);
+}
+
+.heat-low { box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.03); }
+.heat-mid { box-shadow: inset 0 0 15px rgba(234, 88, 12, 0.25); border-color: rgba(234, 88, 12, 0.35); }
+.heat-high { box-shadow: inset 0 0 20px rgba(220, 38, 38, 0.45); border-color: rgba(220, 38, 38, 0.55); }
+
+/* Gemas de Color por Categoría */
+.gem-rune {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  filter: drop-shadow(0 0 4px currentColor);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .node-today-active .day-node-dot {
+    animation: none;
+  }
+  .grid-day-cell {
+    transition: none;
+  }
+}
+
+/* Tarjeta de Piedra y Borde Rúnico — ver ProgressPage.tsx */
+.card-stone-bg {
+  background: linear-gradient(145deg, var(--surface) 0%, var(--surface-2) 100%);
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+}
+
+.card-rune-interactive {
+  border: 2px solid var(--border);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-rune-interactive:hover {
+  border-color: var(--gold);
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+}
+
+/* Animación de Resplandor de Racha (Glow) */
+.streak-glow-card {
+  animation: streakGlow 2.5s infinite ease-in-out;
+}
+
+@keyframes streakGlow {
+  0%, 100% { box-shadow: 0 0 8px rgba(217, 169, 74, 0.2); }
+  50% { box-shadow: 0 0 22px rgba(217, 169, 74, 0.45); }
+}
+
+/* Destello de XP al completar misión */
+.xp-flash-anim {
+  animation: xpFlash 0.6s ease-out forwards;
+}
+
+@keyframes xpFlash {
+  0% { filter: brightness(1); }
+  50% { filter: brightness(2) saturate(1.5); transform: scale(1.02); }
+  100% { filter: brightness(1); transform: scale(1); }
+}
+
+/* Modal Pergamino de Clase */
+.modal-parchment-scroll {
+  background: #f4e4bc;
+  color: #2d241e;
+  border: 12px solid #2d241e;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-rune-interactive,
+  .streak-glow-card,
+  .xp-flash-anim {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* Modal Contenedor Pergamino de Decreto — ver TaskModal.tsx */
+.grimoire-editor-modal {
+  background: linear-gradient(165deg, var(--surface) 0%, var(--surface-2) 100%);
+  border: 2px solid var(--border);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85), 0 0 20px rgba(61, 42, 78, 0.35);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.grimoire-editor-modal::-webkit-scrollbar {
+  width: 6px;
+}
+.grimoire-editor-modal::-webkit-scrollbar-track {
+  background: transparent;
+}
+.grimoire-editor-modal::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 10px;
+}
+
+/* Chips Táctiles */
+.tactile-chip {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  user-select: none;
+}
+
+.tactile-chip:hover {
+  border-color: rgba(217, 169, 74, 0.5);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.tactile-chip.active-weapon-small {
+  border-color: #059669;
+  box-shadow: 0 0 10px rgba(5, 150, 105, 0.35);
+  color: #34d399;
+}
+
+.tactile-chip.active-weapon-medium {
+  border-color: #2563eb;
+  box-shadow: 0 0 10px rgba(37, 99, 235, 0.35);
+  color: #60a5fa;
+}
+
+.tactile-chip.active-weapon-large {
+  border-color: var(--gold);
+  box-shadow: 0 0 10px rgba(217, 169, 74, 0.35);
+  color: var(--gold);
+}
+
+.tactile-chip.active-gold {
+  border-color: var(--gold);
+  background: rgba(217, 169, 74, 0.12);
+  color: var(--gold);
+}
+
+/* Barra de Integridad HP de Submisiones */
+.quest-hp-track {
+  background: rgba(0, 0, 0, 0.4);
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.quest-hp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #991b1b, #ef4444);
+  transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Animación Destello al Sellar Decreto */
+.animate-seal-flash {
+  animation: sealFlashAnim 0.6s ease-out forwards;
+}
+
+@keyframes sealFlashAnim {
+  0% { box-shadow: 0 0 0px var(--gold); filter: brightness(1); }
+  50% { box-shadow: 0 0 45px var(--gold); filter: brightness(1.4); }
+  100% { box-shadow: 0 0 0px var(--gold); filter: brightness(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tactile-chip,
+  .animate-seal-flash {
+    animation: none;
+    transition: none;
   }
 }
 ```
@@ -6946,6 +8906,18 @@ export function bossAvatarSrc(key: string): string {
 export const LOOT_ICONS = {
   chest_phase: '/assets/rpg/loot/chest.png',
 } as const
+
+export const NAV_ICONS = {
+  combat: '/assets/rpg/nav/combat.png',
+  inbox: '/assets/rpg/nav/inbox.png',
+  strategy: '/assets/rpg/nav/strategy.png',
+  grimoire: '/assets/rpg/nav/grimoire.png',
+  calendar: '/assets/rpg/nav/calendar.png',
+  progress: '/assets/rpg/nav/progress.png',
+  followups: '/assets/rpg/nav/followups.png',
+} as const
+
+export type NavIconKey = keyof typeof NAV_ICONS
 ```
 
 ### src/utils/useOnlineStatus.ts
@@ -9113,9 +11085,9 @@ export default defineConfig({
         type: 'module',
       },
       manifest: {
-        name: 'Productividad RPG',
-        short_name: 'Prod RPG',
-        description: 'Productividad personal con gamification tipo RPG',
+        name: 'Questly',
+        short_name: 'Questly',
+        description: 'Maneja tus misiones. Conquista el caos.',
         theme_color: '#121212',
         background_color: '#121212',
         display: 'standalone',
