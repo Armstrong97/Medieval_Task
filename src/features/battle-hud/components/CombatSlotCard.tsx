@@ -5,12 +5,13 @@ import { useCompleteTask, useSubtasks } from '@/features/tasks/hooks'
 import { useFocusFloat } from '@/features/tasks/FocusFloatContext'
 import { useSendToFollowUp } from '@/features/followups/hooks'
 import { useUnequipHudSlot } from '@/features/battle-hud/hooks'
+import { WEAPON_ICONS } from '@/utils/rpgAssets'
 import type { Task, TaskSize } from '@/types/database.types'
 
-const DIFFICULTY_BADGE: Record<TaskSize, { icon: string; label: string; xp: number }> = {
-  small: { icon: '🗡️', label: 'Daga', xp: 10 },
-  medium: { icon: '⚔️', label: 'Espada', xp: 25 },
-  large: { icon: '🗡️✨', label: 'Mandoble', xp: 50 },
+const DIFFICULTY_BADGE: Record<TaskSize, { label: string; xp: number }> = {
+  small: { label: 'Daga', xp: 10 },
+  medium: { label: 'Espada', xp: 25 },
+  large: { label: 'Mandoble', xp: 50 },
 }
 
 const DEFAULT_FOLLOW_UP_INTERVAL_DAYS = 7
@@ -60,12 +61,12 @@ export function CombatSlotCard({
             {task.title}
           </p>
         </button>
-        {difficulty && (
+        {difficulty && task.size && (
           <span
             title={`${difficulty.label} · +${difficulty.xp} XP`}
-            className="shrink-0 rounded-full bg-surface-2 px-2 py-1 text-sm"
+            className="flex shrink-0 items-center justify-center rounded-full bg-surface-2 p-1.5"
           >
-            {difficulty.icon}
+            <img src={WEAPON_ICONS[task.size]} alt={difficulty.label} className="h-5 w-5 object-contain" />
           </span>
         )}
       </div>

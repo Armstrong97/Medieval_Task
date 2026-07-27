@@ -30,9 +30,11 @@ export function TaskCard({ task, onOpen }: { task: Task; onOpen: (task: Task) =>
   return (
     <div
       ref={setNodeRef}
-      className={`rounded-md border border-border bg-surface p-3 text-sm shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-[0_12px_30px_rgba(139,92,246,0.18)] active:translate-y-0 active:scale-[0.99] ${
-        isDragging ? 'opacity-50' : ''
-      }`}
+      className={`rounded-md border bg-surface-2 p-3 text-sm shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-[0_12px_30px_rgba(139,92,246,0.18)] active:translate-y-0 active:scale-[0.99] ${
+        task.status === 'in_progress'
+          ? 'border-gold/50 shadow-[0_0_14px_rgba(217,169,74,0.25)]'
+          : 'border-border'
+      } ${task.status === 'done' ? 'opacity-60' : ''} ${isDragging ? 'opacity-50' : ''}`}
       style={{
         ...(transform
           ? { transform: `translate(${transform.x}px, ${transform.y}px)`, zIndex: 10 }
@@ -46,7 +48,21 @@ export function TaskCard({ task, onOpen }: { task: Task; onOpen: (task: Task) =>
         onClick={() => onOpen(task)}
         className="cursor-grab active:cursor-grabbing"
       >
-        <p className="font-medium text-fg">{task.title}</p>
+        <p className={`font-medium text-fg ${task.status === 'done' ? 'line-through' : ''}`}>
+          {task.title}
+          {task.status === 'done' && (
+            <span
+              title="Completada"
+              className="ml-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full align-middle text-[9px] text-accent-fg shadow-[inset_0_0_3px_rgba(0,0,0,0.4)]"
+              style={{
+                background:
+                  'radial-gradient(circle at 35% 30%, var(--gold-bright), var(--gold) 70%, #7a5a1e 100%)',
+              }}
+            >
+              ✓
+            </span>
+          )}
+        </p>
 
         <div className="mt-2 flex flex-wrap items-center gap-2">
           {category && (

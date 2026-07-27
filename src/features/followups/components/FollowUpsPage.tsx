@@ -43,7 +43,7 @@ export function FollowUpsPage() {
             <li
               key={followUp.id}
               className={`flex items-center gap-3 rounded-lg border p-3 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md ${
-                due ? 'border-warn-border bg-warn-bg' : 'border-border bg-surface'
+                due ? 'border-warn-border bg-warn-bg' : 'border-dashed border-fg-muted/40 bg-surface'
               }`}
             >
               <button
@@ -51,7 +51,9 @@ export function FollowUpsPage() {
                 onClick={() => setEditingTask(task!)}
                 className="flex-1 text-left"
               >
-                <p className="text-sm font-medium text-fg">{task!.title}</p>
+                <p className="flex items-center gap-1.5 text-sm font-medium text-fg">
+                  <span title="En seguimiento">👁️</span> {task!.title}
+                </p>
                 <p className="mt-0.5 flex items-center gap-2 font-mono text-xs text-fg-muted">
                   {category && (
                     <span className="inline-flex items-center gap-1">

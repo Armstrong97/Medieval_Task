@@ -21,6 +21,14 @@
   --color-gold-bright: var(--gold-bright);
   --color-surface-card: var(--surface-card);
   --color-border-card: var(--border-card);
+  --color-border-glow: var(--border-glow);
+  --color-accent-runic: var(--accent-runic);
+  --color-hp-full: var(--hp-full);
+  --color-hp-critical: var(--hp-critical);
+  --color-phase-shield: var(--phase-shield);
+  --color-weapon-daga: var(--weapon-daga);
+  --color-weapon-espada: var(--weapon-espada);
+  --color-weapon-mandoble: var(--weapon-mandoble);
   --color-warn-bg: var(--warn-bg);
   --color-warn-fg: var(--warn-fg);
   --color-warn-border: var(--warn-border);
@@ -46,6 +54,18 @@
   --gold-bright: #8a5a10;
   --surface-card: #f5f0e6;
   --border-card: rgba(20, 18, 14, 0.16);
+  --border-glow: rgba(20, 18, 14, 0.24);
+  --accent-runic: #7c3aed;
+  /* Dungeon Bosses (Fase 7, Módulo 2): HP del jefe, mismos valores en claro
+     y oscuro (la spec de Gemini no distinguió tema para estos). */
+  --hp-full: #dc2626;
+  --hp-critical: #991b1b;
+  --phase-shield: var(--gold);
+  /* Mesa de Estrategia (Fase 7, Módulo 3): cartas de arma/dificultad,
+     mismos valores en claro y oscuro. */
+  --weapon-daga: #059669;
+  --weapon-espada: #2563eb;
+  --weapon-mandoble: #d9a94a;
   --warn-bg: #fef3e2;
   --warn-fg: #92400e;
   --warn-border: rgba(217, 119, 6, 0.3);
@@ -53,20 +73,24 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    /* oscuro — identidad principal: fantasía RPG, base ciruela profunda + acento oro */
+    /* oscuro — identidad principal: fantasía RPG, base ciruela profunda + acento oro.
+       Valores afinados en el Módulo 4 (Design System) de Fase 7 — Gemini dio
+       hex fijos sin distinguir tema; se aplican acá del lado oscuro nomás,
+       preservando el respaldo claro de arriba (ver HANDOFF, Fase 7 Módulo 4). */
     --bg: #120c18;
     --surface: #1e1526;
-    --surface-2: #2a1d38;
-    --fg: #f3ecf7;
-    --fg-muted: #b3a3c0;
-    --border: #3a2a4a;
+    --surface-2: #281c33;
+    --fg: #f3ece4;
+    --fg-muted: #a395b0;
+    --border: #3d2a4e;
+    --border-glow: #63437f;
     --accent: #d9a94a;
     --accent-fg: #241705;
+    --accent-runic: #7c3aed;
     --gold: #d9a94a;
-    --gold-bright: #f0c364;
-    /* Battle HUD (Fase 7, Módulo 1): superficie/borde de las Combat Slot Cards,
-       tokens de la spec de Gemini. */
-    --surface-card: #281c33;
+    --gold-bright: #f0be5d;
+    /* Battle HUD (Fase 7, Módulo 1): superficie/borde de las Combat Slot Cards. */
+    --surface-card: #2d1f3b;
     --border-card: #3d2a4e;
     --warn-bg: rgba(146, 64, 14, 0.25);
     --warn-fg: #fcd9a8;

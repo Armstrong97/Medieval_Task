@@ -343,7 +343,101 @@ Primera especificación real recibida de Gemini. Antes de tocar código se detec
 **Tokens nuevos** en `index.css`: `--color-surface-card` / `--color-border-card` (valores de la spec de Gemini para dark: `#281c33` / `#3d2a4e`; fallback claro definido por mí ya que la spec solo dio valores oscuros).
 
 ### Pendiente de correr manualmente
-1. **SQL Editor de Supabase**: correr `supabase/migrations/20260726000001_fase7_battle_hud_slots.sql` completo. **Sin este paso, la Battle HUD va a fallar** — el cliente ya asume que la columna `hud_slot` existe.
-2. Typecheck (`tsc -b`), `oxlint` y `npm run build` corridos y limpios. No se pudo probar en vivo con datos reales (requiere sesión de Supabase del usuario).
+1. **SQL Editor de Supabase**: correr `supabase/migrations/20260726000001_fase7_battle_hud_slots.sql` completo. ✅ **Ya corrido por el usuario** (2026-07-26).
+2. Typecheck (`tsc -b`), `oxlint` y `npm run build` corridos y limpios.
+
+### Módulo 2 — "Dungeon Bosses & Epic Raids" (implementado 2026-07-26)
+
+Igual que en el Módulo 1, se encontraron problemas técnicos reales en la spec de Gemini antes de tocar código — esta vez de un tipo distinto: no eran huecos de conocimiento sobre el estado de la app (como el `follow_up` del Módulo 1), sino dos decisiones de implementación que violaban garantías ya establecidas. Se resolvieron sin necesidad de volver a Gemini (no cambian nada visible del diseño, solo *cómo* se construye) y se le avisó al usuario con la explicación en el chat:
+
+1. **La función `get_project_boss_stats` de la spec original era `SECURITY DEFINER` sin filtrar por `user_id`** — cualquier usuario autenticado podría haber consultado el HP/progreso del proyecto de otro usuario, porque `SECURITY DEFINER` ignora RLS. Ningún otro objeto de este esquema usa `DEFINER` para lógica de negocio (solo los 2 triggers de seed en creación de cuenta, donde no hay contexto de usuario todavía). **No se creó esa función.** El HP del jefe se calcula en el cliente (`computeBossStats` en `projects/api.ts`) sobre una query normal de `tasks` — ya protegida por la RLS existente —, igual que ya hacía `ProgressPage` con el progreso semanal de proyectos.
+2. **La spec pedía que el cliente otorgue el bonus de XP directamente** al reclamar una fase — contradice la regla de Fase 2 de que toda la lógica de XP vive en Postgres, nunca en el cliente. Se agregó `claim_boss_phase(project_id, phase)` (`SECURITY INVOKER`, migración `20260726000002_fase7_dungeon_bosses.sql`): valida server-side que la fase realmente se alcanzó (recalculando el HP adentro de la función, no confía en lo que mande el cliente), es idempotente si se reclama dos veces, y otorga el XP a la categoría del proyecto con el mismo patrón `on conflict` que ya usa `tasks_after_done`.
+
+**Decisión de UX no cubierta por la spec** (Gemini no especificó dónde viven las tarjetas de proyecto — hoy no existe ninguna página de "lista de proyectos" en la app, solo aparecen como pestañas dentro de Kanban): se agregó una sección nueva **"Jefes de Mazmorra"** en `ProgressPage.tsx`, con una grilla de `ProjectBossCard` por cada proyecto activo. Si Gemini lo pensó en otro lugar, es fácil de mover.
+
+**Modelo de datos**:
+- `projects` gana `boss_avatar` (default `'dragon_default'`), `boss_title` (default `'Señor del Caos'`), `phases_claimed integer[]` (default `'{}'`). Sin UI para editarlos todavía — quedan en su default hasta que se pida esa función.
+- `Database['public']['Functions']` en `database.types.ts` ahora tipa `claim_boss_phase` (antes era `Record<string, never>` — no había ninguna función RPC tipada en el proyecto hasta ahora).
+
+**Componentes** (`src/features/projects/`, extendiendo el feature ya existente en vez de crear uno nuevo, como pidió la spec):
+- `BossHealthBar.tsx`: barra con gradiente carmesí→dorado y 4 marcadores de fase (75/50/25/0%) con ícono de cofre que se ilumina en oro al reclamarse.
+- `PhaseRewardModal.tsx`: mismo patrón visual y de partículas que `AchievementCelebration` (Fase 6) — reutiliza las clases CSS `.achievement-modal`/`.achievement-burst` en vez de duplicar la animación.
+- `ProjectBossCard.tsx`: tarjeta reducida para la grilla de `ProgressPage`, mini barra de HP + emoji de avatar (mapa `boss_avatar → emoji`, con `🐲` de fallback para cualquier valor no mapeado — solo existe `dragon_default` por ahora).
+- `BossEncounterPage.tsx` (ruta `/projects/:projectId/boss`): header con avatar/título/categoría, `BossHealthBar`, lista de misiones activas del proyecto con botón "Equipar" que manda la tarea al primer slot libre del Battle HUD (deshabilitado si los 3 slots están ocupados o la tarea ya está equipada). Detecta automáticamente fases nuevas cruzadas (efecto que compara `stats.percentRemaining` contra `project.phases_claimed`) y dispara `claim_boss_phase` + `PhaseRewardModal` — si de un golpe se cruzan varias fases a la vez, se reclaman una por una (cada reclamo invalida el proyecto, el efecto vuelve a correr y encuentra la siguiente fase pendiente).
+
+**HP en tiempo real**: no hizo falta wiring nuevo — `useTasksByProject` usa la clave `['tasks', 'by-project', projectId]`, que ya cae dentro del barrido de invalidación existente (`queryClient.invalidateQueries({queryKey: ['tasks']})` en `useInvalidateTasks`). Completar una tarea desde el HUD, el Kanban o la propia página del jefe actualiza el HP solo.
+
+### Pendiente de correr manualmente
+1. **SQL Editor de Supabase**: correr `supabase/migrations/20260726000002_fase7_dungeon_bosses.sql` completo. ✅ **Ya corrido por el usuario** (2026-07-26) — tuvo un error de sintaxis en el `RAISE` (`%%` en vez de `%`, ver historial de chat), corregido en el archivo y vuelto a correr con éxito.
+2. Typecheck, `oxlint` y `npm run build` corridos y limpios.
+
+### Módulo 3 — "The Strategy Table" (implementado 2026-07-26)
+
+No requirió migración nueva (reutiliza el `size` obligatorio ya impuesto en Fase 6.4). Reemplaza por completo `TriagePage.tsx` (se borró) por `StrategyTablePage.tsx` en la ruta `/triage` — el nav ahora dice "Estrategia" en vez de "Triage".
+
+**Dos problemas reales encontrados antes de implementar, explicados al usuario en el chat:**
+
+1. **La spec decía "tria directamente con `status = 'follow_up'`"** para la salida "Mover a Seguimiento" — igual que en el Módulo 1, esto por sí solo dejaría la tarea invisible en toda la app: fuera del Kanban y del HUD (excluyen `follow_up`) y **tampoco** aparecería en Follow-ups, porque esa página lee de la tabla `follow_ups`, no del status. `dispatchTriagedTask` (`triage/api.ts`) ahora también crea el registro en `follow_ups` (7 días, sin stakeholder — mismo default que ya usa el botón rápido del Kanban) en el mismo despacho.
+2. **La spec de este módulo contradice una decisión explícita de la Fase 6.2** (el usuario había dicho literalmente "quiero que no tenga follow-up en el triage" al diseñar la acción de Kanban). Como pisaba una decisión tomada a propósito, se confirmó explícitamente con el usuario antes de escribir el botón — respondió que sí, agregarlo. Queda documentado acá para que quede claro que la Mesa de Estrategia **sí** tiene follow-up, a diferencia de lo que decía la sección 9 hasta ahora; if a esta altura alguien relee la tabla de decisiones, la fila de "Notificaciones Fase 4" y el punto 6.2 ya no aplican tal cual a Triage.
+
+**Decisión de implementación sin necesidad de confirmar** (no cambia nada visible): "Equipar en Combate" pasa la tarea a `in_progress` además de asignarle `hud_slot` — la spec decía literal "(pending + hud_slot)", pero esto rompería la convención ya establecida en el Módulo 1 de que equipar un slot siempre implica `in_progress` (para que `FocusFloat` nunca se desincronice del HUD). Mismo botón, mismo resultado visual, un solo camino de código para "equipar" en toda la app.
+
+**`dispatchTriagedTask`** (`triage/api.ts`) setea `kanban_column_id` en las **3 salidas** por igual (incluida `follow_up`) — es lo que el trigger `tasks_after_triage` usa para detectar que una tarea salió del inbox y, si llega a 0, completar la quest diaria de triage. El status no es lo que "tria" una tarea, la columna sí.
+
+**Componentes** (`src/features/triage/`):
+- `WeaponSelector.tsx`: 3 cartas (Daga/Espada/Mandoble) con resplandor de color propio por arma (tokens nuevos `--weapon-daga`/`--weapon-espada`/`--weapon-mandoble`).
+- `InboxCardDeck.tsx`: la "carta activa" — título editable, deadline con atajos Hoy/Mañana, y un efecto visual de 2 cartas apiladas detrás (puramente decorativo) cuando quedan más de 1-2 tareas por triar.
+- `DirectEquipToggle.tsx`: terminó siendo un botón de acción (no un checkbox modificador) — es la salida "Equipar en Combate" en sí, deshabilitado con tooltip si los 3 slots del HUD están ocupados.
+- `StrategyTablePage.tsx`: orquesta todo — categoría/proyecto (mismo selector + "crear proyecto nuevo" que ya tenía el `TriagePage` viejo, la spec no los mencionó pero son necesarios para que la tarea tenga a dónde ir), `WeaponSelector`, y las 3 acciones de despacho al pie. Estado "Maza Limpia — ¡Inbox Vacío!" cuando no hay nada que triar.
+- `useTriageSession` (`triage/hooks.ts`): combina `useInboxTasks` + la mutation de despacho, invalidando `tasks`/`gamification`/`follow-ups`/`battle-hud` — cualquiera de las 3 salidas puede afectar cualquiera de esos cuatro dominios.
+
+### Módulo 4 — "Design System & Asset Studio" (implementado 2026-07-26, cierra la Fase 7)
+
+Módulo de consolidación — no agrega features, ordena y afina los tokens que fueron saliendo ad-hoc en los Módulos 1-3. Sin migración.
+
+**El problema real encontrado**: la spec de Gemini define los tokens de `@theme` con **hex fijos, sin distinguir claro/oscuro** (`--color-bg: #120c18` directo, etc.). Implementarlo literal habría **eliminado el modo claro por completo** — el esquema actual de `index.css` depende a propósito de una indirección (`@theme` apunta a variables que cambian entre `:root` y `@media (prefers-color-scheme: dark)`), y el modo claro es un requisito explícito desde el spec original ("modo oscuro soportado desde el inicio", con el claro como respaldo siempre mantenido — hasta hubo un bug documentado en la sección 8 sobre esto). Se mantuvo la estructura claro/oscuro intacta y se aplicaron los valores de Gemini **solo del lado oscuro**; el claro sigue con sus valores ya establecidos de sesiones anteriores.
+
+**Dos decisiones de nomenclatura, sin necesidad de confirmar** (no cambian nada visible, evitan renombrar tokens ya usados en docenas de componentes):
+- Se mantuvieron `--color-gold`/`--color-gold-bright` en vez de renombrarlos a `--color-accent-gold`/`--color-accent-gold-hover` como pedía la spec — mismo propósito, ya está en uso en `AchievementCelebration`, `CombatSlotCard`, `BossHealthBar`, `WeaponSelector`, etc. Solo se actualizó el valor de `gold-bright` (`#f0c364` → `#f0be5d`, el tono que dio Gemini para el hover).
+- No se agregó `--font-body`: el token que ya existe, `--font-sans`, es el que Tailwind v4 reconoce especialmente para generar la utilidad `font-sans` (la que ya aplica por defecto a todo el texto vía `body { font-family: var(--font-sans) }`). Agregar `--font-body` habría sido un duplicado sin uso.
+
+**Tokens nuevos agregados** (disponibles, sin forzar su uso en ningún componente específico — la spec los presenta como paleta, no pide dónde aplicarlos): `--color-border-glow` (`#63437f` oscuro / respaldo claro), `--color-accent-runic` (`#7c3aed` — mismo violeta que ya usa la categoría Concentrix, casualidad útil).
+
+**Tabla de 4 estados aplicada** a los componentes que realmente muestran variedad de status simultánea:
+- `TaskCard.tsx` (Kanban): fondo base pasó a `bg-surface-2` (antes `bg-surface`, por la tabla de Gemini); `in_progress` ahora tiene borde+glow dorado; `done` tiene el título tachado, la tarjeta al 60% de opacidad, y un pequeño "sello de cera" dorado (circulito con ✓) junto al título.
+- `FollowUpsPage.tsx`: filas no vencidas pasaron a borde punteado color pergamino mudo (antes borde sólido) + badge 👁️ junto al título — las vencidas mantienen el estilo de urgencia (`warn-*`) por encima, sin cambios, porque la urgencia pisa la identidad visual de "en seguimiento".
+- No se tocó `CombatSlotCard` ni el resto de las tarjetas: por diseño ya establecido en el Módulo 1, esas vistas **nunca** muestran tareas `done` o `follow_up` (se excluyen de sus queries), así que la tabla de 4 estados no aplica ahí — solo `pending`/`in_progress`, que ya tenían tratamiento visual propio desde antes.
+
+**Verificación del checklist**: no quedan clases `dark:` sueltas — el único uso en todo el código (`AmbientBackground.tsx`, `dark:opacity-100 opacity-0`) es intencional y funcional, apaga el fondo animado en modo claro. Fuentes (`Cinzel`, `Inter`, `JetBrains Mono`) ya cargadas desde la Fase 6/adenda de la sección 8, sin cambios. `npm run build` y `oxlint` limpios.
+
+**Con esto se cierra la Fase 7** (los 4 módulos que trajo Gemini). Cualquier trabajo nuevo a partir de acá es una fase no especificada todavía, igual que pasó entre la Fase 5 y la Fase 6.
+
+### Integración de assets visuales (implementado 2026-07-26)
+
+Gemini generó las imágenes de armas/jefes/loot con Imagen 3 y el usuario las guardó en `public/assets/rpg/{weapons,bosses,loot}/`. Se integraron vía `src/utils/rpgAssets.ts` (`WEAPON_ICONS` por `TaskSize`, `BOSS_AVATARS` + `bossAvatarSrc()` con fallback a dragón, `LOOT_ICONS`) en `WeaponSelector` (Módulo 3), `CombatSlotCard` (Módulo 1), `BossHealthBar`/`BossEncounterPage`/`ProjectBossCard`/`PhaseRewardModal` (Módulo 2) — reemplazando los emojis que se habían usado como placeholder hasta ahora.
+
+**Problema real encontrado, no cosmético**: las imágenes originales venían a **2048×2048 sin comprimir, entre 4.8 y 7.7 MB cada una** (37 MB en total para 6 íconos). El build directamente **fallaba** — `vite-plugin-pwa` tiene un límite de 2 MB por archivo para precachear en el service worker. Aunque se hubiera subido ese límite a mano, meter 37 MB al cache offline de la PWA iba en contra de un requisito no funcional del spec original ("la vista de captura debe cargar en menos de 1 segundo"). Se creó `scripts/optimize-rpg-assets.mjs` (mismo patrón que `scripts/generate-icons.mjs`, usa `sharp` que ya era dependencia del proyecto) que redimensiona y recomprime los originales in-place: armas y cofre a 256×256, avatares de jefe a 512×512, PNG con paleta indexada. Resultado: de 37 MB a ~485 KB combinados. **Si en el futuro se generan más assets con Imagen 3, correr este script antes de integrarlos** (`node scripts/optimize-rpg-assets.mjs`, ajustando la lista `TARGETS` con los nuevos archivos) — no asumir que las imágenes que llegan de un generador de IA ya vienen en un tamaño usable para web.
+
+**Nota de nomenclatura**: la spec de referencia usaba `chest_gold.png` como nombre de ejemplo; el archivo real que generó el usuario se llama `chest.png` — se usó el nombre real, no el del ejemplo.
+
+Ya incluido en el precache del Service Worker sin tocar `vite.config.ts`: el `globPatterns` de `injectManifest` ya incluía `png` desde antes, y Vite copia todo `public/*` a la raíz de `dist/` — el build pasó de 15 a 21 entradas precacheadas (+~700 KB) apenas se agregaron las imágenes optimizadas. Verificado con `npm run build` limpio y las imágenes cargando (200 OK) en el navegador.
+
+### Reemplazo de favicon/íconos PWA (2026-07-26)
+
+El usuario regeneró el favicon con una herramienta externa (por los nombres de archivo — `favicon-96x96.png`, `web-app-manifest-*.png`, `site.webmanifest` — es el patrón típico de realfavicongenerator o similar) y pidió revisar que quedara todo bien conectado. **No lo estaba**: la herramienta soltó los archivos nuevos en `public/icons/` pero no actualizó nada que los referenciara, y de paso se borraron 4 archivos que sí estaban en uso (confirmado con `git status`):
+
+- `public/favicon.svg` (raíz) — borrado, pero `index.html` seguía apuntándole.
+- `public/icons/icon-192.png`, `icon-512.png`, `icon-512-maskable.png` — borrados, pero `vite.config.ts` seguía usándolos en `manifest.icons` → **el ícono de instalación de la PWA estaba roto** hasta este arreglo.
+
+Se corrigió:
+- `vite.config.ts`: `manifest.icons` ahora apunta a `web-app-manifest-192x192.png`/`-512x512.png` (los archivos nuevos), y `includeAssets` a los nombres reales que quedaron (`favicon.ico`, `icons/favicon-96x96.png`, `icons/apple-touch-icon.png`).
+- `index.html`: favicon apuntando a `/favicon.ico` (raíz) + `/icons/favicon-96x96.png`, en vez del `/favicon.svg` roto.
+- Se borró `public/icons/site.webmanifest` (boilerplate genérico sin personalizar del generador — "MyWebSite"/"MySite" — no lo usa nada, Vite genera su propio manifest desde `vite.config.ts`) y el `favicon.ico` duplicado que quedó en `icons/` (se mantiene el de la raíz, que es el que los navegadores buscan por convención sin necesidad de `<link>`).
+
+**Dos hallazgos de calidad, no solo de wiring:**
+1. **`icons/favicon.svg` pesaba 5.91 MB** — no era un SVG vectorial real, era una sola etiqueta `<image>` envolviendo un PNG de 1701×1701 en base64 (0 `<path>`). Con eso el build fallaba (mismo límite de 2 MB de precache que ya había dado problema con los assets RPG). Se sacó de la app — ya hay cobertura equivalente en raster (`favicon.ico` + `favicon-96x96.png` + `apple-touch-icon.png`), así que no se perdió nada funcional.
+2. **El ícono de 512×512 no tiene zona de seguridad** (el contenido llega hasta el borde, verificado a nivel de píxel) — se lo dejó como `purpose: 'any'` en vez de `'maskable'` (el `site.webmanifest` sin usar que trajo el generador sí lo marcaba maskable, pero aplicarle la máscara circular/redondeada de Android a un ícono sin margen lo recortaría). Si más adelante se quiere un ícono maskable real, hay que regenerar con ~20% de padding alrededor del contenido.
+
+**Nota para el futuro**: `scripts/generate-icons.mjs` + `scripts/icon-any.svg`/`icon-maskable.svg` (el generador de íconos anterior, basado en `sharp`) quedaron desactualizados respecto al nuevo arte — si alguien lo corre de nuevo, va a recrear los archivos viejos (`icon-192.png`, etc.) en rutas que ya no usa nada, sin romper el build pero como archivos sueltos sin conectar. No se tocó ese script por las dudas de que el usuario todavía quiera el arte vectorial original como fuente.
 
 Sin la migración de Fase 6 corrida, el código del cliente asume que existe el status `'follow_up'` y que las subtareas dan XP — crear una tarea con status `'follow_up'` fallaría el check constraint en la base real (ya no aplica: la migración está corrida, se deja como advertencia para entornos nuevos).
