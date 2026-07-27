@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { LOOT_ICONS } from '@/utils/rpgAssets'
 
-const AUTO_DISMISS_MS = 3400
+const AUTO_DISMISS_MS = 4000
 
 export function PhaseRewardModal({
   phase,
@@ -17,64 +17,55 @@ export function PhaseRewardModal({
 
   useEffect(() => {
     const timer = window.setTimeout(onDone, AUTO_DISMISS_MS)
-
-    const stage = stageRef.current
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (stage && !reduceMotion) {
-      const rect = { w: stage.clientWidth, h: stage.clientHeight }
-      const particles: HTMLDivElement[] = []
-      for (let i = 0; i < 26; i++) {
-        const p = document.createElement('div')
-        p.className = 'achievement-burst'
-        const angle = (Math.PI * 2 * i) / 26 + Math.random() * 0.3
-        const dist = 90 + Math.random() * 70
-        const dx = Math.cos(angle) * dist
-        const dy = Math.sin(angle) * dist
-        p.style.left = `${rect.w / 2}px`
-        p.style.top = `${rect.h / 2}px`
-        stage.appendChild(p)
-        p.animate(
-          [
-            { transform: 'translate(0, 0) scale(1)', opacity: 1 },
-            { transform: `translate(${dx}px, ${dy}px) scale(0)`, opacity: 0 },
-          ],
-          { duration: 700 + Math.random() * 300, easing: 'cubic-bezier(.16,1,.3,1)', delay: 150 },
-        )
-        particles.push(p)
-      }
-      return () => {
-        window.clearTimeout(timer)
-        particles.forEach((p) => p.remove())
-      }
-    }
-
     return () => window.clearTimeout(timer)
-  }, [phase, onDone])
+  }, [onDone])
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-bg/85 p-6 backdrop-blur-md"
       onClick={onDone}
       role="status"
-      aria-live="polite"
     >
-      <div ref={stageRef} className="relative flex h-72 w-full max-w-sm items-center justify-center">
-        <div className="achievement-modal relative rounded-2xl border border-gold bg-surface px-10 py-8 text-center">
-          <div className="mx-auto mb-3.5 flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[radial-gradient(circle_at_35%_30%,var(--gold-bright),var(--gold)_60%,#7a5a1e_100%)] shadow-[inset_0_0_12px_rgba(0,0,0,0.35)]">
-            {isDefeat ? (
-              <span className="text-3xl">🏆</span>
-            ) : (
-              <img src={LOOT_ICONS.chest_phase} alt="Cofre de fase" className="h-11 w-11 object-contain" />
-            )}
-          </div>
-          <div className="mb-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-gold-bright">
-            {isDefeat ? 'Jefe derrotado' : `Fase ${phase}% rota`}
-          </div>
-          <div className="font-display text-2xl font-black tracking-wide text-fg">
-            {isDefeat ? '¡Victoria!' : '¡Golpe crítico!'}
-          </div>
-          <p className="mt-1.5 text-sm text-fg-muted">+{xp} XP</p>
+      <div
+        ref={stageRef}
+        onClick={(e) => e.stopPropagation()}
+        className="modal-panel relative w-full max-w-sm rounded-3xl border-2 border-accent bg-surface p-8 text-center shadow-[0_0_100px_rgba(217,169,74,0.3)]"
+      >
+        <div className="gold-shimmer-bg pointer-events-none absolute inset-0 rounded-3xl opacity-30" />
+
+        <div className="mb-4 flex justify-center">
+          {isDefeat ? (
+            <span className="animate-bounce text-6xl">🏆</span>
+          ) : (
+            <img
+              src={LOOT_ICONS.chest_phase}
+              alt="Cofre de fase"
+              className="h-16 w-16 animate-bounce object-contain drop-shadow-[0_0_12px_rgba(217,169,74,0.6)]"
+            />
+          )}
         </div>
+
+        <h2 className="mb-1 font-display text-2xl font-black uppercase tracking-tighter text-accent">
+          {isDefeat ? '¡JEFE DERROTADO!' : '¡GOLPE CRÍTICO!'}
+        </h2>
+        <p className="mb-6 font-display text-xs tracking-widest text-fg-muted uppercase">
+          {isDefeat ? 'PROYECTO CONQUISTADO' : `FASE ${phase}% ROTA`}
+        </p>
+
+        <div className="mb-6 rounded-2xl border border-border bg-black/40 p-4">
+          <p className="mb-1 font-mono text-[10px] uppercase text-fg-muted/60">
+            Tesoro Desbloqueado
+          </p>
+          <p className="font-mono text-xl font-black text-sky-400">+{xp} XP EXTRA</p>
+        </div>
+
+        <button
+          type="button"
+          onClick={onDone}
+          className="btn-prime w-full rounded-xl py-3.5 font-display text-xs font-black uppercase tracking-widest"
+        >
+          Reclamar Botín
+        </button>
       </div>
     </div>
   )

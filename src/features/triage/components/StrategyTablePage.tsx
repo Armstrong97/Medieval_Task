@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Link2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Link2, Swords } from 'lucide-react'
 import { useCategories, useCreateProject, useProjects } from '@/features/projects/hooks'
 import { useHudTasks } from '@/features/battle-hud/hooks'
 import { useTriageSession } from '@/features/triage/hooks'
 import { fromDatetimeLocalValue } from '@/utils/datetime'
 import { WeaponSelector } from '@/features/triage/components/WeaponSelector'
 import { InboxCardDeck } from '@/features/triage/components/InboxCardDeck'
-import { DirectEquipToggle } from '@/features/triage/components/DirectEquipToggle'
 import type { TaskSize } from '@/types/database.types'
 import type { DispatchOutcome } from '@/features/triage/api'
 
@@ -27,8 +27,9 @@ export function StrategyTablePage() {
   const [deadline, setDeadline] = useState('')
   const [size, setSize] = useState<TaskSize | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [animatingOut, setAnimatingOut] = useState(false)
 
-  // Cada vez que cambia la carta activa, el formulario arranca de cero.
+  // Reset del formulario cuando entra una nueva carta
   useEffect(() => {
     setTitle(current?.title ?? '')
     setCategoryId('')
@@ -37,6 +38,7 @@ export function StrategyTablePage() {
     setDeadline('')
     setSize(null)
     setError(null)
+    setAnimatingOut(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current?.id])
 
@@ -52,146 +54,199 @@ export function StrategyTablePage() {
       return
     }
     if (!categoryId) {
-      setError('Elegí una categoría.')
+      setError('Elegí una categoría para tu clase.')
       return
     }
     if (!deadline) {
-      setError('El deadline es obligatorio para sacarla del inbox.')
+      setError('El deadline es obligatorio para despachar el pergamino.')
       return
     }
     if (!size) {
-      setError('Elegí un arma (define el tamaño y el XP).')
+      setError('Selecciona un arma (define la dificultad y XP).')
       return
     }
     if (projectChoice === NEW_PROJECT && !newProjectName.trim()) {
-      setError('Ponele nombre al proyecto nuevo.')
+      setError('Ponele nombre al nuevo proyecto.')
       return
     }
 
-    try {
-      let projectId: string | null = null
-      if (projectChoice === NEW_PROJECT) {
-        const project = await createProject.mutateAsync({ name: newProjectName.trim(), categoryId })
-        projectId = project.id
-      } else if (projectChoice !== NO_PROJECT) {
-        projectId = projectChoice
-      }
+    // Iniciar física de deslizamiento
+    setAnimatingOut(true)
 
-      await dispatch.mutateAsync({
-        taskId: current.id,
-        title: title.trim(),
-        categoryId,
-        projectId,
-        deadlineIso: fromDatetimeLocalValue(deadline),
-        size,
-        outcome,
-        hudSlot: outcome === 'equip' ? firstFreeSlot : null,
-      })
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo despachar la misión, probá de nuevo.')
-    }
+    setTimeout(async () => {
+      try {
+        let projectId: string | null = null
+        if (projectChoice === NEW_PROJECT) {
+          const project = await createProject.mutateAsync({ name: newProjectName.trim(), categoryId })
+          projectId = project.id
+        } else if (projectChoice !== NO_PROJECT) {
+          projectId = projectChoice
+        }
+
+        await dispatch.mutateAsync({
+          taskId: current.id,
+          title: title.trim(),
+          categoryId,
+          projectId,
+          deadlineIso: fromDatetimeLocalValue(deadline),
+          size,
+          outcome,
+          hudSlot: outcome === 'equip' ? firstFreeSlot : null,
+        })
+      } catch (err) {
+        setAnimatingOut(false)
+        setError(err instanceof Error ? err.message : 'No se pudo despachar la carta.')
+      }
+    }, 450)
   }
 
   if (isLoading) {
-    return <p className="p-6 text-sm text-fg-muted">Cargando…</p>
+    return <p className="py-12 text-center font-mono text-sm text-fg-muted">Cargando mesa táctica…</p>
   }
 
+  // Vista de Victoria (Inbox Vacío / Maza Limpia)
   if (!current) {
     return (
-      <div className="mx-auto max-w-lg p-6 text-center">
-        <h1 className="font-display text-lg font-semibold tracking-tight text-fg">Mesa de Estrategia</h1>
-        <p className="mt-4 font-display text-xl font-bold text-gold-bright">Maza Limpia — ¡Inbox Vacío!</p>
-        <p className="mt-2 text-sm text-fg-muted">No hay misiones capturadas esperando triage.</p>
+      <div className="mx-auto flex min-h-[70vh] max-w-lg flex-col items-center justify-center px-4 py-8 text-center">
+        <div className="mb-6 text-7xl">🏰</div>
+        <h1 className="mb-2 font-display text-4xl font-black uppercase tracking-tighter text-accent">
+          Maza Limpia
+        </h1>
+        <p className="mb-8 font-display text-lg italic text-fg-muted">
+          ¡Inbox Vacío, Comandante! Todos los pergaminos fueron asignados.
+        </p>
+        <Link
+          to="/"
+          className="btn-prime rounded-full px-8 py-3.5 font-display text-xs font-bold uppercase tracking-widest"
+        >
+          Ir al Battle HUD
+        </Link>
       </div>
     )
   }
 
   return (
-    <div className="mx-auto max-w-lg p-6">
-      <div className="flex items-baseline justify-between">
-        <h1 className="font-display text-lg font-semibold tracking-tight text-fg">Mesa de Estrategia</h1>
-        <span className="font-mono text-sm text-fg-muted">{remainingCount} en el inbox</span>
-      </div>
+    <div className="mx-auto flex max-w-4xl flex-col items-center px-4 py-6 md:px-8">
+      {/* Header Contador */}
+      <header className="mb-6 flex w-full max-w-xl items-center justify-between">
+        <h1 className="font-display text-lg font-bold tracking-wide text-fg">
+          Mesa de Estrategia
+        </h1>
+        <span className="rounded-full border border-border bg-black/40 px-3 py-1 font-mono text-[10px] font-bold text-accent">
+          {remainingCount} PERGAMINOS PENDIENTES
+        </span>
+      </header>
 
-      <div className="mt-4">
-        <InboxCardDeck
-          remainingCount={remainingCount}
-          title={title}
-          onTitleChange={setTitle}
-          deadline={deadline}
-          onDeadlineChange={setDeadline}
-        />
-      </div>
+      {/* Escenario del Mazo Táctico */}
+      <main className="deck-container relative w-full max-w-xl">
+        {/* Cartas Apiladas Detrás (Visual Stack) */}
+        {remainingCount > 1 && <div className="card-bg-visual card-stack-1" />}
+        {remainingCount > 2 && <div className="card-bg-visual card-stack-2" />}
 
-      <div className="mt-4 flex flex-col gap-3 rounded-lg border border-border bg-surface p-4">
-        <div className="flex gap-2">
-          <select
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-            className="flex-1 rounded-md border border-border bg-surface-2 px-3 py-1.5 text-sm text-fg outline-none focus:border-accent"
-          >
-            <option value="" disabled>
-              Categoría
-            </option>
-            {categories?.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
-          <select
-            value={projectChoice}
-            onChange={(e) => setProjectChoice(e.target.value)}
-            className="flex-1 rounded-md border border-border bg-surface-2 px-3 py-1.5 text-sm text-fg outline-none focus:border-accent"
-          >
-            <option value={NO_PROJECT}>Tareas sueltas</option>
-            {projects?.map((project) => (
-              <option key={project.id} value={project.id}>
-                {project.name}
-              </option>
-            ))}
-            <option value={NEW_PROJECT}>+ Crear proyecto nuevo…</option>
-          </select>
-        </div>
-
-        {projectChoice === NEW_PROJECT && (
-          <input
-            value={newProjectName}
-            onChange={(e) => setNewProjectName(e.target.value)}
-            placeholder="Nombre del proyecto"
-            className="rounded-md border border-border bg-surface-2 px-3 py-1.5 text-sm text-fg outline-none focus:border-accent"
+        {/* Carta Activa */}
+        <article
+          className={`active-strategy-card relative z-10 flex flex-col gap-6 rounded-3xl p-6 md:p-8 ${
+            animatingOut ? 'slide-out-right' : ''
+          }`}
+        >
+          {/* Título & Deadline */}
+          <InboxCardDeck
+            remainingCount={remainingCount}
+            title={title}
+            onTitleChange={setTitle}
+            deadline={deadline}
+            onDeadlineChange={setDeadline}
           />
-        )}
 
-        <WeaponSelector value={size} onChange={setSize} />
+          {/* Selector de Armas / Dificultad */}
+          <WeaponSelector value={size} onChange={setSize} />
 
-        {error && <p className="text-sm text-warn-fg">{error}</p>}
+          {/* Categoría y Proyecto */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="font-mono text-[9px] uppercase tracking-widest text-fg-muted/50">
+                Categoría / Clase
+              </label>
+              <select
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value)}
+                className="parchment-select w-full rounded-xl p-3 font-mono text-xs font-bold uppercase tracking-wider"
+              >
+                <option value="" disabled>
+                  Elegir Clase
+                </option>
+                {categories?.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name} ({cat.class_name})
+                  </option>
+                ))}
+              </select>
+            </div>
 
-        <div className="mt-1 flex gap-2">
-          <button
-            type="button"
-            onClick={() => void handleDispatch('grimorio')}
-            disabled={dispatch.isPending}
-            className="flex-1 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-fg transition-all duration-150 hover:shadow-[0_4px_20px_rgba(217,169,74,0.4)] active:scale-[0.98] disabled:opacity-60"
-          >
-            Despachar al Grimorio
-          </button>
-          <DirectEquipToggle
-            disabled={dispatch.isPending || firstFreeSlot === null}
-            onClick={() => void handleDispatch('equip')}
-          />
-        </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => void handleDispatch('follow_up')}
-            disabled={dispatch.isPending}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-sky-500/40 px-3 py-1.5 text-sm font-medium text-sky-500 transition-colors hover:bg-sky-500/10 disabled:opacity-60"
-          >
-            <Link2 className="h-4 w-4" /> Mover a Seguimiento
-          </button>
-        </div>
-      </div>
+            <div className="space-y-1.5">
+              <label className="font-mono text-[9px] uppercase tracking-widest text-fg-muted/50">
+                Proyecto / Destino
+              </label>
+              <select
+                value={projectChoice}
+                onChange={(e) => setProjectChoice(e.target.value)}
+                className="parchment-select w-full rounded-xl p-3 font-mono text-xs font-bold uppercase tracking-wider"
+              >
+                <option value={NO_PROJECT}>Misiones Sueltas</option>
+                {projects?.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+                <option value={NEW_PROJECT}>+ Crear Proyecto…</option>
+              </select>
+            </div>
+          </div>
+
+          {projectChoice === NEW_PROJECT && (
+            <input
+              type="text"
+              value={newProjectName}
+              onChange={(e) => setNewProjectName(e.target.value)}
+              placeholder="Nombre del nuevo proyecto..."
+              className="input-parchment w-full rounded-xl p-3 text-sm text-fg"
+            />
+          )}
+
+          {error && <p className="font-mono text-xs font-medium text-warn-fg">{error}</p>}
+
+          {/* Botones de Despacho Inmediato */}
+          <footer className="mt-2 flex flex-col gap-3">
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => void handleDispatch('grimorio')}
+                disabled={dispatch.isPending}
+                className="rounded-xl border border-border py-3.5 font-mono text-[10px] font-black uppercase tracking-widest text-fg transition-all hover:bg-white/5 active:scale-95 disabled:opacity-50"
+              >
+                Despachar al Grimorio
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleDispatch('follow_up')}
+                disabled={dispatch.isPending}
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-sky-900/50 py-3.5 font-mono text-[10px] font-black uppercase tracking-widest text-sky-400 transition-all hover:bg-sky-400/10 active:scale-95 disabled:opacity-50"
+              >
+                <Link2 className="h-3.5 w-3.5" /> Seguimiento
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => void handleDispatch('equip')}
+              disabled={dispatch.isPending || firstFreeSlot === null}
+              className="btn-prime flex w-full items-center justify-center gap-2 rounded-xl py-4 font-display text-sm font-black uppercase tracking-widest disabled:opacity-40"
+            >
+              <Swords className="h-4 w-4" /> Equipar en Combate
+            </button>
+          </footer>
+        </article>
+      </main>
     </div>
   )
 }

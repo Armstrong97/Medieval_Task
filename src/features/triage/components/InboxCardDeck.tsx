@@ -1,13 +1,12 @@
 import { addDays, format } from 'date-fns'
 
-function quickDeadline(daysFromNow: number): string {
+function getQuickDeadlineIso(daysFromNow: number): string {
   const d = addDays(new Date(), daysFromNow)
   d.setHours(18, 0, 0, 0)
   return format(d, "yyyy-MM-dd'T'HH:mm")
 }
 
 export function InboxCardDeck({
-  remainingCount,
   title,
   onTitleChange,
   deadline,
@@ -20,49 +19,38 @@ export function InboxCardDeck({
   onDeadlineChange: (deadline: string) => void
 }) {
   return (
-    <div className="relative">
-      {/* Cartas apiladas detrás — sugieren cuántas misiones más esperan */}
-      {remainingCount > 2 && (
-        <div className="absolute inset-x-4 -top-2 h-full rounded-lg border border-border-card bg-surface-card/60" />
-      )}
-      {remainingCount > 1 && (
-        <div className="absolute inset-x-2 -top-1 h-full rounded-lg border border-border-card bg-surface-card/80" />
-      )}
+    <div className="space-y-4">
+      {/* Título de la Misión con Borde de Tinta */}
+      <input
+        type="text"
+        value={title}
+        onChange={(e) => onTitleChange(e.target.value)}
+        placeholder="Título de la misión..."
+        className="w-full border-b border-white/10 bg-transparent pb-2 font-display text-2xl font-bold text-accent outline-none transition-colors focus:border-accent"
+      />
 
-      <div className="relative rounded-lg border border-border-card bg-surface-card p-4">
-        <textarea
-          value={title}
-          onChange={(e) => onTitleChange(e.target.value)}
-          rows={2}
-          className="w-full resize-none bg-transparent font-display text-lg font-semibold text-fg outline-none"
-          placeholder="Título de la misión"
+      {/* Shortcuts de Fecha / Deadline */}
+      <div className="flex flex-wrap gap-2.5">
+        <button
+          type="button"
+          onClick={() => onDeadlineChange(getQuickDeadlineIso(0))}
+          className="rounded-lg border border-border bg-white/5 px-3.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-widest text-fg-muted transition-all hover:bg-white/10 hover:text-fg active:scale-95"
+        >
+          Hoy
+        </button>
+        <button
+          type="button"
+          onClick={() => onDeadlineChange(getQuickDeadlineIso(1))}
+          className="rounded-lg border border-border bg-white/5 px-3.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-widest text-fg-muted transition-all hover:bg-white/10 hover:text-fg active:scale-95"
+        >
+          Mañana
+        </button>
+        <input
+          type="datetime-local"
+          value={deadline}
+          onChange={(e) => onDeadlineChange(e.target.value)}
+          className="rounded-lg border border-border bg-white/5 px-3 py-1.5 font-mono text-[10px] font-bold uppercase text-fg-muted outline-none focus:border-accent"
         />
-
-        <label className="mt-3 flex flex-col gap-1 text-sm text-fg-muted">
-          Deadline
-          <div className="flex flex-wrap gap-1.5">
-            <input
-              type="datetime-local"
-              value={deadline}
-              onChange={(e) => onDeadlineChange(e.target.value)}
-              className="min-w-0 flex-1 rounded-md border border-border bg-surface px-3 py-1.5 text-fg outline-none focus:border-accent"
-            />
-            <button
-              type="button"
-              onClick={() => onDeadlineChange(quickDeadline(0))}
-              className="rounded-md border border-border px-2.5 py-1.5 text-xs text-fg-muted transition-colors hover:border-accent/40 hover:text-accent"
-            >
-              Hoy
-            </button>
-            <button
-              type="button"
-              onClick={() => onDeadlineChange(quickDeadline(1))}
-              className="rounded-md border border-border px-2.5 py-1.5 text-xs text-fg-muted transition-colors hover:border-accent/40 hover:text-accent"
-            >
-              Mañana
-            </button>
-          </div>
-        </label>
       </div>
     </div>
   )

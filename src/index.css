@@ -410,3 +410,193 @@ body {
     animation: none;
   }
 }
+
+/* Input Pergamino de Captura Rápida (ver InboxPage.tsx) */
+.input-parchment-inbox {
+  background: rgba(30, 21, 38, 0.6);
+  border: 2px solid var(--border);
+  box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.input-parchment-inbox:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 20px rgba(217, 169, 74, 0.15), inset 0 0 10px rgba(0, 0, 0, 0.3);
+  transform: translateY(-1px);
+}
+
+/* Estado Grabando (Dictado por Voz) */
+.pulse-recording {
+  animation: recording-pulse 1.5s infinite;
+}
+
+@keyframes recording-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+/* Animación Entrada de Pergamino */
+.inbox-item-card {
+  animation: slideInPergamino 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  background: linear-gradient(90deg, var(--surface) 0%, var(--surface-2) 100%);
+  border-left: 4px solid var(--border);
+}
+
+@keyframes slideInPergamino {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-recording,
+  .inbox-item-card {
+    animation: none;
+  }
+}
+
+/* Perspectiva y Pila de Cartas de Estrategia (ver StrategyTablePage.tsx) */
+.deck-container {
+  perspective: 1000px;
+}
+
+.card-bg-visual {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 1.5rem;
+  z-index: 0;
+  transition: all 0.4s ease;
+}
+
+.card-stack-1 {
+  transform: translateZ(-20px) translateY(10px) rotate(-1deg);
+  opacity: 0.8;
+}
+
+.card-stack-2 {
+  transform: translateZ(-40px) translateY(20px) rotate(1.5deg);
+  opacity: 0.5;
+}
+
+/* Carta Activa y Deslizamiento de Despacho */
+.active-strategy-card {
+  background: linear-gradient(165deg, var(--surface) 0%, var(--surface-2) 100%);
+  border: 2px solid var(--border);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.4s ease;
+}
+
+.slide-out-right {
+  transform: translateX(120vw) rotate(20deg) !important;
+  opacity: 0 !important;
+}
+
+/* Botones Selector de Armas */
+.weapon-card-btn {
+  border: 2px solid var(--border);
+  background: rgba(0, 0, 0, 0.3);
+  transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.weapon-card-btn.active[data-type="small"] {
+  border-color: var(--weapon-daga, #059669);
+  box-shadow: 0 0 16px rgba(5, 150, 105, 0.4);
+  transform: scale(1.04);
+}
+
+.weapon-card-btn.active[data-type="medium"] {
+  border-color: var(--weapon-espada, #2563eb);
+  box-shadow: 0 0 16px rgba(37, 99, 235, 0.4);
+  transform: scale(1.04);
+}
+
+.weapon-card-btn.active[data-type="large"] {
+  border-color: var(--weapon-mandoble, #d9a94a);
+  box-shadow: 0 0 16px rgba(217, 169, 74, 0.4);
+  transform: scale(1.04);
+}
+
+/* Selects con Estilo Pergamino Oscuro */
+.parchment-select {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.parchment-select:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .active-strategy-card {
+    transition: opacity 0.4s ease;
+  }
+}
+
+/* Barra de Salud del Jefe de Mazmorra (ver BossHealthBar.tsx) */
+.boss-hp-container {
+  box-shadow: 0 0 30px rgba(220, 38, 38, 0.25);
+  border: 2px solid var(--border);
+}
+
+.boss-hp-fill {
+  background: linear-gradient(90deg, #991b1b 0%, #dc2626 50%, #ef4444 100%);
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
+  transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.phase-mark-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.25);
+  z-index: 10;
+}
+
+/* Cofres de Loot de Fase */
+.chest-icon-phase {
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  filter: grayscale(1) opacity(0.35);
+}
+
+.chest-icon-phase.active {
+  filter: grayscale(0) opacity(1) drop-shadow(0 0 12px var(--gold));
+  transform: scale(1.2);
+}
+
+/* Tarjetas de Ataque / Misión de Proyecto */
+.attack-card-item {
+  background: linear-gradient(165deg, var(--surface) 0%, var(--surface-2) 100%);
+  border: 1px solid var(--border);
+  transition: all 0.25s ease;
+}
+
+.attack-card-item:hover {
+  border-color: var(--accent);
+  transform: translateX(4px);
+}
+
+/* Modal de Recompensa con Destello de Oro */
+.gold-shimmer-bg {
+  background: linear-gradient(90deg, transparent, rgba(217, 169, 74, 0.2), transparent);
+  background-size: 200% 100%;
+  animation: goldShimmer 2.2s infinite linear;
+}
+
+@keyframes goldShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gold-shimmer-bg {
+    animation: none;
+  }
+}

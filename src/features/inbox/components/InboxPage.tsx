@@ -1,6 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { Mic, Square, WifiOff } from 'lucide-react'
+import { Mic, Square, Trash2, WifiOff } from 'lucide-react'
 import { useCaptureInboxTask, useDeleteTask, useInboxTasks } from '@/features/tasks/hooks'
 import { useOnlineStatus } from '@/utils/useOnlineStatus'
 import { useSpeechDictation } from '@/utils/useSpeechDictation'
@@ -16,6 +16,7 @@ export function InboxPage() {
   const deleteTask = useDeleteTask()
   const online = useOnlineStatus()
   const [editingTask, setEditingTask] = useState<Task | null>(null)
+
   const dictation = useSpeechDictation((text) => {
     setTitle((current) => (current ? `${current} ${text}` : text))
     inputRef.current?.focus()
@@ -34,85 +35,119 @@ export function InboxPage() {
   }
 
   return (
-    <div className="mx-auto max-w-xl p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-lg font-semibold tracking-tight text-fg">Inbox</h1>
-        {!online && (
-          <span className="flex items-center gap-1 rounded-full bg-warn-bg px-2 py-0.5 text-xs text-warn-fg">
-            <WifiOff className="h-3 w-3" /> sin conexión — se guarda igual
-          </span>
-        )}
-      </div>
-      <p className="mt-1 text-sm text-fg-muted">
-        Escribí y enter. Sin categoría, sin proyecto, sin fecha — eso se define después en{' '}
-        <Link to="/triage" className="text-accent underline underline-offset-2">
-          Triage
-        </Link>
-        .
-      </p>
+    <div className="mx-auto max-w-3xl px-4 py-8 md:px-8">
+      {/* Indicadores Superiores */}
+      <InboxTopBar onOpenTask={setEditingTask} />
 
-      <form onSubmit={handleSubmit} className="mt-4 flex gap-2">
-        <input
-          ref={inputRef}
-          autoFocus
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="¿Qué se te ocurrió?"
-          className="w-full rounded-md border border-border bg-surface px-3 py-2 text-fg outline-none focus:border-accent"
-        />
-        {dictation.supported && (
-          <button
-            type="button"
-            onClick={() => (dictation.listening ? dictation.stop() : dictation.start())}
-            title={dictation.listening ? 'Detener dictado' : 'Dictar por voz'}
-            className={`shrink-0 rounded-md border px-3 transition-all duration-150 active:scale-95 ${
-              dictation.listening
-                ? 'border-accent/40 bg-accent/10 text-accent shadow-[0_0_12px_rgba(217,169,74,0.3)] animate-pulse'
-                : 'border-border text-fg-muted hover:bg-surface-2'
-            }`}
-          >
-            {dictation.listening ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-          </button>
-        )}
-      </form>
+      {/* Header Titular */}
+      <header className="mb-8 text-center">
+        <h1 className="mb-2 font-display text-3xl font-black uppercase tracking-widest text-accent md:text-4xl">
+          INBOX — PERGAMINO DE CAPTURA
+        </h1>
+        <p className="mx-auto max-w-lg text-sm text-fg-muted/70">
+          Escribe o dicta libremente. Sin categorías ni fechas — eso se define después en{' '}
+          <Link to="/triage" className="text-accent underline underline-offset-2">
+            Estrategia
+          </Link>
+          .
+        </p>
+      </header>
 
-      <div className="mt-6">
-        {isLoading && <p className="text-sm text-fg-muted">Cargando…</p>}
-        {items && items.length > 0 && (
-          <ul className="flex flex-col gap-2">
-            {items.map((item) => (
-              <li
-                key={item.id}
-                className="flex items-center justify-between gap-2 rounded-md border border-border bg-surface px-3 py-2 text-sm transition-all duration-150 hover:border-accent/30"
+      {/* Caja de Captura Fricción Cero (Sticky Input) */}
+      <section className="sticky top-20 z-30 mb-10">
+        <form onSubmit={handleSubmit} className="input-parchment-inbox flex items-center gap-3 rounded-2xl p-2 backdrop-blur-md">
+          <input
+            ref={inputRef}
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder={dictation.listening ? 'Escuchando tus órdenes...' : '¿Qué nueva misión ha surgido?'}
+            className="flex-1 border-none bg-transparent px-4 py-3 text-base text-fg outline-none placeholder:text-fg-muted/40 md:text-lg"
+          />
+
+          <div className="flex items-center gap-2 pr-1">
+            {dictation.supported && (
+              <button
+                type="button"
+                onClick={() => (dictation.listening ? dictation.stop() : dictation.start())}
+                title={dictation.listening ? 'Detener dictado' : 'Dictar por voz'}
+                className={`flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-90 ${
+                  dictation.listening
+                    ? 'pulse-recording bg-red-500/20 text-red-400'
+                    : 'bg-white/5 text-fg-muted hover:bg-white/10 hover:text-fg'
+                }`}
               >
-                <span className="text-fg">
-                  {item.title}
+                {dictation.listening ? <Square className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+              </button>
+            )}
+
+            <button
+              type="submit"
+              disabled={!title.trim() || captureTask.isPending}
+              className="btn-prime rounded-xl px-5 py-3 font-mono text-xs font-black uppercase tracking-widest disabled:opacity-50"
+            >
+              Capturar
+            </button>
+          </div>
+        </form>
+
+        <div className="mt-2.5 flex justify-between px-3">
+          <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-fg-muted/50">
+            <span className={`h-1.5 w-1.5 rounded-full ${online ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+            {online ? 'Conexión Estable' : 'Modo Offline Resiliente'}
+          </span>
+          {!online && (
+            <span className="font-mono text-[10px] uppercase tracking-widest text-amber-400">
+              <WifiOff className="mr-1 inline h-3 w-3" /> Guarda localmente
+            </span>
+          )}
+        </div>
+      </section>
+
+      {/* Lista de Capturas Pendientes */}
+      <section className="mb-12 space-y-3">
+        {isLoading && (
+          <p className="py-6 text-center font-mono text-xs text-fg-muted">
+            Cargando pergaminos...
+          </p>
+        )}
+
+        {items && items.length > 0 && (
+          <div className="space-y-3">
+            {items.map((item) => (
+              <div
+                key={item.id}
+                className="inbox-item-card group flex items-center justify-between rounded-xl p-4 transition-all hover:border-accent"
+              >
+                <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                  <span className="text-lg opacity-40 transition-opacity group-hover:opacity-100 group-hover:text-accent">
+                    📜
+                  </span>
+                  <p className="truncate font-medium text-fg">{item.title}</p>
                   {item.id.startsWith('optimistic-') && (
-                    <span className="ml-2 text-xs text-fg-muted">pendiente de sincronizar</span>
+                    <span className="font-mono text-[10px] text-fg-muted/50">
+                      (sincronizando...)
+                    </span>
                   )}
-                </span>
+                </div>
+
                 <button
                   type="button"
                   onClick={() => deleteTask.mutate(item.id)}
-                  className="shrink-0 text-fg-muted hover:text-fg"
-                  aria-label="Descartar"
+                  aria-label="Descartar captura"
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-fg-muted/40 transition-all hover:bg-red-500/20 hover:text-red-400 opacity-0 group-hover:opacity-100"
                 >
-                  ×
+                  <Trash2 className="h-4 w-4" />
                 </button>
-              </li>
+              </div>
             ))}
-          </ul>
-        )}
-      </div>
-
-      <div className="mt-8 border-t border-border pt-6">
-        <InboxTopBar onOpenTask={setEditingTask} />
-        {items && items.length === 0 && (
-          <div className="mt-3">
-            <InboxEmptyState onOpenTask={setEditingTask} />
           </div>
         )}
-      </div>
+
+        {items && items.length === 0 && !isLoading && (
+          <InboxEmptyState onOpenTask={setEditingTask} />
+        )}
+      </section>
 
       {editingTask && (
         <TaskModal

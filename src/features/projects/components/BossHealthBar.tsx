@@ -13,43 +13,56 @@ export function BossHealthBar({
   phasesClaimed: number[]
 }) {
   return (
-    <div>
-      <div className="flex items-baseline justify-between">
-        <span className="font-display text-sm uppercase tracking-wide text-fg-muted">HP del jefe</span>
-        <span className="font-mono text-lg font-semibold text-fg">
+    <div className="space-y-4">
+      {/* Indicadores Numéricos */}
+      <div className="flex items-end justify-between px-1">
+        <span className="font-display text-lg font-bold tracking-tight text-red-500">
+          VIDA DEL JEFE
+        </span>
+        <span className="font-mono text-xl font-black text-fg">
           {currentHp} / {totalHp} HP
         </span>
       </div>
-      <div className="relative mt-2 h-4 overflow-hidden rounded-full border border-border-card bg-surface-2">
+
+      {/* Barra de Salud Masiva */}
+      <div className="boss-hp-container relative h-10 w-full overflow-hidden rounded-xl bg-black/60">
         <div
-          className="h-full rounded-full transition-[width] duration-700 ease-out"
-          style={{
-            width: `${percentRemaining}%`,
-            background: 'linear-gradient(90deg, var(--hp-critical), var(--hp-full))',
-            boxShadow: '0 0 12px var(--hp-full)',
-          }}
+          className="boss-hp-fill h-full"
+          style={{ width: `${Math.max(0, Math.min(100, percentRemaining))}%` }}
         />
+        {/* Marcas de Fase (75%, 50%, 25%) */}
         {BOSS_PHASES.filter((p) => p > 0).map((phase) => (
           <div
             key={phase}
-            className="absolute top-0 h-full w-px bg-black/25"
+            className="phase-mark-line"
             style={{ left: `${phase}%` }}
           />
         ))}
       </div>
-      <div className="mt-2 flex justify-between px-0.5">
+
+      {/* Cofres de Loot de Fase */}
+      <div className="flex justify-between px-2 pt-1">
         {BOSS_PHASES.map((phase) => {
           const claimed = phasesClaimed.includes(phase)
+          const isReached = percentRemaining <= phase
+          const isActive = claimed || isReached
+
           return (
-            <img
+            <div
               key={phase}
-              src={LOOT_ICONS.chest_phase}
-              alt={phase === 0 ? 'Jefe derrotado' : `Fase ${phase}% de HP`}
-              title={phase === 0 ? 'Jefe derrotado' : `Fase ${phase}% de HP`}
-              className={`h-6 w-6 object-contain transition-all duration-300 ${
-                claimed ? 'opacity-100 drop-shadow-[0_0_6px_var(--phase-shield)]' : 'opacity-30 grayscale'
+              className={`chest-icon-phase flex flex-col items-center gap-1.5 ${
+                isActive ? 'active' : ''
               }`}
-            />
+            >
+              <img
+                src={LOOT_ICONS.chest_phase}
+                alt={phase === 0 ? 'Victoria final' : `Fase ${phase}%`}
+                className="h-8 w-8 object-contain"
+              />
+              <span className="font-mono text-[9px] uppercase tracking-widest text-fg-muted/70">
+                {phase === 0 ? 'Victoria' : `${phase}% Loot`}
+              </span>
+            </div>
           )
         })}
       </div>
