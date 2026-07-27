@@ -4,6 +4,7 @@ import {
   createTask,
   deleteTask,
   fetchActiveTasksWithDeadline,
+  fetchAllBoardTasks,
   fetchBoardTasks,
   fetchInboxTasks,
   fetchInProgressTasks,
@@ -11,6 +12,7 @@ import {
   fetchQuickWinTask,
   fetchSubtasks,
   fetchTaskById,
+  fetchTasksByCategory,
   fetchTasksByIds,
   fetchTasksByProject,
   fetchTasksCompletedToday,
@@ -40,6 +42,13 @@ export function useTasksByProject(projectId: string) {
   return useQuery({
     queryKey: ['tasks', 'by-project', projectId],
     queryFn: () => fetchTasksByProject(projectId),
+  })
+}
+
+export function useTasksByCategory(categoryId: string) {
+  return useQuery({
+    queryKey: ['tasks', 'by-category', categoryId],
+    queryFn: () => fetchTasksByCategory(categoryId),
   })
 }
 
@@ -89,6 +98,13 @@ export function useBoardTasks(projectId: string | null) {
   return useQuery({
     queryKey: ['tasks', 'board', projectId],
     queryFn: () => fetchBoardTasks(projectId),
+  })
+}
+
+export function useAllBoardTasks() {
+  return useQuery({
+    queryKey: ['tasks', 'board', 'all'],
+    queryFn: fetchAllBoardTasks,
   })
 }
 

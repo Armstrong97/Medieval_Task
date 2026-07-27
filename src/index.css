@@ -600,3 +600,338 @@ body {
     animation: none;
   }
 }
+
+/* Toggle de Modo de Vista (Foco Gradual vs Ámbitos) — ver KanbanPage.tsx */
+.view-mode-toggle {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  padding: 4px;
+}
+
+.view-mode-btn {
+  border-radius: 9999px;
+  padding: 6px 16px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--fg-muted);
+  transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.view-mode-btn.active {
+  background: var(--gold);
+  color: var(--plum-dark, #120c18);
+  box-shadow: 0 0 12px rgba(217, 169, 74, 0.35);
+}
+
+/* Acordeón de Foco Gradual */
+.accordion-content-panel {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.accordion-section.active .accordion-content-panel {
+  max-height: 2500px;
+}
+
+.accordion-section.active .chevron-icon {
+  transform: rotate(180deg);
+}
+
+/* Sellos de Cera (Wax Seals) */
+.wax-seal-btn {
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  filter: grayscale(0.5) brightness(0.85);
+  position: relative;
+}
+
+.wax-seal-btn:hover {
+  transform: translateY(-2px) scale(1.03);
+  filter: grayscale(0.1) brightness(1);
+}
+
+.wax-seal-btn.active {
+  filter: grayscale(0) brightness(1.2);
+  transform: translateY(-4px);
+  box-shadow: 0 0 20px rgba(217, 169, 74, 0.4);
+  border-color: var(--gold) !important;
+}
+
+.wax-seal-btn.active::after {
+  content: "";
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid var(--gold);
+}
+
+/* Tarjeta Pergamino de Misión */
+.mission-scroll-card {
+  background: linear-gradient(90deg, var(--surface) 0%, var(--surface-2) 100%);
+  border-left: 3px solid var(--border);
+  transition: all 0.25s ease;
+}
+
+.mission-scroll-card:hover {
+  border-left-color: var(--accent);
+  transform: translateX(4px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .view-mode-btn,
+  .wax-seal-btn,
+  .mission-scroll-card,
+  .accordion-content-panel {
+    transition: none;
+  }
+}
+
+/* Chrono-Stream Vertical (Línea de Tiempo) — ver CalendarTimelineView.tsx */
+.chrono-stream-line::before {
+  content: "";
+  position: absolute;
+  left: 24px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, transparent, var(--border) 5%, var(--border) 95%, transparent);
+  z-index: 0;
+}
+
+.day-node-dot {
+  width: 12px;
+  height: 12px;
+  background: var(--surface-2);
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  position: absolute;
+  left: 19px;
+  top: 14px;
+}
+
+/* Destello del Nodo HOY */
+.node-today-active {
+  background: rgba(217, 169, 74, 0.04);
+  border-radius: 1rem;
+  border: 1px solid rgba(217, 169, 74, 0.2);
+}
+
+.node-today-active .day-node-dot {
+  background: var(--gold);
+  border-color: #ffffff;
+  box-shadow: 0 0 15px var(--gold);
+  animation: pulseRuneHalo 2s infinite;
+}
+
+@keyframes pulseRuneHalo {
+  0% { transform: scale(1); box-shadow: 0 0 10px var(--gold); }
+  50% { transform: scale(1.3); box-shadow: 0 0 25px var(--gold); }
+  100% { transform: scale(1); box-shadow: 0 0 10px var(--gold); }
+}
+
+/* Medidor de Energía Diario */
+.energy-meter-track {
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+/* Cuadrícula de Mapa de Calor Astral */
+.grid-day-cell {
+  aspect-ratio: 1 / 1;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  cursor: pointer;
+}
+
+.grid-day-cell:hover {
+  border-color: var(--gold);
+  transform: scale(1.04);
+  z-index: 10;
+}
+
+.grid-day-cell.selected {
+  border-color: var(--gold);
+  box-shadow: 0 0 15px rgba(217, 169, 74, 0.4);
+  background: rgba(217, 169, 74, 0.08);
+}
+
+.heat-low { box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.03); }
+.heat-mid { box-shadow: inset 0 0 15px rgba(234, 88, 12, 0.25); border-color: rgba(234, 88, 12, 0.35); }
+.heat-high { box-shadow: inset 0 0 20px rgba(220, 38, 38, 0.45); border-color: rgba(220, 38, 38, 0.55); }
+
+/* Gemas de Color por Categoría */
+.gem-rune {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  filter: drop-shadow(0 0 4px currentColor);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .node-today-active .day-node-dot {
+    animation: none;
+  }
+  .grid-day-cell {
+    transition: none;
+  }
+}
+
+/* Tarjeta de Piedra y Borde Rúnico — ver ProgressPage.tsx */
+.card-stone-bg {
+  background: linear-gradient(145deg, var(--surface) 0%, var(--surface-2) 100%);
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+}
+
+.card-rune-interactive {
+  border: 2px solid var(--border);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-rune-interactive:hover {
+  border-color: var(--gold);
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+}
+
+/* Animación de Resplandor de Racha (Glow) */
+.streak-glow-card {
+  animation: streakGlow 2.5s infinite ease-in-out;
+}
+
+@keyframes streakGlow {
+  0%, 100% { box-shadow: 0 0 8px rgba(217, 169, 74, 0.2); }
+  50% { box-shadow: 0 0 22px rgba(217, 169, 74, 0.45); }
+}
+
+/* Destello de XP al completar misión */
+.xp-flash-anim {
+  animation: xpFlash 0.6s ease-out forwards;
+}
+
+@keyframes xpFlash {
+  0% { filter: brightness(1); }
+  50% { filter: brightness(2) saturate(1.5); transform: scale(1.02); }
+  100% { filter: brightness(1); transform: scale(1); }
+}
+
+/* Modal Pergamino de Clase */
+.modal-parchment-scroll {
+  background: #f4e4bc;
+  color: #2d241e;
+  border: 12px solid #2d241e;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-rune-interactive,
+  .streak-glow-card,
+  .xp-flash-anim {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* Modal Contenedor Pergamino de Decreto — ver TaskModal.tsx */
+.grimoire-editor-modal {
+  background: linear-gradient(165deg, var(--surface) 0%, var(--surface-2) 100%);
+  border: 2px solid var(--border);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85), 0 0 20px rgba(61, 42, 78, 0.35);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.grimoire-editor-modal::-webkit-scrollbar {
+  width: 6px;
+}
+.grimoire-editor-modal::-webkit-scrollbar-track {
+  background: transparent;
+}
+.grimoire-editor-modal::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 10px;
+}
+
+/* Chips Táctiles */
+.tactile-chip {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  user-select: none;
+}
+
+.tactile-chip:hover {
+  border-color: rgba(217, 169, 74, 0.5);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.tactile-chip.active-weapon-small {
+  border-color: #059669;
+  box-shadow: 0 0 10px rgba(5, 150, 105, 0.35);
+  color: #34d399;
+}
+
+.tactile-chip.active-weapon-medium {
+  border-color: #2563eb;
+  box-shadow: 0 0 10px rgba(37, 99, 235, 0.35);
+  color: #60a5fa;
+}
+
+.tactile-chip.active-weapon-large {
+  border-color: var(--gold);
+  box-shadow: 0 0 10px rgba(217, 169, 74, 0.35);
+  color: var(--gold);
+}
+
+.tactile-chip.active-gold {
+  border-color: var(--gold);
+  background: rgba(217, 169, 74, 0.12);
+  color: var(--gold);
+}
+
+/* Barra de Integridad HP de Submisiones */
+.quest-hp-track {
+  background: rgba(0, 0, 0, 0.4);
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.quest-hp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #991b1b, #ef4444);
+  transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Animación Destello al Sellar Decreto */
+.animate-seal-flash {
+  animation: sealFlashAnim 0.6s ease-out forwards;
+}
+
+@keyframes sealFlashAnim {
+  0% { box-shadow: 0 0 0px var(--gold); filter: brightness(1); }
+  50% { box-shadow: 0 0 45px var(--gold); filter: brightness(1.4); }
+  100% { box-shadow: 0 0 0px var(--gold); filter: brightness(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tactile-chip,
+  .animate-seal-flash {
+    animation: none;
+    transition: none;
+  }
+}

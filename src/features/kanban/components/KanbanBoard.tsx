@@ -73,10 +73,8 @@ function matchesDateFilter(task: Task, filter: DateFilter, now: Date): boolean {
 
 export function KanbanBoard({
   projectId,
-  categoryId,
 }: {
   projectId: string | null
-  categoryId: string | null
 }) {
   const { data: columns, isLoading: columnsLoading } = useKanbanColumns(projectId)
   const { data: tasks, isLoading: tasksLoading } = useBoardTasks(projectId)
@@ -221,7 +219,6 @@ export function KanbanBoard({
           task={modal.mode === 'edit' ? modal.task : null}
           defaultProjectId={projectId}
           defaultKanbanColumnId={modal.mode === 'create' ? modal.columnId : ''}
-          defaultCategoryId={categoryId}
           onClose={() => setModal(null)}
         />
       )}

@@ -27,7 +27,6 @@ export const router = createBrowserRouter([
           { path: 'inbox', element: <InboxPage /> },
           { path: 'triage', element: <StrategyTablePage /> },
           { path: 'kanban', element: <KanbanPage /> },
-          { path: 'kanban/:projectId', element: <KanbanPage /> },
           { path: 'calendario', element: <CalendarPage /> },
           { path: 'progreso', element: <ProgressPage /> },
           { path: 'follow-ups', element: <FollowUpsPage /> },

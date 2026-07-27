@@ -78,6 +78,19 @@ export async function fetchTasksByProject(projectId: string): Promise<Task[]> {
   return data
 }
 
+// Todas las tareas de nivel superior de una categoría, sin filtrar por
+// status — usada por ClassDetailModal (Fase 7, Módulo 8) para listar
+// misiones activas/completadas de esa clase.
+export async function fetchTasksByCategory(categoryId: string): Promise<Task[]> {
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('*')
+    .eq('category_id', categoryId)
+    .is('parent_task_id', null)
+  if (error) throw error
+  return data
+}
+
 export async function fetchInboxTasks(): Promise<Task[]> {
   const { data, error } = await supabase
     .from('tasks')
@@ -99,6 +112,20 @@ export async function fetchBoardTasks(projectId: string | null): Promise<Task[]>
   const { data, error } = await (projectId
     ? query.eq('project_id', projectId)
     : query.is('project_id', null))
+  if (error) throw error
+  return data
+}
+
+// A diferencia de fetchBoardTasks(null) (que trae solo tareas sueltas), esta
+// trae TODAS las misiones trianas sin importar proyecto — la usa El Grimorio
+// (Fase 7, Módulo 6), que unifica proyectos y tareas sueltas en una sola vista.
+export async function fetchAllBoardTasks(): Promise<Task[]> {
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('*')
+    .is('parent_task_id', null)
+    .not('kanban_column_id', 'is', null)
+    .neq('status', 'follow_up')
   if (error) throw error
   return data
 }

@@ -1,44 +1,84 @@
-import { useNavigate, useParams } from 'react-router-dom'
-import { useProjects } from '@/features/projects/hooks'
-import { KanbanBoard } from '@/features/kanban/components/KanbanBoard'
+import { useState } from 'react'
+import { useAllBoardTasks } from '@/features/tasks/hooks'
+import { GrimorioAccordionView } from '@/features/kanban/components/GrimorioAccordionView'
+import { GrimorioTabsView } from '@/features/kanban/components/GrimorioTabsView'
+import { TaskModal } from '@/features/tasks/components/TaskModal'
+import type { Task } from '@/types/database.types'
+
+type GrimorioMode = 'foco' | 'ambitos'
 
 export function KanbanPage() {
-  const { projectId } = useParams<{ projectId?: string }>()
-  const navigate = useNavigate()
-  const { data: projects } = useProjects()
+  const [mode, setMode] = useState<GrimorioMode>(() => {
+    return (localStorage.getItem('questly_grimorio_mode') as GrimorioMode) || 'foco'
+  })
+  const [editingTask, setEditingTask] = useState<Task | null>(null)
 
-  const activeProjectId = projectId ?? null
-  const activeProject = projects?.find((p) => p.id === activeProjectId) ?? null
+  const { data: tasks, isLoading } = useAllBoardTasks()
+
+  function handleModeChange(nextMode: GrimorioMode) {
+    setMode(nextMode)
+    localStorage.setItem('questly_grimorio_mode', nextMode)
+  }
 
   return (
-    <div>
-      <div className="flex items-center gap-2 overflow-x-auto border-b border-border px-6 py-3">
-        <button
-          type="button"
-          onClick={() => navigate('/kanban')}
-          className={`shrink-0 rounded-full px-3 py-1 text-sm font-medium ${
-            !activeProjectId ? 'bg-accent text-accent-fg' : 'text-fg-muted hover:bg-surface-2'
-          }`}
-        >
-          Tareas sueltas
-        </button>
-        {projects?.map((project) => (
-          <button
-            key={project.id}
-            type="button"
-            onClick={() => navigate(`/kanban/${project.id}`)}
-            className={`shrink-0 rounded-full px-3 py-1 text-sm font-medium ${
-              activeProjectId === project.id
-                ? 'bg-accent text-accent-fg'
-                : 'text-fg-muted hover:bg-surface-2'
-            }`}
-          >
-            {project.name}
-          </button>
-        ))}
-      </div>
+    <div className="mx-auto max-w-5xl px-4 py-8 md:px-8">
+      {/* Header Titular & Toggle de Modo Dual */}
+      <header className="mb-8 flex flex-col items-center justify-between gap-4 border-b border-border pb-6 md:flex-row">
+        <div>
+          <h1 className="font-display text-3xl font-black uppercase tracking-widest text-accent">
+            EL GRIMORIO
+          </h1>
+          <p className="font-mono text-xs text-fg-muted/70">
+            Registro general de misiones y decretos.
+          </p>
+        </div>
 
-      <KanbanBoard projectId={activeProjectId} categoryId={activeProject?.category_id ?? null} />
+        {/* Toggle Dual Foco / Ámbitos */}
+        <div className="view-mode-toggle flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => handleModeChange('foco')}
+            className={`view-mode-btn ${mode === 'foco' ? 'active' : ''}`}
+          >
+            📜 Foco Gradual
+          </button>
+          <button
+            type="button"
+            onClick={() => handleModeChange('ambitos')}
+            className={`view-mode-btn ${mode === 'ambitos' ? 'active' : ''}`}
+          >
+            🛡️ Ámbitos por Clase
+          </button>
+        </div>
+      </header>
+
+      {/* Renderizado de la Vista Seleccionada */}
+      <main>
+        {isLoading ? (
+          <p className="py-12 text-center font-mono text-xs text-fg-muted">
+            Abriendo pergaminos del Grimorio…
+          </p>
+        ) : mode === 'foco' ? (
+          <GrimorioAccordionView
+            tasks={tasks ?? []}
+            onOpenTask={setEditingTask}
+          />
+        ) : (
+          <GrimorioTabsView
+            tasks={tasks ?? []}
+            onOpenTask={setEditingTask}
+          />
+        )}
+      </main>
+
+      {editingTask && (
+        <TaskModal
+          task={editingTask}
+          defaultProjectId={editingTask.project_id}
+          defaultKanbanColumnId=""
+          onClose={() => setEditingTask(null)}
+        />
+      )}
     </div>
   )
 }

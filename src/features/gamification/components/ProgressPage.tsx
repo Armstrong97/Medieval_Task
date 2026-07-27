@@ -1,273 +1,181 @@
-import type { CSSProperties } from 'react'
-import { endOfWeek, format, startOfWeek } from 'date-fns'
-import { es } from 'date-fns/locale'
-import { Crown, Flame, Shield } from 'lucide-react'
+import { useState } from 'react'
+import { Flame, Shield } from 'lucide-react'
 import { useCategories, useProjects } from '@/features/projects/hooks'
 import {
   useCategoryXp,
   useClassRanks,
   useStreak,
   useTodayQuests,
-  useWeeklyQuests,
 } from '@/features/gamification/hooks'
-import { useTaskById, useTasksInRange } from '@/features/tasks/hooks'
-import { CategoryIcon } from '@/utils/categoryIcon'
+import { ClassDetailModal } from '@/features/gamification/components/ClassDetailModal'
 import { LootShowcase } from '@/features/gamification/components/LootShowcase'
 import { ProjectBossCard } from '@/features/projects/components/ProjectBossCard'
+import type { Category, QuestType } from '@/types/database.types'
 
-const XP_PER_LEVEL = 100
-
-function rankGlowStyle(rankOrder: number, colorHex: string): CSSProperties {
-  if (rankOrder >= 4) return { boxShadow: `0 0 0 3px ${colorHex}55, 0 0 14px 2px ${colorHex}77` }
-  if (rankOrder === 3) return { boxShadow: `0 0 0 2px ${colorHex}44, 0 0 8px 1px ${colorHex}44` }
-  if (rankOrder === 2) return { boxShadow: `0 0 0 2px ${colorHex}33` }
-  return {}
-}
-
-function PriorityQuestRow() {
-  const { data: todayQuests } = useTodayQuests()
-  const priorityQuest = todayQuests?.find((q) => q.type === 'daily_priority')
-  const { data: priorityTask } = useTaskById(priorityQuest?.task_id ?? null)
-
-  if (!priorityQuest) {
-    return (
-      <p className="text-sm text-fg-muted">
-        Todavía no marcaste una tarea prioritaria de hoy (con la ★ en el modal de la tarea).
-      </p>
-    )
-  }
-
-  return (
-    <p className="flex items-center gap-2 text-sm">
-      <span className={priorityQuest.completed ? 'text-emerald-500' : 'text-fg-muted'}>
-        {priorityQuest.completed ? '✓' : '☆'}
-      </span>
-      <span className="text-fg">{priorityTask?.title ?? 'Cargando…'}</span>
-      {priorityQuest.completed && (
-        <span className="font-mono text-xs text-emerald-500">+{priorityQuest.xp_reward} XP</span>
-      )}
-    </p>
-  )
-}
-
-function WeeklyProjectQuests() {
-  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 })
-  const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 })
-  const weekStartIso = format(weekStart, 'yyyy-MM-dd')
-
-  const { data: projects } = useProjects()
-  const { data: weekTasks } = useTasksInRange(weekStart.toISOString(), weekEnd.toISOString())
-  const { data: weeklyQuests } = useWeeklyQuests(weekStartIso)
-
-  const rows = (projects ?? [])
-    .map((project) => {
-      const tasks = weekTasks?.filter((t) => t.project_id === project.id && t.parent_task_id === null) ?? []
-      const done = tasks.filter((t) => t.status === 'done').length
-      const quest = weeklyQuests?.find((q) => q.project_id === project.id)
-      return { project, total: tasks.length, done, completed: !!quest?.completed }
-    })
-    .filter((row) => row.total > 0)
-
-  if (rows.length === 0) {
-    return (
-      <p className="text-sm text-fg-muted">
-        Ningún proyecto tiene tareas con deadline esta semana todavía.
-      </p>
-    )
-  }
-
-  return (
-    <ul className="flex flex-col gap-2">
-      {rows.map(({ project, total, done, completed }) => (
-        <li key={project.id} className="text-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-fg">{project.name}</span>
-            <span className="font-mono text-xs text-fg-muted">
-              {done}/{total} {completed && <span className="text-emerald-500">· +50 XP ✓</span>}
-            </span>
-          </div>
-          <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
-            <div
-              className="h-full rounded-full bg-accent transition-[width] duration-700 ease-out"
-              style={{ width: `${total ? (done / total) * 100 : 0}%` }}
-            />
-          </div>
-        </li>
-      ))}
-    </ul>
-  )
+// useTodayQuests solo devuelve daily_triage/daily_priority (ver fetchTodayQuests) —
+// la tabla quests no tiene columna "title", así que se deriva acá.
+const QUEST_TITLES: Record<QuestType, string> = {
+  daily_triage: 'Vaciar el Inbox (Triage Diario)',
+  daily_priority: 'Misión Prioritaria del Día',
+  weekly_project: 'Proyecto Semanal',
 }
 
 export function ProgressPage() {
-  const { data: categories } = useCategories()
-  const { data: xp } = useCategoryXp()
   const { data: streak } = useStreak()
   const { data: todayQuests } = useTodayQuests()
+  const { data: categories } = useCategories()
+  const { data: categoryXp } = useCategoryXp()
   const { data: classRanks } = useClassRanks()
   const { data: projects } = useProjects()
 
-  const triageQuest = todayQuests?.find((q) => q.type === 'daily_triage')
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
+
+  // Cálculo de nivel global acumulado
+  const globalLevel = (categoryXp ?? []).reduce((acc, curr) => acc + curr.current_level, 0) || 1
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
-      <h1 className="font-display text-lg font-semibold tracking-tight text-fg">Progreso</h1>
-
-      <div className="mt-4 flex items-center gap-6 rounded-lg border border-border bg-surface p-4">
-        <div className="flex items-center gap-2">
-          <Flame className="h-6 w-6 text-accent" />
-          <div>
-            <p className="font-mono text-xl font-semibold text-fg">
-              {streak?.current_streak_days ?? 0} <span className="text-sm font-normal text-fg-muted">días</span>
-            </p>
-            <p className="font-mono text-xs text-fg-muted">récord: {streak?.longest_streak ?? 0}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-1">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Shield
-              key={i}
-              className={`h-4 w-4 ${
-                i < (streak?.shields_available ?? 0) ? 'fill-sky-500 text-sky-500' : 'text-fg-muted/25'
-              }`}
-            />
-          ))}
-        </div>
-      </div>
-
-      <section className="mt-6">
-        <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-fg-muted">
-          Quests de hoy
-        </h2>
-        <div className="mt-2 flex flex-col gap-2 rounded-lg border border-border bg-surface p-4">
-          <p className="flex items-center gap-2 text-sm">
-            <span className={triageQuest?.completed ? 'text-emerald-500' : 'text-fg-muted'}>
-              {triageQuest?.completed ? '✓' : '○'}
-            </span>
-            <span className="text-fg">Vaciar el inbox (triage diario)</span>
-            {triageQuest?.completed && (
-              <span className="font-mono text-xs text-emerald-500">+{triageQuest.xp_reward} XP</span>
-            )}
+    <div className="mx-auto max-w-6xl px-4 py-8 md:px-8">
+      {/* Header Titular */}
+      <header className="mb-10 flex items-end justify-between border-b border-border pb-6">
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent/70">
+            Estadísticas de Héroe
           </p>
-          <PriorityQuestRow />
+          <h1 className="font-display text-3xl font-black uppercase tracking-widest text-fg md:text-4xl">
+            Salón de Héroes
+          </h1>
         </div>
-      </section>
-
-      <section className="mt-6">
-        <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-fg-muted">
-          Quests semanales ·{' '}
-          <span className="font-mono normal-case tracking-normal">
-            {format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'd MMM', { locale: es })} –{' '}
-            {format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'd MMM', { locale: es })}
-          </span>
-        </h2>
-        <div className="mt-2 rounded-lg border border-border bg-surface p-4">
-          <WeeklyProjectQuests />
+        <div className="text-right">
+          <span className="block font-mono text-[10px] uppercase text-fg-muted">Nivel Global</span>
+          <span className="font-display text-3xl font-black text-accent">{globalLevel}</span>
         </div>
-      </section>
+      </header>
 
-      <section className="mt-6">
-        <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-fg-muted">
-          Jefes de Mazmorra
-        </h2>
-        {projects && projects.length > 0 ? (
-          <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {projects.map((project) => (
-              <ProjectBossCard
-                key={project.id}
-                project={project}
-                category={categories?.find((c) => c.id === project.category_id)}
-              />
-            ))}
-          </div>
-        ) : (
-          <p className="mt-2 text-sm text-fg-muted">Todavía no creaste ningún proyecto.</p>
-        )}
-      </section>
-
-      <section className="mt-6">
-        <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-fg-muted">Clases</h2>
-        <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {categories?.map((cat) => {
-            const catXp = xp?.find((x) => x.category_id === cat.id)
-            const currentXp = catXp?.current_xp ?? 0
-            const level = catXp?.current_level ?? 1
-            const progressInLevel = currentXp % XP_PER_LEVEL
-            const ranksForCat = classRanks?.filter((r) => r.category_id === cat.id) ?? []
-            const currentRank =
-              ranksForCat.find((r) => r.id === catXp?.current_rank_id) ??
-              ranksForCat.find((r) => r.rank_order === 1)
-            const rankOrder = currentRank?.rank_order ?? 1
-
-            return (
-              <div
-                key={cat.id}
-                className="flex items-center gap-3 rounded-lg border border-border bg-surface p-3 transition-transform duration-200 hover:-translate-y-0.5"
-              >
-                <div className="relative shrink-0">
-                  <div
-                    className="flex h-10 w-10 items-center justify-center rounded-full"
-                    style={{
-                      backgroundColor: `${cat.color_hex}22`,
-                      ...rankGlowStyle(rankOrder, cat.color_hex),
-                    }}
-                  >
-                    <CategoryIcon iconName={cat.icon_name} className="h-5 w-5" style={{ color: cat.color_hex }} />
-                  </div>
-                  {rankOrder >= 4 && (
-                    <Crown
-                      className="absolute -right-1 -top-1 h-4 w-4"
-                      style={{ color: cat.color_hex }}
-                      fill={cat.color_hex}
-                    />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline justify-between">
-                    <p className="truncate text-sm text-fg">
-                      <span className="font-medium">{cat.name}</span>{' '}
-                      <span className="font-display font-medium text-fg-muted">
-                        · {currentRank?.rank_name ?? cat.class_name}
-                      </span>
-                    </p>
-                    <p className="shrink-0 font-mono text-xs text-fg-muted">Nv. {level}</p>
-                  </div>
-                  <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
-                    <div
-                      className="h-full rounded-full transition-[width] duration-700 ease-out"
-                      style={{
-                        width: `${progressInLevel}%`,
-                        backgroundColor: cat.color_hex,
-                        boxShadow: `0 0 10px ${cat.color_hex}66`,
-                      }}
-                    />
-                  </div>
-                  <div className="mt-1 flex items-center justify-between">
-                    <p className="font-mono text-xs text-fg-muted">
-                      {progressInLevel}/{XP_PER_LEVEL} XP · {currentXp} total
-                    </p>
-                    <div className="flex gap-0.5">
-                      {[1, 2, 3, 4].map((n) => (
-                        <span
-                          key={n}
-                          className="h-1 w-3 rounded-full bg-surface-2"
-                          style={n <= rankOrder ? { backgroundColor: cat.color_hex } : undefined}
-                        />
-                      ))}
-                    </div>
-                  </div>
+      {/* Grid Principal en 2 Columnas Responsivas */}
+      <main className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+        {/* COLUMNA IZQUIERDA (5 Cols): Azañas & Racha */}
+        <div className="space-y-6 lg:col-span-5">
+          {/* Tarjeta de Racha Activa */}
+          <section className="card-stone-bg streak-glow-card rounded-2xl border-2 border-accent/40 p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Flame className="h-10 w-10 text-accent animate-bounce" />
+                <div>
+                  <h2 className="font-display text-2xl font-bold text-accent">
+                    {streak?.current_streak_days ?? 0} DÍAS
+                  </h2>
+                  <p className="font-mono text-[10px] uppercase text-fg-muted">
+                    Racha de Fuego Activa
+                  </p>
                 </div>
               </div>
-            )
-          })}
-        </div>
-      </section>
+              <div className="rounded-xl border border-border bg-black/40 px-4 py-2 text-center">
+                <span className="flex items-center gap-1 font-mono text-base font-bold text-sky-400">
+                  <Shield className="h-4 w-4 fill-sky-400" />
+                  {streak?.shields_available ?? 0}
+                </span>
+                <p className="font-mono text-[8px] uppercase text-fg-muted/60">Escudos</p>
+              </div>
+            </div>
+          </section>
 
-      <section className="mt-6">
-        <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-fg-muted">Loot</h2>
-        <div className="mt-2 rounded-lg border border-border bg-surface p-4">
-          <LootShowcase />
+          {/* Quests Diarias */}
+          <section className="card-stone-bg rounded-2xl p-6 space-y-4">
+            <h3 className="font-display text-xs uppercase tracking-widest text-fg-muted/60">
+              Misiones de Reconocimiento
+            </h3>
+
+            <div className="space-y-2.5">
+              {todayQuests?.map((q) => (
+                <div
+                  key={q.id}
+                  className="flex items-center justify-between rounded-xl border border-border bg-black/30 p-3"
+                >
+                  <span className="font-display text-xs text-fg">{QUEST_TITLES[q.type]}</span>
+                  <span
+                    className={`font-mono text-[10px] font-bold ${
+                      q.completed ? 'text-emerald-400' : 'text-accent animate-pulse'
+                    }`}
+                  >
+                    {q.completed ? '✓ COMPLETO' : 'PENDIENTE'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Jefes de Mazmorra Compactos */}
+          <section className="space-y-3">
+            <h3 className="font-display text-xs uppercase tracking-widest text-fg-muted/60">
+              Jefes de Mazmorra (Proyectos)
+            </h3>
+            <div className="space-y-2">
+              {projects?.slice(0, 2).map((p) => (
+                <ProjectBossCard
+                  key={p.id}
+                  project={p}
+                  category={categories?.find((c) => c.id === p.category_id)}
+                />
+              ))}
+            </div>
+          </section>
         </div>
-      </section>
+
+        {/* COLUMNA DERECHA (7 Cols): Clases & Botín */}
+        <div className="space-y-8 lg:col-span-7">
+          {/* Grid de 6 Clases RPG */}
+          <section className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            {categories?.map((cat) => {
+              const xpData = categoryXp?.find((x) => x.category_id === cat.id)
+              const rank = classRanks?.find((r) => r.id === xpData?.current_rank_id)
+              const level = xpData?.current_level ?? 1
+              const percent = Math.min(100, Math.round(((xpData?.current_xp ?? 0) / 2000) * 100))
+
+              return (
+                <div
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat)}
+                  className="card-stone-bg card-rune-interactive cursor-pointer rounded-2xl p-4 transition-all"
+                >
+                  <span className="mb-2 block text-2xl">🔮</span>
+                  <h4 className="truncate font-display text-xs font-bold uppercase tracking-widest text-fg">
+                    {rank?.rank_name ?? cat.class_name}
+                  </h4>
+                  <p className="font-mono text-[9px] uppercase text-fg-muted/60 mb-3">
+                    Nv. {level} · {cat.name}
+                  </p>
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-black/40">
+                    <div
+                      className="h-full transition-all duration-500"
+                      style={{ width: `${percent}%`, backgroundColor: cat.color_hex }}
+                    />
+                  </div>
+                </div>
+              )
+            })}
+          </section>
+
+          {/* Galería de Botín */}
+          <section className="card-stone-bg rounded-2xl p-6">
+            <h3 className="mb-4 font-display text-xs uppercase tracking-widest text-fg-muted/60">
+              Insignias de la Orden
+            </h3>
+            <LootShowcase />
+          </section>
+        </div>
+      </main>
+
+      {/* Modal Pergamino de Clase */}
+      {selectedCategory && (
+        <ClassDetailModal
+          category={selectedCategory}
+          categoryXp={categoryXp?.find((x) => x.category_id === selectedCategory.id)}
+          rank={classRanks?.find(
+            (r) => r.id === categoryXp?.find((x) => x.category_id === selectedCategory.id)?.current_rank_id,
+          )}
+          onClose={() => setSelectedCategory(null)}
+        />
+      )}
     </div>
   )
 }
