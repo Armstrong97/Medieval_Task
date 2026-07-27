@@ -13,6 +13,13 @@ const TARGETS = [
   { path: 'public/assets/rpg/bosses/dragon.png', size: 512 },
   { path: 'public/assets/rpg/bosses/lich.png', size: 512 },
   { path: 'public/assets/rpg/loot/chest.png', size: 256 },
+  { path: 'public/assets/rpg/nav/combat.png', size: 256 },
+  { path: 'public/assets/rpg/nav/inbox.png', size: 256 },
+  { path: 'public/assets/rpg/nav/strategy.png', size: 256 },
+  { path: 'public/assets/rpg/nav/grimoire.png', size: 256 },
+  { path: 'public/assets/rpg/nav/calendar.png', size: 256 },
+  { path: 'public/assets/rpg/nav/progress.png', size: 256 },
+  { path: 'public/assets/rpg/nav/followups.png', size: 256 },
 ]
 
 for (const { path, size } of TARGETS) {

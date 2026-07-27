@@ -23,9 +23,9 @@ export default defineConfig({
         type: 'module',
       },
       manifest: {
-        name: 'Productividad RPG',
-        short_name: 'Prod RPG',
-        description: 'Productividad personal con gamification tipo RPG',
+        name: 'Questly',
+        short_name: 'Questly',
+        description: 'Maneja tus misiones. Conquista el caos.',
         theme_color: '#121212',
         background_color: '#121212',
         display: 'standalone',

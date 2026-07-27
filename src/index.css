@@ -236,3 +236,177 @@ body {
     animation: none;
   }
 }
+
+/* Grimorio de Acceso (ver LoginPage.tsx) */
+.grimoire-card {
+  background: linear-gradient(165deg, var(--surface) 0%, var(--surface-2) 100%);
+  border: 2px solid var(--border);
+  box-shadow: 0 0 50px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(61, 42, 78, 0.3);
+}
+
+.input-parchment {
+  background-color: rgba(18, 12, 24, 0.7);
+  border: 1px solid var(--border);
+  transition: all 0.3s ease;
+}
+
+.input-parchment:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 10px rgba(217, 169, 74, 0.2);
+  outline: none;
+  background-color: rgba(30, 21, 38, 0.9);
+}
+
+.btn-prime {
+  background: linear-gradient(180deg, var(--gold) 0%, #b3862e 100%);
+  color: #120c18;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 0 #7a5a1d, 0 10px 20px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.btn-prime:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 #7a5a1d, 0 15px 25px rgba(217, 169, 74, 0.25);
+}
+
+.btn-prime:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #7a5a1d;
+}
+
+.tab-active {
+  color: var(--gold) !important;
+  border-bottom: 2px solid var(--gold);
+  text-shadow: 0 0 8px rgba(217, 169, 74, 0.5);
+  background: linear-gradient(to top, rgba(217, 169, 74, 0.08), transparent);
+}
+
+.glyph-glow {
+  filter: drop-shadow(0 0 5px var(--gold));
+  animation: pulse-glyph 4s infinite ease-in-out;
+}
+
+@keyframes pulse-glyph {
+  0%, 100% { filter: drop-shadow(0 0 2px var(--gold)); opacity: 0.8; }
+  50% { filter: drop-shadow(0 0 12px var(--gold)); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glyph-glow {
+    animation: none;
+  }
+}
+
+/* Sidebar & Navegación Lateral (ver Layout.tsx) */
+.sidebar-panel {
+  width: 280px;
+  background: linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%);
+  border-right: 2px solid var(--border);
+  box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Efecto Aislamiento TDAH (Overlay de desenfoque de fondo) */
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(18, 12, 24, 0.6);
+  backdrop-filter: blur(8px);
+  z-index: 40;
+  transition: all 0.3s ease;
+}
+
+/* Items de Navegación */
+.nav-item-link {
+  position: relative;
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
+}
+
+.nav-item-link:hover {
+  transform: translateX(4px);
+  color: var(--accent);
+  background-color: rgba(217, 169, 74, 0.06);
+}
+
+.nav-item-link.active {
+  border-left-color: var(--accent);
+  background: linear-gradient(90deg, rgba(217, 169, 74, 0.12), transparent);
+  color: var(--accent);
+}
+
+.nav-item-link.active .nav-label {
+  text-shadow: 0 0 10px rgba(217, 169, 74, 0.4);
+  font-weight: 700;
+}
+
+/* Tarjeta de Combate Rúnica (ver CombatSlotCard.tsx) */
+.combat-card {
+  background: linear-gradient(165deg, var(--surface) 0%, var(--surface-2) 100%);
+  border: 2px solid var(--border);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
+}
+
+.combat-card:hover {
+  transform: translateY(-6px);
+  border-color: var(--card-theme, var(--gold));
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.7), 0 0 20px var(--card-glow, rgba(217, 169, 74, 0.2));
+}
+
+/* Barra de Salud Segmentada (HP) */
+.hp-segment {
+  height: 8px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+
+.hp-segment.active {
+  background: linear-gradient(to bottom, #ef4444, #991b1b);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+}
+
+/* Slot Vacío Rúnico */
+.empty-slot-card {
+  border: 2px dashed var(--border);
+  background: rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.empty-slot-card:hover {
+  border-color: var(--gold);
+  background: rgba(217, 169, 74, 0.03);
+}
+
+/* Animaciones Feedback TDAH (Shake & Kill Flash) */
+.shake-anim {
+  animation: shake-effect 0.3s ease-in-out;
+}
+
+@keyframes shake-effect {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.animate-kill {
+  animation: kill-flash 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes kill-flash {
+  0% { transform: scale(1); filter: brightness(1); }
+  20% { transform: scale(1.05); filter: brightness(2.5); }
+  100% { transform: scale(0.1); opacity: 0; filter: brightness(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shake-anim,
+  .animate-kill {
+    animation: none;
+  }
+}

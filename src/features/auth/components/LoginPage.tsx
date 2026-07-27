@@ -2,21 +2,21 @@ import { useState, type FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/features/auth/AuthProvider'
-import { Logomark } from '@/components/ui/Logomark'
 import { AmbientBackground } from '@/components/ui/AmbientBackground'
 
-type Mode = 'magic-link' | 'password-in' | 'password-up'
+type Mode = 'magic' | 'password' | 'signup'
 
 export function LoginPage() {
   const { session, loading: sessionLoading } = useAuth()
-  const [mode, setMode] = useState<Mode>('magic-link')
+  const [mode, setMode] = useState<Mode>('magic')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [heroName, setHeroName] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState<{ kind: 'info' | 'error'; text: string } | null>(null)
 
   if (!sessionLoading && session) {
-    return <Navigate to="/inbox" replace />
+    return <Navigate to="/" replace />
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -25,25 +25,32 @@ export function LoginPage() {
     setMessage(null)
 
     try {
-      if (mode === 'magic-link') {
+      if (mode === 'magic') {
         const { error } = await supabase.auth.signInWithOtp({
           email,
           options: { emailRedirectTo: window.location.origin },
         })
         if (error) throw error
-        setMessage({ kind: 'info', text: 'Revisa tu correo — te mandamos un enlace para entrar.' })
-      } else if (mode === 'password-in') {
+        setMessage({ kind: 'info', text: '¡Enlace de acceso enviado al pergamino de correo!' })
+      } else if (mode === 'password') {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
       } else {
-        const { error } = await supabase.auth.signUp({ email, password })
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { hero_name: heroName.trim() } },
+        })
         if (error) throw error
-        setMessage({ kind: 'info', text: 'Cuenta creada — revisa tu correo si pide confirmación, luego inicia sesión.' })
+        setMessage({
+          kind: 'info',
+          text: 'Tu leyenda comienza ahora. Cuenta creada — revisa tu correo si requiere confirmación.',
+        })
       }
     } catch (err) {
       setMessage({
         kind: 'error',
-        text: err instanceof Error ? err.message : 'Algo no salió bien, probá de nuevo.',
+        text: err instanceof Error ? err.message : 'Algo no salió bien en el hechizo, probá de nuevo.',
       })
     } finally {
       setSubmitting(false)
@@ -51,91 +58,150 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-bg p-4">
+    <div className="relative flex min-h-dvh w-full flex-col items-center justify-center overflow-hidden bg-bg px-4 py-8 text-fg">
       <AmbientBackground />
-      <div className="relative w-full max-w-sm rounded-lg border border-border bg-surface p-6 shadow-xl">
-        <div className="flex items-center gap-2.5">
-          <Logomark className="h-9 w-9" />
-          <h1 className="font-display text-lg font-semibold tracking-tight text-fg">
-            Productividad RPG
+
+      <main className="relative z-10 flex w-full max-w-md flex-col items-center">
+        {/* Header Identidad Questly */}
+        <header className="mb-8 text-center">
+          <div className="mb-3 flex justify-center">
+            <div className="h-16 w-16">
+              <svg className="glyph-glow h-full w-full" viewBox="0 0 100 100" fill="none">
+                <path d="M50 5L90 30V70L50 95L10 70V30L50 5Z" stroke="#d9a94a" strokeWidth="2" />
+                <path d="M50 20V80M30 40H70M40 70L60 70" stroke="#d9a94a" strokeWidth="4" strokeLinecap="round" />
+                <circle cx="50" cy="50" r="5" fill="#d9a94a" />
+              </svg>
+            </div>
+          </div>
+          <h1 className="font-display text-4xl font-black tracking-tight text-accent drop-shadow-[0_0_10px_rgba(217,169,74,0.3)] sm:text-5xl">
+            QUESTLY
           </h1>
-        </div>
-
-        <div className="mt-5 flex gap-1 rounded-md bg-surface-2 p-1">
-          {(
-            [
-              { key: 'magic-link', label: 'Enlace mágico' },
-              { key: 'password-in', label: 'Contraseña' },
-              { key: 'password-up', label: 'Crear cuenta' },
-            ] as const
-          ).map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => {
-                setMode(tab.key)
-                setMessage(null)
-              }}
-              className={`flex-1 rounded px-2 py-1.5 text-sm font-medium transition-colors ${
-                mode === tab.key ? 'bg-surface text-fg shadow-sm' : 'text-fg-muted hover:text-fg'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3">
-          <label className="flex flex-col gap-1 text-sm text-fg-muted">
-            Email
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="rounded-md border border-border bg-surface-2 px-3 py-1.5 text-fg outline-none focus:border-accent"
-              placeholder="tu@email.com"
-            />
-          </label>
-
-          {mode !== 'magic-link' && (
-            <label className="flex flex-col gap-1 text-sm text-fg-muted">
-              Contraseña
-              <input
-                type="password"
-                required
-                minLength={6}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="rounded-md border border-border bg-surface-2 px-3 py-1.5 text-fg outline-none focus:border-accent"
-                placeholder="••••••••"
-              />
-            </label>
-          )}
-
-          <button
-            type="submit"
-            disabled={submitting}
-            className="mt-1 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-fg transition-all duration-150 hover:shadow-[0_4px_24px_rgba(240,195,100,0.45)] hover:-translate-y-px active:scale-[0.97] disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none"
-          >
-            {submitting
-              ? 'Un momento…'
-              : mode === 'magic-link'
-                ? 'Enviar enlace'
-                : mode === 'password-in'
-                  ? 'Entrar'
-                  : 'Crear cuenta'}
-          </button>
-        </form>
-
-        {message && (
-          <p
-            className={`mt-3 text-sm ${message.kind === 'error' ? 'text-warn-fg' : 'text-fg-muted'}`}
-          >
-            {message.text}
+          <p className="mt-1 font-display text-xs font-semibold uppercase tracking-[0.2em] text-fg-muted">
+            Maneja tus misiones. Conquista el caos.
           </p>
-        )}
-      </div>
+        </header>
+
+        {/* Grimoire Card Container */}
+        <section className="grimoire-card w-full overflow-hidden rounded-xl border border-border bg-surface">
+          {/* Tabs Selector */}
+          <nav className="flex border-b border-border">
+            {(
+              [
+                { key: 'magic', label: 'Enlace Mágico' },
+                { key: 'password', label: 'Contraseña' },
+                { key: 'signup', label: 'Crear Cuenta' },
+              ] as const
+            ).map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => {
+                  setMode(tab.key)
+                  setMessage(null)
+                }}
+                className={`flex-1 py-3.5 font-mono text-[11px] uppercase tracking-widest transition-all ${
+                  mode === tab.key
+                    ? 'tab-active font-semibold'
+                    : 'text-fg-muted/60 hover:text-fg'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+
+          {/* Form Content */}
+          <div className="p-6 sm:p-8">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+              {mode === 'signup' && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="font-mono text-[10px] font-bold uppercase tracking-widest text-accent/90">
+                    Nombre de Héroe
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej: Galahad"
+                    value={heroName}
+                    onChange={(e) => setHeroName(e.target.value)}
+                    className="input-parchment w-full rounded-md px-4 py-2.5 text-sm text-fg"
+                  />
+                </div>
+              )}
+
+              <div className="flex flex-col gap-1.5">
+                <label className="font-mono text-[10px] font-bold uppercase tracking-widest text-accent/90">
+                  {mode === 'password' ? 'Correo Electrónico' : 'Dirección de Correo'}
+                </label>
+                <input
+                  type="email"
+                  required
+                  placeholder="caballero@reino.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="input-parchment w-full rounded-md px-4 py-2.5 text-sm text-fg"
+                />
+              </div>
+
+              {mode !== 'magic' && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="font-mono text-[10px] font-bold uppercase tracking-widest text-accent/90">
+                    Palabra Secreta
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    minLength={6}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="input-parchment w-full rounded-md px-4 py-2.5 text-sm text-fg"
+                  />
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={submitting}
+                className="btn-prime mt-2 w-full rounded-md py-3.5 font-display text-base tracking-wider disabled:opacity-60"
+              >
+                {submitting
+                  ? 'Invocando…'
+                  : mode === 'magic'
+                    ? 'Enviar Enlace'
+                    : mode === 'password'
+                      ? 'Entrar a la Taberna'
+                      : 'Forjar Destino'}
+              </button>
+
+              {mode === 'magic' && (
+                <p className="text-center font-mono text-[10px] uppercase tracking-wider text-fg-muted/50">
+                  Sin contraseñas, solo magia.
+                </p>
+              )}
+            </form>
+
+            {message && (
+              <div
+                className={`mt-4 rounded-md border p-3 text-center text-xs font-medium ${
+                  message.kind === 'error'
+                    ? 'border-warn-border bg-warn-bg text-warn-fg'
+                    : 'border-accent/40 bg-accent/10 text-accent'
+                }`}
+              >
+                {message.text}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Footer info */}
+        <footer className="mt-8 text-center opacity-40 transition-opacity hover:opacity-100">
+          <p className="font-mono text-[10px] tracking-tighter text-fg-muted">
+            QUESTLY v4.0.1 — SOFTWARE DE GESTIÓN ÉPICA
+          </p>
+        </footer>
+      </main>
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, MoreVertical, PictureInPicture2 } from 'lucide-react'
+import { MoreVertical, PictureInPicture2, Swords } from 'lucide-react'
 import { useCategories } from '@/features/projects/hooks'
 import { useCompleteTask, useSubtasks } from '@/features/tasks/hooks'
 import { useFocusFloat } from '@/features/tasks/FocusFloatContext'
@@ -8,7 +8,7 @@ import { useUnequipHudSlot } from '@/features/battle-hud/hooks'
 import { WEAPON_ICONS } from '@/utils/rpgAssets'
 import type { Task, TaskSize } from '@/types/database.types'
 
-const DIFFICULTY_BADGE: Record<TaskSize, { label: string; xp: number }> = {
+const DIFFICULTY_LABEL: Record<TaskSize, { label: string; xp: number }> = {
   small: { label: 'Daga', xp: 10 },
   medium: { label: 'Espada', xp: 25 },
   large: { label: 'Mandoble', xp: 50 },
@@ -29,95 +29,146 @@ export function CombatSlotCard({
   const unequip = useUnequipHudSlot()
   const sendToFollowUp = useSendToFollowUp()
   const { open: openFocusFloat } = useFocusFloat()
+
   const [menuOpen, setMenuOpen] = useState(false)
+  const [animatingKill, setAnimatingKill] = useState(false)
+  const [shaking, setShaking] = useState(false)
 
   const category = categories?.find((c) => c.id === task.category_id)
-  const difficulty = task.size ? DIFFICULTY_BADGE[task.size] : null
+  const difficulty = task.size ? DIFFICULTY_LABEL[task.size] : null
 
   const hasSubtasks = !!subtasks && subtasks.length > 0
   const hpTotal = hasSubtasks ? subtasks!.length : 1
   const hpCurrent = hasSubtasks ? subtasks!.filter((s) => s.status !== 'done').length : 1
+  const hpPercent = Math.round((hpCurrent / hpTotal) * 100)
+
+  // Secuencia de animación táctil TDAH al asestar golpe final
+  function handleGolpeFinal() {
+    setShaking(true)
+    setTimeout(() => {
+      setShaking(false)
+      setAnimatingKill(true)
+      setTimeout(() => {
+        completeTask.mutate({ id: task.id, project_id: task.project_id })
+      }, 550)
+    }, 280)
+  }
+
+  const categoryColor = category?.color_hex ?? '#d9a94a'
 
   return (
-    <div
-      className="flex flex-col gap-3 rounded-lg border border-border-card bg-surface-card p-4 shadow-sm"
-      style={{
-        borderColor: category ? `${category.color_hex}55` : undefined,
-        boxShadow: category ? `0 0 16px ${category.color_hex}22` : undefined,
-      }}
+    <article
+      className={`combat-card group flex h-[420px] flex-col rounded-2xl p-6 ${
+        shaking ? 'shake-anim' : ''
+      } ${animatingKill ? 'animate-kill' : ''}`}
+      style={
+        {
+          '--card-theme': categoryColor,
+          '--card-glow': `${categoryColor}33`,
+        } as React.CSSProperties
+      }
     >
-      <div className="flex items-start justify-between gap-2">
-        <button
-          type="button"
-          onClick={() => onOpenTask(task)}
-          className="min-w-0 flex-1 text-left"
+      {/* Header de Categoria e Insignia de Arma */}
+      <div className="mb-4 flex items-start justify-between">
+        <span
+          className="rounded border px-2.5 py-1 font-mono text-[9px] font-black uppercase tracking-widest"
+          style={{
+            backgroundColor: `${categoryColor}20`,
+            color: categoryColor,
+            borderColor: `${categoryColor}40`,
+          }}
         >
-          {category && (
-            <p className="font-mono text-[11px] uppercase tracking-wide" style={{ color: category.color_hex }}>
-              {category.name}
-            </p>
-          )}
-          <p className="mt-0.5 truncate font-display text-base font-semibold text-fg">
-            {task.title}
-          </p>
-        </button>
-        {difficulty && task.size && (
-          <span
-            title={`${difficulty.label} · +${difficulty.xp} XP`}
-            className="flex shrink-0 items-center justify-center rounded-full bg-surface-2 p-1.5"
+          {category?.name ?? 'Misión'}
+        </span>
+        {task.size && (
+          <div
+            className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-black/40 shadow-inner"
+            title={`${difficulty?.label} (${difficulty?.xp} XP)`}
           >
-            <img src={WEAPON_ICONS[task.size]} alt={difficulty.label} className="h-5 w-5 object-contain" />
-          </span>
+            <img
+              src={WEAPON_ICONS[task.size]}
+              alt={difficulty?.label}
+              className="h-6 w-6 object-contain drop-shadow-[0_0_4px_rgba(217,169,74,0.4)]"
+            />
+          </div>
         )}
       </div>
 
-      <div>
-        <div className="flex gap-0.5">
-          {Array.from({ length: hpTotal }).map((_, i) => (
-            <div
-              key={i}
-              className={`h-2 flex-1 rounded-sm transition-colors ${
-                i < hpCurrent ? 'bg-red-500' : 'bg-surface-2'
-              }`}
-            />
-          ))}
-        </div>
-        <p className="mt-1 font-mono text-[11px] text-fg-muted">
-          {hasSubtasks ? `${hpCurrent}/${hpTotal} subtareas restantes` : 'Sin subtareas'}
+      {/* Cuerpo Principal: Titulo & HP */}
+      <div className="flex-1">
+        <button
+          type="button"
+          onClick={() => onOpenTask(task)}
+          className="w-full text-left"
+        >
+          <h2 className="mb-2 font-display text-2xl font-bold leading-tight text-fg transition-colors group-hover:text-accent">
+            {task.title}
+          </h2>
+        </button>
+        <p className="mb-6 font-mono text-xs text-fg-muted/70">
+          {hasSubtasks
+            ? `Submisiones: ${hpTotal - hpCurrent} / ${hpTotal}`
+            : 'Misión Directa'}
         </p>
+
+        {/* Barra de HP Segmentada */}
+        <div className="mb-6 space-y-2">
+          <div className="flex justify-between font-mono text-[10px] uppercase text-fg-muted">
+            <span>Integridad del Enemigo</span>
+            <span className={hpCurrent === 0 ? 'text-red-500 font-bold' : ''}>
+              {hpPercent}%
+            </span>
+          </div>
+          <div
+            className="grid gap-1.5"
+            style={{
+              gridTemplateColumns: `repeat(${Math.max(hpTotal, 1)}, minmax(0, 1fr))`,
+            }}
+          >
+            {Array.from({ length: hpTotal }).map((_, i) => (
+              <div
+                key={i}
+                className={`hp-segment ${i < hpCurrent ? 'active' : ''}`}
+              />
+            ))}
+          </div>
+        </div>
       </div>
 
-      <div className="mt-1 flex items-center gap-1.5 border-t border-border pt-3">
-        <button
-          type="button"
-          onClick={() => void openFocusFloat()}
-          title="Atacar / Entrar en foco"
-          className="flex items-center gap-1 rounded-md border border-border px-2 py-1.5 text-xs text-fg-muted transition-all duration-150 hover:border-accent/40 hover:text-accent active:scale-95"
-        >
-          <PictureInPicture2 className="h-3.5 w-3.5" /> Atacar
-        </button>
-        <button
-          type="button"
-          onClick={() => completeTask.mutate({ id: task.id, project_id: task.project_id })}
-          title="Asestar golpe final"
-          className="flex flex-1 items-center justify-center gap-1 rounded-md bg-accent px-2 py-1.5 text-xs font-semibold text-accent-fg transition-all duration-150 hover:shadow-[0_0_14px_rgba(217,169,74,0.45)] active:scale-95"
-        >
-          <Check className="h-3.5 w-3.5" /> Golpe final
-        </button>
+      {/* Acciones de Combate en el Pie */}
+      <div className="space-y-3 pt-2">
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => void openFocusFloat()}
+            className="flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 py-2.5 font-mono text-[10px] font-black uppercase tracking-widest text-fg-muted transition-all hover:bg-white/10 hover:text-fg active:scale-95"
+          >
+            <PictureInPicture2 className="h-3.5 w-3.5" /> Atacar
+          </button>
+          <button
+            type="button"
+            onClick={handleGolpeFinal}
+            className="btn-prime flex items-center justify-center gap-1.5 rounded-lg py-2.5 font-mono text-[10px] font-black uppercase tracking-widest"
+          >
+            <Swords className="h-3.5 w-3.5" /> Golpe Final
+          </button>
+        </div>
+
         <div className="relative">
           <button
             type="button"
             onClick={() => setMenuOpen((v) => !v)}
-            title="Retirada táctica"
-            aria-label="Retirada táctica"
-            className="flex items-center rounded-md border border-border p-1.5 text-fg-muted transition-colors hover:text-fg"
+            className="w-full py-1.5 font-mono text-[10px] font-bold uppercase tracking-widest text-fg-muted/50 transition-opacity hover:text-fg"
           >
-            <MoreVertical className="h-3.5 w-3.5" />
+            <MoreVertical className="mr-1 inline h-3 w-3" /> Retirada Táctica
           </button>
           {menuOpen && (
             <>
-              <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
-              <div className="modal-panel absolute right-0 bottom-full z-50 mb-2 w-48 rounded-lg border border-border bg-surface p-1 shadow-xl">
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setMenuOpen(false)}
+              />
+              <div className="modal-panel absolute bottom-full right-0 z-50 mb-2 w-52 rounded-xl border border-border bg-surface p-1.5 shadow-2xl">
                 <button
                   type="button"
                   onClick={() => {
@@ -128,7 +179,7 @@ export function CombatSlotCard({
                       stakeholderName: null,
                     })
                   }}
-                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-fg-muted transition-colors hover:bg-surface-2 hover:text-sky-500"
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left font-mono text-xs text-fg-muted transition-colors hover:bg-surface-2 hover:text-sky-400"
                 >
                   Mover a Follow-up
                 </button>
@@ -138,7 +189,7 @@ export function CombatSlotCard({
                     setMenuOpen(false)
                     unequip.mutate(task.id)
                   }}
-                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-fg-muted transition-colors hover:bg-surface-2 hover:text-fg"
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left font-mono text-xs text-fg-muted transition-colors hover:bg-surface-2 hover:text-fg"
                 >
                   Devolver al Grimorio
                 </button>
@@ -147,6 +198,6 @@ export function CombatSlotCard({
           )}
         </div>
       </div>
-    </div>
+    </article>
   )
 }
