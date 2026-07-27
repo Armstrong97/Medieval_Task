@@ -13,6 +13,7 @@ import {
 import { useTaskById, useTasksInRange } from '@/features/tasks/hooks'
 import { CategoryIcon } from '@/utils/categoryIcon'
 import { LootShowcase } from '@/features/gamification/components/LootShowcase'
+import { ProjectBossCard } from '@/features/projects/components/ProjectBossCard'
 
 const XP_PER_LEVEL = 100
 
@@ -103,6 +104,7 @@ export function ProgressPage() {
   const { data: streak } = useStreak()
   const { data: todayQuests } = useTodayQuests()
   const { data: classRanks } = useClassRanks()
+  const { data: projects } = useProjects()
 
   const triageQuest = todayQuests?.find((q) => q.type === 'daily_triage')
 
@@ -161,6 +163,25 @@ export function ProgressPage() {
         <div className="mt-2 rounded-lg border border-border bg-surface p-4">
           <WeeklyProjectQuests />
         </div>
+      </section>
+
+      <section className="mt-6">
+        <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-fg-muted">
+          Jefes de Mazmorra
+        </h2>
+        {projects && projects.length > 0 ? (
+          <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {projects.map((project) => (
+              <ProjectBossCard
+                key={project.id}
+                project={project}
+                category={categories?.find((c) => c.id === project.category_id)}
+              />
+            ))}
+          </div>
+        ) : (
+          <p className="mt-2 text-sm text-fg-muted">Todavía no creaste ningún proyecto.</p>
+        )}
       </section>
 
       <section className="mt-6">

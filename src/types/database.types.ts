@@ -34,6 +34,9 @@ export interface Database {
           name: string
           description: string | null
           status: ProjectStatus
+          boss_avatar: string
+          boss_title: string
+          phases_claimed: number[]
           created_at: string
         }
         Insert: {
@@ -43,6 +46,9 @@ export interface Database {
           name: string
           description?: string | null
           status?: ProjectStatus
+          boss_avatar?: string
+          boss_title?: string
+          phases_claimed?: number[]
           created_at?: string
         }
         Update: Partial<Database['public']['Tables']['projects']['Insert']>
@@ -288,7 +294,12 @@ export interface Database {
       }
     }
     Views: Record<string, never>
-    Functions: Record<string, never>
+    Functions: {
+      claim_boss_phase: {
+        Args: { p_project_id: string; p_phase: number }
+        Returns: Database['public']['Tables']['projects']['Row']
+      }
+    }
   }
 }
 

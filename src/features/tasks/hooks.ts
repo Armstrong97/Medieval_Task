@@ -12,6 +12,7 @@ import {
   fetchSubtasks,
   fetchTaskById,
   fetchTasksByIds,
+  fetchTasksByProject,
   fetchTasksCompletedToday,
   fetchTasksInRange,
   reopenTask,
@@ -32,6 +33,13 @@ export function useTasksByIds(ids: string[]) {
   return useQuery({
     queryKey: ['tasks', 'by-ids', ids],
     queryFn: () => fetchTasksByIds(ids),
+  })
+}
+
+export function useTasksByProject(projectId: string) {
+  return useQuery({
+    queryKey: ['tasks', 'by-project', projectId],
+    queryFn: () => fetchTasksByProject(projectId),
   })
 }
 

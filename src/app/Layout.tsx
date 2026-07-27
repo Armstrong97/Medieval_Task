@@ -22,7 +22,7 @@ import { AchievementWatcher } from '@/features/gamification/components/Achieveme
 const navItems = [
   { to: '/', label: 'Combate', icon: Swords, end: true },
   { to: '/inbox', label: 'Inbox', icon: InboxIcon },
-  { to: '/triage', label: 'Triage', icon: ListChecks },
+  { to: '/triage', label: 'Estrategia', icon: ListChecks },
   { to: '/kanban', label: 'Kanban', icon: Columns3 },
   { to: '/calendario', label: 'Calendario', icon: Calendar },
   { to: '/progreso', label: 'Progreso', icon: Trophy },

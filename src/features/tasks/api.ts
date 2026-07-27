@@ -64,6 +64,20 @@ export async function fetchInProgressTasks(): Promise<Task[]> {
   return data
 }
 
+// Todas las tareas de nivel superior de un proyecto, sin filtrar por status
+// ni columna — usada para calcular el HP del "Jefe de Mazmorra" (Fase 7,
+// Módulo 2). A propósito NO excluye 'follow_up': mientras no esté 'done'
+// sigue representando daño pendiente al jefe.
+export async function fetchTasksByProject(projectId: string): Promise<Task[]> {
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('*')
+    .eq('project_id', projectId)
+    .is('parent_task_id', null)
+  if (error) throw error
+  return data
+}
+
 export async function fetchInboxTasks(): Promise<Task[]> {
   const { data, error } = await supabase
     .from('tasks')
