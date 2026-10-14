@@ -627,6 +627,20 @@ Auditoría de experiencia para el perfil TDAH (24 fricciones detectadas leyendo 
 6. **Insignia con el conteo de capturas pendientes** sobre "Estrategia" (menú lateral y barra inferior).
 - Limitación conocida: descartar la ÚLTIMA captura del inbox no dispara la quest diaria de triage (el trigger `tasks_after_triage` solo reacciona a un UPDATE de `kanban_column_id`, no a un DELETE). Candidato a la ronda 3 (migración).
 
-### Rondas pendientes
-- **Ronda 3** (requiere migración SQL o assets): quest de rescate de vencidas y lenguaje sin culpa ("Pendiente desde ayer"), escalones de notificación separados (hoy un descarte de "vence en 3 días" silencia el de "mañana" por compartir tipo), página de Proyectos, Modo Foco con temporizador dentro de la app, avatar de clase.
-- **Pulido**: quitar duplicados de racha/escudos, subtítulos funcionales en el menú, crear/reprogramar desde el calendario.
+### Ronda 3 — hecha en código, REQUIERE 2 PASOS MANUALES (2026-10-14)
+**Antes de probar, correr en este orden:**
+1. **SQL Editor de Supabase**: pegar y correr completo `supabase/migrations/20261013000001_fase9_rescate_avisos_triage.sql` (idempotente). Sin esto la app falla al completar tareas (el cliente lee `tasks.rescue_bonus`) y los avisos nuevos violan el check constraint.
+2. `npx supabase functions deploy send-notifications --project-ref dlztajgoljayfmqjdqio` (la Edge Function ahora emite `upcoming_3d`/`upcoming_1d`).
+
+Qué trae:
+- **Avisos por escalón**: `upcoming` se separa en `upcoming_3d` ("Vence en N días") y `upcoming_1d` ("Vence mañana"). Antes descartar el de 3 días silenciaba el de mañana (comparten `unique(task_id,type)` y `dismissed_at` nunca se pisa). `upcoming` queda en el check solo para filas viejas.
+- **Rescate de vencidas** (spec 4.7, "quest de rescate"): completar una tarea de nivel superior DESPUÉS de su deadline da `rescue_bonus` = +25 % del XP (mínimo 2). Decisión: se guarda en `tasks.rescue_bonus` (columna + trigger `tasks_before_rescue`) y NO como fila en `quests`, porque los índices únicos diarios de `quests` no admiten varios rescates el mismo día sin romper los `ON CONFLICT` de los otros triggers. `tasks_after_done` suma el bonus a la XP de la categoría; el toast muestra "Rescate +N"; `useXpEarnedToday` lo incluye. Reprogramar antes de completar anula el bonus (a propósito: es un empujón suave, no una mecánica a explotar). Lenguaje sin culpa: "Por rescatar" en vez de "Vencida" (avisos, chip del Grimorio, alerta del Inbox), con ícono `LifeBuoy`.
+- **Quest de triage al descartar la última captura**: `tasks_after_triage` se refactoriza a `complete_daily_triage_if_empty()` y un trigger nuevo `tasks_after_discard` (AFTER DELETE) lo invoca. Efecto colateral aceptado: capturar y borrar enseguida la única captura cuenta como "vaciar el inbox" una vez al día.
+- **Página Proyectos** (`/proyectos`, ítem en el menú): crear, renombrar, cambiar título/jefe y archivar (`status = 'archived'`, ya existía en el schema) con confirmación. Los archivados no se listan (no hay vista de archivados todavía).
+- **Modo Foco** (`/foco/:taskId`, `FocusModePage` + `FocusSessionView`): una misión, sus micro-pasos tocables y temporizador opcional (15/25/45 min, vibra al terminar). "Atacar" del Combate abre este modo (funciona en móvil). El botón de captura rápida sigue visible a propósito (anotar la idea que distrae sin salir del foco).
+- **Sesión de foco global y ventana flotante** (2026-10-14): el estado (misión + fin del bloque) vive en `FocusSessionProvider` (`focusSessionContext.ts`, persistido en `sessionStorage`), por encima de `FocusFloatProvider`. Cuando hay una sesión activa, la ventana flotante (PiP) muestra la MISMA vista compacta (`FocusSessionView compact`: título, reloj, micro-pasos, "Terminé"); sin sesión, vuelve a la lista de tareas en progreso. "Volver al Combate" NO termina la sesión (el foco y su reloj siguen); se termina con "Salir del foco", completando la misión, o al cambiar a otra (un solo foco a la vez). Una píldora en el header (`ActiveFocusPill`) vuelve al foco activo y muestra el reloj. El aviso de fin de bloque lo emite el provider, esté o no la página abierta. La ventana flotante abre más alta (440 px) si ya hay sesión.
+- **Avatar del héroe**: ya no es la imagen del dragón jefe; usa el ícono vectorial de la clase dominante (`utils/classIcons.ts`, compartido con el Grimorio). Los avatares ilustrados esperan a los assets (ver `pendings.md`).
+- Limitación conocida (heredada): reabrir y volver a completar una tarea vuelve a sumar su XP.
+
+### Pulido pendiente
+- Quitar duplicados de racha/escudos, subtítulos funcionales en el menú, crear/reprogramar desde el calendario, vista de proyectos archivados.

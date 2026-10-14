@@ -84,11 +84,11 @@ export function InboxTopBar({ onOpenTask }: { onOpenTask: (task: Task) => void }
         >
           <span className="flex items-center gap-2 font-mono font-medium">
             <AlertTriangle className="h-4 w-4 shrink-0 text-warn-fg" />
-            {overdueCount > 0 && <span>{overdueCount} misiones vencidas</span>}
+            {overdueCount > 0 && <span>{overdueCount} misiones por rescatar</span>}
             {overdueCount > 0 && dueTodayCount > 0 && <span>·</span>}
             {dueTodayCount > 0 && <span>{dueTodayCount} vencen hoy</span>}
           </span>
-          <span className="font-mono text-xs font-bold underline">RESOLVER EN GRIMORIO →</span>
+          <span className="font-mono text-xs font-bold underline">RESCATAR EN GRIMORIO →</span>
         </button>
       )}
 

@@ -9,6 +9,15 @@ Cosas acordadas que no se hacen todavía. Revisar al retomar cada tema.
 - Después de generarlos: `node scripts/optimize-rpg-assets.mjs` (ajustar `TARGETS`) antes de integrarlos. Los originales de Imagen pesan MB y rompen el límite de 2 MB del precache.
 - Mientras tanto, la UI mezcla assets morados con el fondo verde (transitorio, aceptado).
 
+## Avatares de clase ilustrados (depende de la Fase 5)
+
+- Hoy el avatar del héroe en el Battle HUD es un ícono vectorial de la clase dominante (`src/utils/classIcons.ts`). Cuando existan los assets nuevos: 6 avatares (uno por clase, idealmente con 4 variantes por rango) y reemplazar `HeroIcon` en `BattleHudPage.tsx`.
+
+## Pasos manuales de la ronda 3 (si aún no se hicieron)
+
+- Correr `supabase/migrations/20261013000001_fase9_rescate_avisos_triage.sql` en el SQL Editor de Supabase.
+- `npx supabase functions deploy send-notifications --project-ref dlztajgoljayfmqjdqio`.
+
 ## Rediseño "Hyrule" — Fase 6: verificación (pendiente)
 
 Fases 1–4 hechas y revisadas por el usuario en pantalla (fase 3); la 4 sin revisar aún. Falta, idealmente con el navegador conectado para capturas:

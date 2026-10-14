@@ -3,10 +3,12 @@ import { Check, PictureInPicture2 } from 'lucide-react'
 import { useCompleteTask, useInProgressTasks } from '@/features/tasks/hooks'
 import { useCategories } from '@/features/projects/hooks'
 import { useFocusFloat } from '@/features/tasks/FocusFloatContext'
+import { useFocusSession } from '@/features/tasks/focusSessionContext'
+import { FocusSessionView } from '@/features/tasks/components/FocusSessionView'
 
 const MAX_TASKS = 3
 
-function FocusFloatContent() {
+function InProgressList() {
   const { data: inProgress } = useInProgressTasks()
   const { data: categories } = useCategories()
   const completeTask = useCompleteTask()
@@ -52,6 +54,19 @@ function FocusFloatContent() {
         </ul>
       )}
     </div>
+  )
+}
+
+// Si hay un Modo Foco activo, la ventana flotante lo replica (misión, temporizador
+// y micro-pasos); si no, muestra la lista de tareas "En progreso".
+function FocusFloatContent() {
+  const { taskId } = useFocusSession()
+  return taskId ? (
+    <div className="h-full overflow-y-auto">
+      <FocusSessionView taskId={taskId} compact fallback={<InProgressList />} />
+    </div>
+  ) : (
+    <InProgressList />
   )
 }
 

@@ -38,6 +38,15 @@ export async function createProject(input: {
   return data
 }
 
+export async function updateProject(
+  id: string,
+  patch: Partial<Pick<Project, 'name' | 'boss_title' | 'boss_avatar' | 'status'>>,
+): Promise<Project> {
+  const { data, error } = await supabase.from('projects').update(patch).eq('id', id).select().single()
+  if (error) throw error
+  return data
+}
+
 export async function fetchProjectById(id: string): Promise<Project | null> {
   const { data, error } = await supabase.from('projects').select('*').eq('id', id).maybeSingle()
   if (error) throw error

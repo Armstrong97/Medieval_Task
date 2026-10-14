@@ -73,7 +73,7 @@ export function KanbanPage() {
       <div className="mb-6 flex flex-wrap justify-center gap-2" role="group" aria-label="Filtrar por vencimiento">
         {([
           ['all', 'Todas'],
-          ['overdue', `Vencidas (${overdueCount})`],
+          ['overdue', `Por rescatar (${overdueCount})`],
           ['today', `Hoy (${todayCount})`],
         ] as const).map(([key, label]) => (
           <button

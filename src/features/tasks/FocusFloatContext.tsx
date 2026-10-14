@@ -1,3 +1,4 @@
+import { useFocusSession } from '@/features/tasks/focusSessionContext'
 import { createContext, useContext, useState, type PropsWithChildren } from 'react'
 
 // La Document Picture-in-Picture API todavía no está en los tipos de DOM de TS.
@@ -56,13 +57,14 @@ const FocusFloatContext = createContext<FocusFloatContextValue | null>(null)
  */
 export function FocusFloatProvider({ children }: PropsWithChildren) {
   const [pipWindow, setPipWindow] = useState<Window | null>(null)
+  const { taskId: focusTaskId } = useFocusSession()
   const supported = !!getPipApi()
 
   async function open() {
     if (pipWindow) return
     const api = getPipApi()
     if (!api) return
-    const win = await api.requestWindow({ width: 320, height: 220 })
+    const win = await api.requestWindow({ width: 272, height: focusTaskId ? 352 : 220 })
     copyStylesInto(win)
     win.addEventListener('pagehide', () => setPipWindow(null))
     setPipWindow(win)

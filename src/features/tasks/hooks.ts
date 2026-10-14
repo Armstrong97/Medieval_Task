@@ -161,9 +161,16 @@ export function useCompleteTask() {
       const category = queryClient
         .getQueryData<Category[]>(['categories'])
         ?.find((c) => c.id === task.category_id)
+      const bonus = task.rescue_bonus
+      const total = task.xp_reward + bonus
+      const where = category?.name ?? task.title
       showToast(
-        task.xp_reward > 0
-          ? { title: `+${task.xp_reward} XP`, detail: category?.name ?? task.title, tone: 'reward' }
+        total > 0
+          ? {
+              title: `+${total} XP`,
+              detail: bonus > 0 ? `Rescate +${bonus} · ${where}` : where,
+              tone: 'reward',
+            }
           : { title: 'Misión completada', detail: task.title, tone: 'reward' },
       )
     },
@@ -200,6 +207,7 @@ export function useCaptureInboxTask() {
         status: 'pending',
         size: null,
         xp_reward: 0,
+        rescue_bonus: 0,
         hud_slot: null,
         created_at: new Date().toISOString(),
         completed_at: null,

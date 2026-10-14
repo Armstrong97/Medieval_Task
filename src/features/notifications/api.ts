@@ -52,12 +52,13 @@ export async function syncNotifications(): Promise<void> {
     if (!task.deadline) continue
     const days = differenceInCalendarDays(new Date(task.deadline), now)
     if (days < 0) {
-      alerts.push({ task_id: task.id, type: 'overdue', message: `Vencida: ${task.title}` })
+      alerts.push({ task_id: task.id, type: 'overdue', message: `Por rescatar (XP extra): ${task.title}` })
     } else if (days === 0) {
       alerts.push({ task_id: task.id, type: 'due_today', message: `Vence hoy: ${task.title}` })
+    } else if (days === 1) {
+      alerts.push({ task_id: task.id, type: 'upcoming_1d', message: `Vence mañana: ${task.title}` })
     } else if (days <= 3) {
-      const when = days === 1 ? 'mañana' : `en ${days} días`
-      alerts.push({ task_id: task.id, type: 'upcoming', message: `Vence ${when}: ${task.title}` })
+      alerts.push({ task_id: task.id, type: 'upcoming_3d', message: `Vence en ${days} días: ${task.title}` })
     }
   }
 

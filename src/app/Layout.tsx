@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { Flame, Inbox, Menu, ScrollText, Shield, Swords, Wand2 } from 'lucide-react'
+import { Crosshair, Flame, FolderOpen, Inbox, Menu, ScrollText, Shield, Swords, Wand2, type LucideIcon } from 'lucide-react'
 import { useInboxTasks } from '@/features/tasks/hooks'
 import { useStreak } from '@/features/gamification/hooks'
 import { NotificationBell } from '@/features/notifications/components/NotificationBell'
 import { FocusFloatButton } from '@/features/tasks/components/FocusFloat'
 import { FocusFloatProvider } from '@/features/tasks/FocusFloatContext'
+import { FocusSessionProvider } from '@/features/tasks/FocusSessionProvider'
+import { useFocusSession } from '@/features/tasks/focusSessionContext'
+import { formatClock, useFocusClock } from '@/features/tasks/useFocusClock'
 import { ProfileMenu } from '@/features/auth/components/ProfileMenu'
 import { AmbientBackground } from '@/components/ui/AmbientBackground'
 import { BrandMark } from '@/components/ui/BrandMark'
@@ -17,7 +20,8 @@ import { NAV_ICONS, type NavIconKey } from '@/utils/rpgAssets'
 interface NavItem {
   to: string
   label: string
-  iconKey: NavIconKey
+  iconKey?: NavIconKey
+  Icon?: LucideIcon
   end?: boolean
 }
 
@@ -29,6 +33,7 @@ const navItems: NavItem[] = [
   { to: '/calendario', label: 'Calendario', iconKey: 'calendar' },
   { to: '/progreso', label: 'Progreso', iconKey: 'progress' },
   { to: '/follow-ups', label: 'Follow-ups', iconKey: 'followups' },
+  { to: '/proyectos', label: 'Proyectos', Icon: FolderOpen },
 ]
 
 function StreakIndicator() {
@@ -63,6 +68,25 @@ const bottomItems = [
   { to: '/kanban', label: 'Grimorio', icon: ScrollText, end: false },
 ] as const
 
+// Acceso al Modo Foco activo desde cualquier pantalla (muestra el reloj si hay bloque).
+function ActiveFocusPill() {
+  const { taskId, endAt } = useFocusSession()
+  const remaining = useFocusClock(endAt)
+  const { pathname } = useLocation()
+  if (!taskId || pathname.startsWith('/foco')) return null
+
+  return (
+    <NavLink
+      to={`/foco/${taskId}`}
+      className="flex items-center gap-1.5 rounded-full border border-accent/50 bg-accent/10 px-3 py-1.5 font-mono text-xs font-bold text-accent"
+      aria-label="Volver al Modo Foco activo"
+    >
+      <Crosshair className="h-3.5 w-3.5" aria-hidden="true" />
+      {remaining !== null ? (remaining === 0 ? 'Bloque listo' : formatClock(remaining)) : 'Foco'}
+    </NavLink>
+  )
+}
+
 function CountBadge({ count }: { count: number }) {
   if (count <= 0) return null
   return (
@@ -93,9 +117,10 @@ export function Layout() {
   const currentItem = navItems.find((item) =>
     item.end ? location.pathname === item.to : location.pathname.startsWith(item.to) && item.to !== '/',
   )
-  const pageTitle = currentItem?.label ?? 'Combate'
+  const pageTitle = location.pathname.startsWith('/foco') ? 'Modo Foco' : (currentItem?.label ?? 'Combate')
 
   return (
+    <FocusSessionProvider>
     <FocusFloatProvider>
       <div className="min-h-dvh text-fg">
         <AmbientBackground />
@@ -130,6 +155,7 @@ export function Layout() {
           </div>
 
           <div className="flex items-center gap-3">
+            <ActiveFocusPill />
             <StreakIndicator />
             <FocusFloatButton />
             <NotificationBell />
@@ -171,11 +197,15 @@ export function Layout() {
                   }`
                 }
               >
+                {item.Icon ? (
+                  <item.Icon className="h-6 w-6 shrink-0" aria-hidden="true" />
+                ) : item.iconKey ? (
                 <img
                   src={NAV_ICONS[item.iconKey]}
                   alt=""
                   className="h-6 w-6 object-contain drop-shadow-[0_0_4px_rgb(var(--shade-rgb)/0.5)]"
                 />
+                ) : null}
                 <span className="nav-label font-display text-xs tracking-wider uppercase">
                   {item.label}
                 </span>
@@ -233,5 +263,6 @@ export function Layout() {
         </nav>
       </div>
     </FocusFloatProvider>
+    </FocusSessionProvider>
   )
 }

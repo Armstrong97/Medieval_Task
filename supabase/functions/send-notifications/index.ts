@@ -20,7 +20,13 @@ webPush.setVapidDetails('mailto:noreply@productividad-rpg.app', vapidPublicKey, 
 
 const supabase = createClient(supabaseUrl, serviceRoleKey)
 
-type NotificationType = 'upcoming' | 'due_today' | 'overdue' | 'follow_up'
+type NotificationType =
+  | 'upcoming'
+  | 'upcoming_3d'
+  | 'upcoming_1d'
+  | 'due_today'
+  | 'overdue'
+  | 'follow_up'
 
 interface Alert {
   user_id: string
@@ -55,7 +61,7 @@ Deno.serve(async () => {
         user_id: task.user_id,
         task_id: task.id,
         type: 'overdue',
-        message: `Vencida: ${task.title}`,
+        message: `Por rescatar (XP extra): ${task.title}`,
       })
     } else if (days === 0) {
       alerts.push({
@@ -64,13 +70,19 @@ Deno.serve(async () => {
         type: 'due_today',
         message: `Vence hoy: ${task.title}`,
       })
-    } else if (days <= 3) {
-      const when = days === 1 ? 'mañana' : `en ${days} días`
+    } else if (days === 1) {
       alerts.push({
         user_id: task.user_id,
         task_id: task.id,
-        type: 'upcoming',
-        message: `Vence ${when}: ${task.title}`,
+        type: 'upcoming_1d',
+        message: `Vence mañana: ${task.title}`,
+      })
+    } else if (days <= 3) {
+      alerts.push({
+        user_id: task.user_id,
+        task_id: task.id,
+        type: 'upcoming_3d',
+        message: `Vence en ${days} días: ${task.title}`,
       })
     }
   }

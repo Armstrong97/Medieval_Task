@@ -1,17 +1,9 @@
-import { Axe, BookOpen, Brain, Check, Gamepad2, Landmark, Leaf, Shield, Trophy, type LucideIcon } from 'lucide-react'
+import { Check, Landmark, Shield, Trophy } from 'lucide-react'
+import { CLASS_ICONS } from '@/utils/classIcons'
 import { useState } from 'react'
 import { useCategories } from '@/features/projects/hooks'
 import { useCompleteTask } from '@/features/tasks/hooks'
 import type { Category, Task } from '@/types/database.types'
-
-const CLASS_ICONS: Record<string, LucideIcon> = {
-  Concentrix: Brain,
-  Delorean: Axe,
-  Estudios: BookOpen,
-  Hobbies: Gamepad2,
-  Personal: Shield,
-  Hogar: Leaf,
-}
 
 export function GrimorioTabsView({
   tasks,

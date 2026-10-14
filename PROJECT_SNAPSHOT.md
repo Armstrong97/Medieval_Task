@@ -86,16 +86,22 @@
 │   │   │   │   ├── BossEncounterPage.tsx
 │   │   │   │   ├── BossHealthBar.tsx
 │   │   │   │   ├── PhaseRewardModal.tsx
-│   │   │   │   └── ProjectBossCard.tsx
+│   │   │   │   ├── ProjectBossCard.tsx
+│   │   │   │   └── ProjectsPage.tsx
 │   │   │   └── hooks.ts
 │   │   ├── tasks
 │   │   │   ├── api.ts
 │   │   │   ├── components
 │   │   │   │   ├── FocusFloat.tsx
+│   │   │   │   ├── FocusModePage.tsx
+│   │   │   │   ├── FocusSessionView.tsx
 │   │   │   │   ├── RescheduleButtons.tsx
 │   │   │   │   └── TaskModal.tsx
 │   │   │   ├── FocusFloatContext.tsx
-│   │   │   └── hooks.ts
+│   │   │   ├── focusSessionContext.ts
+│   │   │   ├── FocusSessionProvider.tsx
+│   │   │   ├── hooks.ts
+│   │   │   └── useFocusClock.ts
 │   │   └── triage
 │   │       ├── api.ts
 │   │       ├── components
@@ -111,6 +117,7 @@
 │   ├── types
 │   │   └── database.types.ts
 │   ├── utils
+│   │   ├── classIcons.ts
 │   │   ├── datetime.ts
 │   │   ├── rpgAssets.ts
 │   │   ├── useOnlineStatus.ts
@@ -130,7 +137,8 @@
 │       ├── 20260725230823_fase6_subtask_xp_and_followup_status.sql
 │       ├── 20260726000001_fase7_battle_hud_slots.sql
 │       ├── 20260726000002_fase7_dungeon_bosses.sql
-│       └── 20260727000001_fase8_followup_logs.sql
+│       ├── 20260727000001_fase8_followup_logs.sql
+│       └── 20261013000001_fase9_rescate_avisos_triage.sql
 ├── tsconfig.app.json
 ├── tsconfig.json
 ├── tsconfig.node.json
@@ -450,12 +458,15 @@ export default App
 ```tsx
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { Flame, Inbox, Menu, ScrollText, Shield, Swords, Wand2 } from 'lucide-react'
+import { Crosshair, Flame, FolderOpen, Inbox, Menu, ScrollText, Shield, Swords, Wand2, type LucideIcon } from 'lucide-react'
 import { useInboxTasks } from '@/features/tasks/hooks'
 import { useStreak } from '@/features/gamification/hooks'
 import { NotificationBell } from '@/features/notifications/components/NotificationBell'
 import { FocusFloatButton } from '@/features/tasks/components/FocusFloat'
 import { FocusFloatProvider } from '@/features/tasks/FocusFloatContext'
+import { FocusSessionProvider } from '@/features/tasks/FocusSessionProvider'
+import { useFocusSession } from '@/features/tasks/focusSessionContext'
+import { formatClock, useFocusClock } from '@/features/tasks/useFocusClock'
 import { ProfileMenu } from '@/features/auth/components/ProfileMenu'
 import { AmbientBackground } from '@/components/ui/AmbientBackground'
 import { BrandMark } from '@/components/ui/BrandMark'
@@ -467,7 +478,8 @@ import { NAV_ICONS, type NavIconKey } from '@/utils/rpgAssets'
 interface NavItem {
   to: string
   label: string
-  iconKey: NavIconKey
+  iconKey?: NavIconKey
+  Icon?: LucideIcon
   end?: boolean
 }
 
@@ -479,6 +491,7 @@ const navItems: NavItem[] = [
   { to: '/calendario', label: 'Calendario', iconKey: 'calendar' },
   { to: '/progreso', label: 'Progreso', iconKey: 'progress' },
   { to: '/follow-ups', label: 'Follow-ups', iconKey: 'followups' },
+  { to: '/proyectos', label: 'Proyectos', Icon: FolderOpen },
 ]
 
 function StreakIndicator() {
@@ -513,6 +526,25 @@ const bottomItems = [
   { to: '/kanban', label: 'Grimorio', icon: ScrollText, end: false },
 ] as const
 
+// Acceso al Modo Foco activo desde cualquier pantalla (muestra el reloj si hay bloque).
+function ActiveFocusPill() {
+  const { taskId, endAt } = useFocusSession()
+  const remaining = useFocusClock(endAt)
+  const { pathname } = useLocation()
+  if (!taskId || pathname.startsWith('/foco')) return null
+
+  return (
+    <NavLink
+      to={`/foco/${taskId}`}
+      className="flex items-center gap-1.5 rounded-full border border-accent/50 bg-accent/10 px-3 py-1.5 font-mono text-xs font-bold text-accent"
+      aria-label="Volver al Modo Foco activo"
+    >
+      <Crosshair className="h-3.5 w-3.5" aria-hidden="true" />
+      {remaining !== null ? (remaining === 0 ? 'Bloque listo' : formatClock(remaining)) : 'Foco'}
+    </NavLink>
+  )
+}
+
 function CountBadge({ count }: { count: number }) {
   if (count <= 0) return null
   return (
@@ -543,9 +575,10 @@ export function Layout() {
   const currentItem = navItems.find((item) =>
     item.end ? location.pathname === item.to : location.pathname.startsWith(item.to) && item.to !== '/',
   )
-  const pageTitle = currentItem?.label ?? 'Combate'
+  const pageTitle = location.pathname.startsWith('/foco') ? 'Modo Foco' : (currentItem?.label ?? 'Combate')
 
   return (
+    <FocusSessionProvider>
     <FocusFloatProvider>
       <div className="min-h-dvh text-fg">
         <AmbientBackground />
@@ -580,6 +613,7 @@ export function Layout() {
           </div>
 
           <div className="flex items-center gap-3">
+            <ActiveFocusPill />
             <StreakIndicator />
             <FocusFloatButton />
             <NotificationBell />
@@ -621,11 +655,15 @@ export function Layout() {
                   }`
                 }
               >
+                {item.Icon ? (
+                  <item.Icon className="h-6 w-6 shrink-0" aria-hidden="true" />
+                ) : item.iconKey ? (
                 <img
                   src={NAV_ICONS[item.iconKey]}
                   alt=""
                   className="h-6 w-6 object-contain drop-shadow-[0_0_4px_rgb(var(--shade-rgb)/0.5)]"
                 />
+                ) : null}
                 <span className="nav-label font-display text-xs tracking-wider uppercase">
                   {item.label}
                 </span>
@@ -683,6 +721,7 @@ export function Layout() {
         </nav>
       </div>
     </FocusFloatProvider>
+    </FocusSessionProvider>
   )
 }
 ```
@@ -815,6 +854,8 @@ import { StrategyTablePage } from '@/features/triage/components/StrategyTablePag
 import { KanbanPage } from '@/features/kanban/components/KanbanPage'
 import { CalendarPage } from '@/features/calendar/components/CalendarPage'
 import { ProgressPage } from '@/features/gamification/components/ProgressPage'
+import { ProjectsPage } from '@/features/projects/components/ProjectsPage'
+import { FocusModePage } from '@/features/tasks/components/FocusModePage'
 import { FollowUpsPage } from '@/features/followups/components/FollowUpsPage'
 
 export const router = createBrowserRouter([
@@ -836,6 +877,8 @@ export const router = createBrowserRouter([
           { path: 'calendario', element: <CalendarPage /> },
           { path: 'progreso', element: <ProgressPage /> },
           { path: 'follow-ups', element: <FollowUpsPage /> },
+          { path: 'proyectos', element: <ProjectsPage /> },
+          { path: 'foco/:taskId', element: <FocusModePage /> },
           { path: 'projects/:projectId/boss', element: <BossEncounterPage /> },
         ],
       },
@@ -1491,7 +1534,7 @@ export async function unequipTaskFromSlot(taskId: string): Promise<Task> {
 ```tsx
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ScrollText, Shield, Zap } from 'lucide-react'
+import { ScrollText, Shield, Sparkles, Zap } from 'lucide-react'
 import { useEquipHudSlot, useHudTasks, useSuggestedTask } from '@/features/battle-hud/hooks'
 import { useCategories } from '@/features/projects/hooks'
 import { useCategoryXp, useClassRanks, useStreak } from '@/features/gamification/hooks'
@@ -1500,7 +1543,7 @@ import { EmptySlotCard } from '@/features/battle-hud/components/EmptySlotCard'
 import { StaminaRing } from '@/features/battle-hud/components/StaminaRing'
 import { GrimorioDrawer } from '@/features/battle-hud/components/GrimorioDrawer'
 import { TaskModal } from '@/features/tasks/components/TaskModal'
-import { bossAvatarSrc } from '@/utils/rpgAssets'
+import { CLASS_ICONS } from '@/utils/classIcons'
 import type { Task } from '@/types/database.types'
 
 const SLOTS = [1, 2, 3]
@@ -1519,6 +1562,7 @@ function PlayerSummaryHeader() {
   }, [categoryXp])
 
   const dominantCategory = categories?.find((c) => c.id === dominant?.category_id)
+  const HeroIcon = (dominantCategory && CLASS_ICONS[dominantCategory.name]) || Sparkles
   const dominantRank =
     classRanks?.find((r) => r.id === dominant?.current_rank_id) ??
     classRanks?.find((r) => r.category_id === dominant?.category_id && r.rank_order === 1)
@@ -1528,11 +1572,14 @@ function PlayerSummaryHeader() {
       <div className="flex items-center gap-5">
         <div className="relative">
           <div className="h-16 w-16 rounded-full border-2 border-accent bg-surface-2 p-1 shadow-[0_0_12px_rgb(var(--accent-rgb)/0.35)]">
-            <img
-              src={bossAvatarSrc('dragon_default')}
-              className="h-full w-full rounded-full object-cover"
-              alt="Avatar del Héroe"
-            />
+            <div
+              className="flex h-full w-full items-center justify-center rounded-full"
+              style={{ color: dominantCategory?.color_hex }}
+              role="img"
+              aria-label={`Clase: ${dominantCategory?.name ?? 'Aventurero'}`}
+            >
+              <HeroIcon className="h-8 w-8" aria-hidden="true" />
+            </div>
           </div>
           <div className="absolute -bottom-1 -right-1 rounded border border-bg bg-accent px-1.5 font-mono text-xs font-black text-accent-fg">
             NV. {dominant?.current_level ?? 1}
@@ -1653,10 +1700,10 @@ export function BattleHudPage() {
 
 ```tsx
 import { useState } from 'react'
-import { MoreVertical, PictureInPicture2, Star, Swords } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Crosshair, MoreVertical, Star, Swords } from 'lucide-react'
 import { useCategories } from '@/features/projects/hooks'
 import { useCompleteTask, useSubtasks } from '@/features/tasks/hooks'
-import { useFocusFloat } from '@/features/tasks/FocusFloatContext'
 import { useSendToFollowUp } from '@/features/followups/hooks'
 import { useClearTodayPriority, useSetTodayPriority, useTodayQuests } from '@/features/gamification/hooks'
 import { RescheduleButtons } from '@/features/tasks/components/RescheduleButtons'
@@ -1685,7 +1732,7 @@ export function CombatSlotCard({
   const completeTask = useCompleteTask()
   const unequip = useUnequipHudSlot()
   const sendToFollowUp = useSendToFollowUp()
-  const { open: openFocusFloat } = useFocusFloat()
+  const navigate = useNavigate()
   const { data: todayQuests } = useTodayQuests()
   const setPriority = useSetTodayPriority()
   const clearPriority = useClearTodayPriority()
@@ -1778,6 +1825,7 @@ export function CombatSlotCard({
         </button>
         {isOverdue(task) && (
           <div className="mb-3">
+            <p className="mb-2 font-mono text-xs text-gold">Rescate: termínala y gana XP extra, o reprográmala sin culpa.</p>
             <RescheduleButtons task={task} />
           </div>
         )}
@@ -1816,10 +1864,10 @@ export function CombatSlotCard({
         <div className="grid grid-cols-2 gap-3">
           <button
             type="button"
-            onClick={() => void openFocusFloat()}
+            onClick={() => navigate(`/foco/${task.id}`)}
             className="flex items-center justify-center gap-1.5 rounded-lg border border-glass/10 bg-glass/5 py-3 font-mono text-xs font-black uppercase tracking-widest text-fg-muted transition-all hover:bg-glass/10 hover:text-fg active:scale-95"
           >
-            <PictureInPicture2 className="h-3.5 w-3.5" /> Atacar
+            <Crosshair className="h-3.5 w-3.5" /> Atacar
           </button>
           <button
             type="button"
@@ -3849,7 +3897,7 @@ export function useXpEarnedToday() {
 
   if (!tasksToday || !todayQuests || !weeklyQuests) return undefined
 
-  const tasksXp = tasksToday.reduce((sum, t) => sum + t.xp_reward, 0)
+  const tasksXp = tasksToday.reduce((sum, t) => sum + t.xp_reward + t.rescue_bonus, 0)
   const priorityXp = todayQuests
     .filter((q) => q.type === 'daily_priority' && q.completed && q.completed_at && isToday(new Date(q.completed_at)))
     .reduce((sum, q) => sum + q.xp_reward, 0)
@@ -3971,11 +4019,11 @@ export function InboxTopBar({ onOpenTask }: { onOpenTask: (task: Task) => void }
         >
           <span className="flex items-center gap-2 font-mono font-medium">
             <AlertTriangle className="h-4 w-4 shrink-0 text-warn-fg" />
-            {overdueCount > 0 && <span>{overdueCount} misiones vencidas</span>}
+            {overdueCount > 0 && <span>{overdueCount} misiones por rescatar</span>}
             {overdueCount > 0 && dueTodayCount > 0 && <span>·</span>}
             {dueTodayCount > 0 && <span>{dueTodayCount} vencen hoy</span>}
           </span>
-          <span className="font-mono text-xs font-bold underline">RESOLVER EN GRIMORIO →</span>
+          <span className="font-mono text-xs font-bold underline">RESCATAR EN GRIMORIO →</span>
         </button>
       )}
 
@@ -4660,6 +4708,7 @@ function RenderMissionCard({
       </div>
       {isOverdue(task) && (
         <div className="mt-2.5 border-t border-border pt-2.5">
+          <p className="mb-2 font-mono text-xs text-gold">Rescate: termínala y gana XP extra, o reprográmala sin culpa.</p>
           <RescheduleButtons task={task} />
         </div>
       )}
@@ -4671,20 +4720,12 @@ function RenderMissionCard({
 ### src/features/kanban/components/GrimorioTabsView.tsx
 
 ```tsx
-import { Axe, BookOpen, Brain, Check, Gamepad2, Landmark, Leaf, Shield, Trophy, type LucideIcon } from 'lucide-react'
+import { Check, Landmark, Shield, Trophy } from 'lucide-react'
+import { CLASS_ICONS } from '@/utils/classIcons'
 import { useState } from 'react'
 import { useCategories } from '@/features/projects/hooks'
 import { useCompleteTask } from '@/features/tasks/hooks'
 import type { Category, Task } from '@/types/database.types'
-
-const CLASS_ICONS: Record<string, LucideIcon> = {
-  Concentrix: Brain,
-  Delorean: Axe,
-  Estudios: BookOpen,
-  Hobbies: Gamepad2,
-  Personal: Shield,
-  Hogar: Leaf,
-}
 
 export function GrimorioTabsView({
   tasks,
@@ -4945,7 +4986,7 @@ export function KanbanPage() {
       <div className="mb-6 flex flex-wrap justify-center gap-2" role="group" aria-label="Filtrar por vencimiento">
         {([
           ['all', 'Todas'],
-          ['overdue', `Vencidas (${overdueCount})`],
+          ['overdue', `Por rescatar (${overdueCount})`],
           ['today', `Hoy (${todayCount})`],
         ] as const).map(([key, label]) => (
           <button
@@ -5051,12 +5092,13 @@ export async function syncNotifications(): Promise<void> {
     if (!task.deadline) continue
     const days = differenceInCalendarDays(new Date(task.deadline), now)
     if (days < 0) {
-      alerts.push({ task_id: task.id, type: 'overdue', message: `Vencida: ${task.title}` })
+      alerts.push({ task_id: task.id, type: 'overdue', message: `Por rescatar (XP extra): ${task.title}` })
     } else if (days === 0) {
       alerts.push({ task_id: task.id, type: 'due_today', message: `Vence hoy: ${task.title}` })
+    } else if (days === 1) {
+      alerts.push({ task_id: task.id, type: 'upcoming_1d', message: `Vence mañana: ${task.title}` })
     } else if (days <= 3) {
-      const when = days === 1 ? 'mañana' : `en ${days} días`
-      alerts.push({ task_id: task.id, type: 'upcoming', message: `Vence ${when}: ${task.title}` })
+      alerts.push({ task_id: task.id, type: 'upcoming_3d', message: `Vence en ${days} días: ${task.title}` })
     }
   }
 
@@ -5085,7 +5127,7 @@ export async function syncNotifications(): Promise<void> {
 
 ```tsx
 import { useEffect, useState } from 'react'
-import { AlertTriangle, Bell, Calendar, Clock, Link2 } from 'lucide-react'
+import { Bell, Calendar, Clock, LifeBuoy, Link2 } from 'lucide-react'
 import {
   useDismissAllNotifications,
   useDismissNotification,
@@ -5099,8 +5141,10 @@ import type { NotificationType, Task } from '@/types/database.types'
 
 const TYPE_ICON: Record<NotificationType, typeof Bell> = {
   upcoming: Clock,
+  upcoming_3d: Clock,
+  upcoming_1d: Clock,
   due_today: Calendar,
-  overdue: AlertTriangle,
+  overdue: LifeBuoy,
   follow_up: Link2,
 }
 
@@ -5420,6 +5464,15 @@ export async function createProject(input: {
     })
     .select()
     .single()
+  if (error) throw error
+  return data
+}
+
+export async function updateProject(
+  id: string,
+  patch: Partial<Pick<Project, 'name' | 'boss_title' | 'boss_avatar' | 'status'>>,
+): Promise<Project> {
+  const { data, error } = await supabase.from('projects').update(patch).eq('id', id).select().single()
   if (error) throw error
   return data
 }
@@ -5861,6 +5914,160 @@ export function ProjectBossCard({ project, category }: { project: Project; categ
 }
 ```
 
+### src/features/projects/components/ProjectsPage.tsx
+
+```tsx
+import { useState, type FormEvent } from 'react'
+import { FolderOpen, Pencil } from 'lucide-react'
+import { showToast } from '@/components/ui/toast-store'
+import { useCategories, useCreateProject, useProjects, useUpdateProject } from '@/features/projects/hooks'
+import { ProjectBossCard } from '@/features/projects/components/ProjectBossCard'
+import { BOSS_AVATARS } from '@/utils/rpgAssets'
+import type { Category, Project } from '@/types/database.types'
+
+const BOSS_LABELS: Record<keyof typeof BOSS_AVATARS, string> = {
+  dragon_default: 'Dragón',
+  lich_default: 'Liche',
+}
+
+function ProjectRow({ project, category }: { project: Project; category?: Category }) {
+  const update = useUpdateProject()
+  const [editing, setEditing] = useState(false)
+  const [confirmArchive, setConfirmArchive] = useState(false)
+  const [name, setName] = useState(project.name)
+  const [bossTitle, setBossTitle] = useState(project.boss_title)
+  const [bossAvatar, setBossAvatar] = useState(project.boss_avatar)
+
+  function save() {
+    const trimmed = name.trim()
+    if (!trimmed) return
+    update.mutate(
+      { id: project.id, patch: { name: trimmed, boss_title: bossTitle.trim() || project.boss_title, boss_avatar: bossAvatar } },
+      { onSuccess: () => { setEditing(false); showToast({ title: 'Proyecto actualizado' }) } },
+    )
+  }
+
+  function archive() {
+    update.mutate(
+      { id: project.id, patch: { status: 'archived' } },
+      { onSuccess: () => showToast({ title: 'Proyecto archivado', detail: project.name }) },
+    )
+  }
+
+  return (
+    <li className="space-y-2">
+      <ProjectBossCard project={project} category={category} />
+
+      {editing ? (
+        <div className="space-y-3 rounded-xl border border-border bg-surface p-4">
+          <label className="block font-mono text-xs uppercase tracking-widest text-fg-muted">
+            Nombre
+            <input value={name} onChange={(e) => setName(e.target.value)} className="input-parchment mt-1 w-full rounded-lg px-3 py-2.5 text-base normal-case text-fg" />
+          </label>
+          <label className="block font-mono text-xs uppercase tracking-widest text-fg-muted">
+            Título del jefe
+            <input value={bossTitle} onChange={(e) => setBossTitle(e.target.value)} className="input-parchment mt-1 w-full rounded-lg px-3 py-2.5 text-base normal-case text-fg" />
+          </label>
+          <label className="block font-mono text-xs uppercase tracking-widest text-fg-muted">
+            Jefe
+            <select value={bossAvatar} onChange={(e) => setBossAvatar(e.target.value)} className="parchment-select mt-1 w-full rounded-lg p-2.5 text-base normal-case">
+              {Object.entries(BOSS_LABELS).map(([key, label]) => (
+                <option key={key} value={key}>{label}</option>
+              ))}
+            </select>
+          </label>
+          <div className="flex gap-2">
+            <button type="button" onClick={save} disabled={!name.trim() || update.isPending} className="btn-prime flex-1 rounded-lg py-3 font-mono text-xs font-black uppercase tracking-widest disabled:opacity-50">
+              Guardar
+            </button>
+            <button type="button" onClick={() => setEditing(false)} className="rounded-lg border border-border px-4 py-3 font-mono text-xs font-bold uppercase text-fg-muted">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center justify-end gap-2">
+          <button type="button" onClick={() => setEditing(true)} className="flex items-center gap-1.5 rounded-lg px-3 py-2.5 font-mono text-xs font-bold uppercase tracking-widest text-fg-muted transition-colors hover:text-fg">
+            <Pencil className="h-3.5 w-3.5" aria-hidden="true" /> Editar
+          </button>
+          {confirmArchive ? (
+            <>
+              <button type="button" onClick={archive} disabled={update.isPending} className="rounded-lg bg-accent px-3 py-2.5 font-mono text-xs font-black uppercase text-accent-fg">
+                Sí, archivar
+              </button>
+              <button type="button" onClick={() => setConfirmArchive(false)} className="rounded-lg px-3 py-2.5 font-mono text-xs font-bold uppercase text-fg-muted">
+                No
+              </button>
+            </>
+          ) : (
+            <button type="button" onClick={() => setConfirmArchive(true)} className="rounded-lg px-3 py-2.5 font-mono text-xs font-bold uppercase tracking-widest text-fg-muted transition-colors hover:text-fg">
+              Archivar
+            </button>
+          )}
+        </div>
+      )}
+    </li>
+  )
+}
+
+export function ProjectsPage() {
+  const { data: projects, isLoading } = useProjects()
+  const { data: categories } = useCategories()
+  const createProject = useCreateProject()
+  const [name, setName] = useState('')
+  const [categoryId, setCategoryId] = useState('')
+
+  function handleCreate(e: FormEvent) {
+    e.preventDefault()
+    if (!name.trim() || !categoryId) return
+    createProject.mutate(
+      { name: name.trim(), categoryId },
+      { onSuccess: () => { setName(''); showToast({ title: 'Proyecto creado' }) } },
+    )
+  }
+
+  return (
+    <div className="mx-auto max-w-3xl px-4 py-8 md:px-8">
+      <header className="mb-8">
+        <h1 className="flex items-center gap-3 font-display text-3xl font-black uppercase tracking-widest text-accent">
+          <FolderOpen className="h-8 w-8" aria-hidden="true" /> Proyectos
+        </h1>
+        <p className="mt-1 font-mono text-xs text-fg-muted">
+          Cada proyecto es un jefe: terminar sus misiones baja su vida. Toca uno para entrar a su sala.
+        </p>
+      </header>
+
+      <form onSubmit={handleCreate} className="mb-8 grid gap-3 rounded-2xl border border-border bg-surface/60 p-4 sm:grid-cols-[1fr_auto_auto]">
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre del nuevo proyecto" aria-label="Nombre del nuevo proyecto" className="input-parchment rounded-xl px-4 py-3 text-base text-fg" />
+        <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} aria-label="Clase del proyecto" className="parchment-select rounded-xl p-3 text-base">
+          <option value="" disabled>Clase</option>
+          {categories?.map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
+        <button type="submit" disabled={!name.trim() || !categoryId || createProject.isPending} className="btn-prime rounded-xl px-6 py-3 font-mono text-xs font-black uppercase tracking-widest disabled:opacity-50">
+          Crear
+        </button>
+      </form>
+
+      {isLoading ? (
+        <p className="py-8 text-center font-mono text-xs text-fg-muted">Cargando proyectos…</p>
+      ) : !projects || projects.length === 0 ? (
+        <p className="py-8 text-center font-mono text-sm text-fg-muted">
+          Aún no tienes proyectos. Crea uno arriba, o desde la Mesa de Estrategia al ordenar una captura.
+        </p>
+      ) : (
+        <ul className="space-y-5">
+          {projects.map((project) => (
+            <ProjectRow key={project.id} project={project} category={categories?.find((c) => c.id === project.category_id)} />
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+```
+
 ### src/features/projects/hooks.ts
 
 ```typescript
@@ -5873,6 +6080,7 @@ import {
   fetchActiveProjects,
   fetchCategories,
   fetchProjectById,
+  updateProject,
 } from '@/features/projects/api'
 import { useTasksByProject } from '@/features/tasks/hooks'
 
@@ -5898,6 +6106,15 @@ export function useCreateProject() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] })
     },
+  })
+}
+
+export function useUpdateProject() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Parameters<typeof updateProject>[1] }) =>
+      updateProject(id, patch),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projects'] }),
   })
 }
 
@@ -6196,10 +6413,12 @@ import { Check, PictureInPicture2 } from 'lucide-react'
 import { useCompleteTask, useInProgressTasks } from '@/features/tasks/hooks'
 import { useCategories } from '@/features/projects/hooks'
 import { useFocusFloat } from '@/features/tasks/FocusFloatContext'
+import { useFocusSession } from '@/features/tasks/focusSessionContext'
+import { FocusSessionView } from '@/features/tasks/components/FocusSessionView'
 
 const MAX_TASKS = 3
 
-function FocusFloatContent() {
+function InProgressList() {
   const { data: inProgress } = useInProgressTasks()
   const { data: categories } = useCategories()
   const completeTask = useCompleteTask()
@@ -6248,6 +6467,19 @@ function FocusFloatContent() {
   )
 }
 
+// Si hay un Modo Foco activo, la ventana flotante lo replica (misión, temporizador
+// y micro-pasos); si no, muestra la lista de tareas "En progreso".
+function FocusFloatContent() {
+  const { taskId } = useFocusSession()
+  return taskId ? (
+    <div className="h-full overflow-y-auto">
+      <FocusSessionView taskId={taskId} compact fallback={<InProgressList />} />
+    </div>
+  ) : (
+    <InProgressList />
+  )
+}
+
 /**
  * Botón del nav para la ventana flotante de foco (Document Picture-in-Picture):
  * mini-ventana siempre-encima y redimensionable con las tareas "En progreso"
@@ -6280,6 +6512,273 @@ export function FocusFloatButton() {
       </button>
       {pipWindow && createPortal(<FocusFloatContent />, pipWindow.document.body)}
     </>
+  )
+}
+```
+
+### src/features/tasks/components/FocusModePage.tsx
+
+```tsx
+import { useEffect } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { ArrowLeft, LogOut, PictureInPicture2 } from 'lucide-react'
+import { useFocusFloat } from '@/features/tasks/FocusFloatContext'
+import { useFocusSession } from '@/features/tasks/focusSessionContext'
+import { FocusSessionView } from '@/features/tasks/components/FocusSessionView'
+
+// Modo Foco dentro de la app: una sola misión, sus micro-pasos y un
+// temporizador OPCIONAL (ceguera de tiempo). Funciona en móvil, a diferencia
+// de la ventana flotante (solo Chrome/Edge de escritorio), que muestra esta
+// misma sesión cuando está abierta. El botón de captura rápida sigue visible
+// a propósito: anotar la idea que te distrae sin salir del foco.
+export function FocusModePage() {
+  const { taskId } = useParams()
+  const navigate = useNavigate()
+  const { supported: pipSupported, open: openPip } = useFocusFloat()
+  const { begin, end } = useFocusSession()
+
+  useEffect(() => {
+    if (taskId) begin(taskId)
+  }, [taskId, begin])
+
+  if (!taskId) return null
+
+  return (
+    <div className="mx-auto flex max-w-xl flex-col gap-8 px-4 py-8">
+      <Link
+        to="/"
+        className="flex w-fit items-center gap-2 font-mono text-xs uppercase tracking-widest text-fg-muted transition-colors hover:text-fg"
+      >
+        <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Volver al Combate (el foco sigue activo)
+      </Link>
+
+      <FocusSessionView
+        taskId={taskId}
+        onCompleted={() => navigate('/')}
+        fallback={
+          <div className="py-12 text-center">
+            <p className="mb-6 font-display text-lg text-fg">Esta misión ya no está activa.</p>
+            <Link
+              to="/"
+              className="btn-prime inline-block rounded-full px-8 py-3 font-display text-xs font-bold uppercase tracking-widest"
+            >
+              Volver al Combate
+            </Link>
+          </div>
+        }
+      />
+
+      <footer className="flex flex-col gap-3">
+        {pipSupported && (
+          <button
+            type="button"
+            onClick={() => void openPip()}
+            className="flex items-center justify-center gap-2 rounded-xl border border-border py-3 font-mono text-xs font-bold uppercase tracking-widest text-fg-muted transition-colors hover:text-fg"
+          >
+            <PictureInPicture2 className="h-4 w-4" aria-hidden="true" /> Ventana flotante
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => {
+            end()
+            navigate('/')
+          }}
+          className="flex items-center justify-center gap-2 rounded-xl py-3 font-mono text-xs font-bold uppercase tracking-widest text-fg-muted transition-colors hover:text-fg"
+        >
+          <LogOut className="h-4 w-4" aria-hidden="true" /> Salir del foco
+        </button>
+      </footer>
+    </div>
+  )
+}
+```
+
+### src/features/tasks/components/FocusSessionView.tsx
+
+```tsx
+import { useEffect, type ReactNode } from 'react'
+import { Check, Timer } from 'lucide-react'
+import { useCompleteTask, useSubtasks, useTaskById, useUpdateTask } from '@/features/tasks/hooks'
+import { useFocusSession } from '@/features/tasks/focusSessionContext'
+import { formatClock, useFocusClock } from '@/features/tasks/useFocusClock'
+
+const PRESET_MINUTES = [15, 25, 45]
+const COMPACT_SCALE = 0.8
+
+/**
+ * Contenido del Modo Foco: título, temporizador opcional, micro-pasos y
+ * "Terminé". Lo comparten la página `/foco/:taskId` y la ventana flotante
+ * (`compact`), que leen la misma sesión (`useFocusSession`).
+ */
+export function FocusSessionView({
+  taskId,
+  compact = false,
+  onCompleted,
+  fallback = null,
+}: {
+  taskId: string
+  compact?: boolean
+  onCompleted?: () => void
+  fallback?: ReactNode
+}) {
+  const { data: task, isLoading } = useTaskById(taskId)
+  const { data: subtasks } = useSubtasks(taskId)
+  const updateTask = useUpdateTask()
+  const completeTask = useCompleteTask()
+  const { endAt, startTimer, stopTimer, end } = useFocusSession()
+  const remaining = useFocusClock(endAt)
+  const finished = remaining === 0
+
+  // Si la misión se completó por otra vía, la sesión de foco deja de tener sentido.
+  const isDone = task?.status === 'done'
+  useEffect(() => {
+    if (isDone) end()
+  }, [isDone, end])
+
+  if (isLoading) {
+    return <p className="p-3 font-mono text-xs text-fg-muted">Preparando el foco…</p>
+  }
+  if (!task || isDone) return <>{fallback}</>
+
+  const steps = subtasks ?? []
+  const doneSteps = steps.filter((s) => s.status === 'done').length
+
+  return (
+    // zoom 0.8: la ventana flotante es solo Chromium (Document PiP), que lo soporta.
+    <div
+      className={compact ? 'flex h-full flex-col gap-3 p-3' : 'flex flex-col gap-8'}
+      style={compact ? { zoom: COMPACT_SCALE } : undefined}
+    >
+      <header className="text-center">
+        {!compact && (
+          <p className="mb-2 font-mono text-xs uppercase tracking-[0.3em] text-accent">Ahora solo esto</p>
+        )}
+        <h1
+          className={
+            compact
+              ? 'border-b border-accent/30 pb-2 font-display text-xl font-black leading-snug text-accent drop-shadow-[0_0_8px_rgb(var(--accent-rgb)/0.35)]'
+              : 'font-display text-3xl font-black leading-tight text-fg md:text-4xl'
+          }
+        >
+          {task.title}
+        </h1>
+      </header>
+
+      <section
+        aria-label="Temporizador"
+        className={`rounded-2xl border border-border bg-surface/60 text-center ${
+          compact ? 'p-3' : 'rune-frame p-6'
+        }`}
+      >
+        {remaining === null ? (
+          <>
+            <p className="mb-3 flex items-center justify-center gap-2 font-mono text-xs uppercase tracking-widest text-fg-muted">
+              <Timer className="h-4 w-4" aria-hidden="true" /> Bloque de foco (opcional)
+            </p>
+            <div className="flex flex-wrap justify-center gap-2">
+              {PRESET_MINUTES.map((min) => (
+                <button
+                  key={min}
+                  type="button"
+                  onClick={() => startTimer(min)}
+                  className="tactile-chip rounded-full px-5 py-2.5 font-mono text-sm font-bold"
+                >
+                  {min} min
+                </button>
+              ))}
+            </div>
+          </>
+        ) : (
+          <>
+            <p
+              role="timer"
+              aria-live="off"
+              className={`font-mono font-black tabular-nums ${compact ? 'text-4xl' : 'text-6xl'} ${
+                finished ? 'text-gold' : 'text-fg'
+              }`}
+            >
+              {formatClock(remaining)}
+            </p>
+            <p
+              className={`mt-1 font-mono uppercase tracking-widest text-fg-muted ${
+                compact ? 'text-[10px] leading-tight' : 'text-xs'
+              }`}
+            >
+              {finished ? 'Bloque terminado' : 'Concéntrate solo en el siguiente paso'}
+            </p>
+            <button
+              type="button"
+              onClick={stopTimer}
+              className={`mt-2 rounded-lg px-4 py-2 font-mono text-xs font-bold uppercase tracking-widest transition-colors ${
+                finished
+                  ? 'text-fg-muted hover:text-fg'
+                  : 'border border-red-600/40 bg-red-600/20 text-red-400 hover:bg-red-600/30'
+              }`}
+            >
+              {finished ? 'Nuevo bloque' : 'Detener'}
+            </button>
+          </>
+        )}
+      </section>
+
+      {steps.length > 0 && (
+        <section aria-label="Micro-pasos">
+          <h2 className="mb-2 font-mono text-xs uppercase tracking-widest text-fg-muted">
+            Micro-pasos · {doneSteps}/{steps.length}
+          </h2>
+          <ul className="space-y-2">
+            {steps.map((step) => {
+              const done = step.status === 'done'
+              return (
+                <li key={step.id}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      updateTask.mutate({ id: step.id, patch: { status: done ? 'pending' : 'done' } })
+                    }
+                    aria-pressed={done}
+                    className={`flex w-full items-center gap-3 rounded-xl border border-border bg-surface text-left transition-colors hover:border-accent ${
+                      compact ? 'min-h-11 px-3 py-2 text-sm' : 'min-h-12 px-4 py-3'
+                    }`}
+                  >
+                    <span
+                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded border ${
+                        done ? 'border-accent bg-accent text-accent-fg' : 'border-glass/30'
+                      }`}
+                    >
+                      {done && <Check className="h-4 w-4" aria-hidden="true" />}
+                    </span>
+                    <span className={done ? 'text-fg-muted line-through' : 'text-fg'}>{step.title}</span>
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      )}
+
+      <button
+        type="button"
+        disabled={completeTask.isPending}
+        onClick={() =>
+          completeTask.mutate(
+            { id: task.id, project_id: task.project_id },
+            {
+              onSuccess: () => {
+                end()
+                onCompleted?.()
+              },
+            },
+          )
+        }
+        className={`btn-prime flex items-center justify-center gap-2 rounded-xl font-display font-black uppercase tracking-widest disabled:opacity-50 ${
+          compact ? 'py-1.5 text-[11px]' : 'py-4 text-sm'
+        }`}
+      >
+        <Check className={compact ? 'h-4 w-4' : 'h-5 w-5'} aria-hidden="true" /> Terminé la misión
+      </button>
+    </div>
   )
 }
 ```
@@ -6930,6 +7429,7 @@ export function TaskModal({
 ### src/features/tasks/FocusFloatContext.tsx
 
 ```tsx
+import { useFocusSession } from '@/features/tasks/focusSessionContext'
 import { createContext, useContext, useState, type PropsWithChildren } from 'react'
 
 // La Document Picture-in-Picture API todavía no está en los tipos de DOM de TS.
@@ -6988,13 +7488,14 @@ const FocusFloatContext = createContext<FocusFloatContextValue | null>(null)
  */
 export function FocusFloatProvider({ children }: PropsWithChildren) {
   const [pipWindow, setPipWindow] = useState<Window | null>(null)
+  const { taskId: focusTaskId } = useFocusSession()
   const supported = !!getPipApi()
 
   async function open() {
     if (pipWindow) return
     const api = getPipApi()
     if (!api) return
-    const win = await api.requestWindow({ width: 320, height: 220 })
+    const win = await api.requestWindow({ width: 272, height: focusTaskId ? 352 : 220 })
     copyStylesInto(win)
     win.addEventListener('pagehide', () => setPipWindow(null))
     setPipWindow(win)
@@ -7016,6 +7517,105 @@ export function useFocusFloat() {
   const ctx = useContext(FocusFloatContext)
   if (!ctx) throw new Error('useFocusFloat debe usarse dentro de FocusFloatProvider')
   return ctx
+}
+```
+
+### src/features/tasks/focusSessionContext.ts
+
+```typescript
+import { createContext, useContext } from 'react'
+
+export interface FocusSessionValue {
+  /** Misión en foco (null = no hay sesión activa). */
+  taskId: string | null
+  /** Marca de tiempo (ms) en que termina el bloque; null = sin temporizador. */
+  endAt: number | null
+  begin: (taskId: string) => void
+  startTimer: (minutes: number) => void
+  stopTimer: () => void
+  end: () => void
+}
+
+export const FocusSessionContext = createContext<FocusSessionValue | null>(null)
+
+export function useFocusSession(): FocusSessionValue {
+  const ctx = useContext(FocusSessionContext)
+  if (!ctx) throw new Error('useFocusSession debe usarse dentro de FocusSessionProvider')
+  return ctx
+}
+```
+
+### src/features/tasks/FocusSessionProvider.tsx
+
+```tsx
+import { useCallback, useEffect, useMemo, useState, type PropsWithChildren } from 'react'
+import { showToast } from '@/components/ui/toast-store'
+import { FocusSessionContext } from '@/features/tasks/focusSessionContext'
+
+const STORAGE_KEY = 'questly_focus_session'
+
+interface Stored {
+  taskId: string | null
+  endAt: number | null
+}
+
+function read(): Stored {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY)
+    if (raw) return JSON.parse(raw) as Stored
+  } catch {
+    // sin sessionStorage: la sesión funciona igual, solo no sobrevive a recargar.
+  }
+  return { taskId: null, endAt: null }
+}
+
+/**
+ * Sesión de foco única y global: la misión en foco y su temporizador viven acá
+ * para que el Modo Foco de la página y la ventana flotante muestren lo mismo
+ * (antes el estado era local de la página). Va por encima de FocusFloatProvider.
+ */
+export function FocusSessionProvider({ children }: PropsWithChildren) {
+  const [session, setSession] = useState<Stored>(read)
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(session))
+    } catch {
+      // nada que persistir
+    }
+  }, [session])
+
+  // Aviso al terminar el bloque, esté la página o solo la ventana flotante.
+  useEffect(() => {
+    if (!session.endAt) return
+    const ms = session.endAt - Date.now()
+    if (ms <= 0) return
+    const id = window.setTimeout(() => {
+      showToast({ title: '¡Bloque terminado!', detail: 'Descansa unos minutos o empieza otro bloque.' })
+      navigator.vibrate?.([200, 100, 200])
+    }, ms)
+    return () => window.clearTimeout(id)
+  }, [session.endAt])
+
+  // Cambiar de misión reinicia el temporizador: un solo foco a la vez.
+  // Funciones estables: las páginas las usan como dependencia de efectos.
+  const begin = useCallback(
+    (taskId: string) => setSession((s) => (s.taskId === taskId ? s : { taskId, endAt: null })),
+    [],
+  )
+  const startTimer = useCallback(
+    (minutes: number) => setSession((s) => ({ ...s, endAt: Date.now() + minutes * 60_000 })),
+    [],
+  )
+  const stopTimer = useCallback(() => setSession((s) => ({ ...s, endAt: null })), [])
+  const end = useCallback(() => setSession({ taskId: null, endAt: null }), [])
+
+  const value = useMemo(
+    () => ({ taskId: session.taskId, endAt: session.endAt, begin, startTimer, stopTimer, end }),
+    [session, begin, startTimer, stopTimer, end],
+  )
+
+  return <FocusSessionContext.Provider value={value}>{children}</FocusSessionContext.Provider>
 }
 ```
 
@@ -7185,9 +7785,16 @@ export function useCompleteTask() {
       const category = queryClient
         .getQueryData<Category[]>(['categories'])
         ?.find((c) => c.id === task.category_id)
+      const bonus = task.rescue_bonus
+      const total = task.xp_reward + bonus
+      const where = category?.name ?? task.title
       showToast(
-        task.xp_reward > 0
-          ? { title: `+${task.xp_reward} XP`, detail: category?.name ?? task.title, tone: 'reward' }
+        total > 0
+          ? {
+              title: `+${total} XP`,
+              detail: bonus > 0 ? `Rescate +${bonus} · ${where}` : where,
+              tone: 'reward',
+            }
           : { title: 'Misión completada', detail: task.title, tone: 'reward' },
       )
     },
@@ -7224,6 +7831,7 @@ export function useCaptureInboxTask() {
         status: 'pending',
         size: null,
         xp_reward: 0,
+        rescue_bonus: 0,
         hud_slot: null,
         created_at: new Date().toISOString(),
         completed_at: null,
@@ -7236,6 +7844,33 @@ export function useCaptureInboxTask() {
     },
     onSettled: invalidate,
   })
+}
+```
+
+### src/features/tasks/useFocusClock.ts
+
+```typescript
+import { useEffect, useState } from 'react'
+
+/** Milisegundos que faltan para `endAt` (null si no hay temporizador). */
+export function useFocusClock(endAt: number | null): number | null {
+  const [now, setNow] = useState(() => Date.now())
+
+  useEffect(() => {
+    if (endAt === null) return
+    setNow(Date.now())
+    const id = window.setInterval(() => setNow(Date.now()), 500)
+    return () => window.clearInterval(id)
+  }, [endAt])
+
+  return endAt === null ? null : Math.max(0, endAt - now)
+}
+
+export function formatClock(ms: number): string {
+  const total = Math.ceil(ms / 1000)
+  const m = Math.floor(total / 60)
+  const s = total % 60
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 ```
 
@@ -9135,7 +9770,13 @@ export type ProjectStatus = 'active' | 'archived'
 export type TaskSize = 'small' | 'medium' | 'large'
 export type QuestType = 'daily_triage' | 'daily_priority' | 'weekly_project'
 export type LootTriggerType = 'streak' | 'quest_complete' | 'level_up' | 'rank_up'
-export type NotificationType = 'upcoming' | 'due_today' | 'overdue' | 'follow_up'
+export type NotificationType =
+  | 'upcoming'
+  | 'upcoming_3d'
+  | 'upcoming_1d'
+  | 'due_today'
+  | 'overdue'
+  | 'follow_up'
 
 export interface Database {
   public: {
@@ -9218,6 +9859,7 @@ export interface Database {
           status: TaskStatus
           size: TaskSize | null
           xp_reward: number
+          rescue_bonus: number
           hud_slot: number | null
           created_at: string
           completed_at: string | null
@@ -9465,6 +10107,23 @@ export type FollowUp = Database['public']['Tables']['follow_ups']['Row']
 export type FollowUpLog = Database['public']['Tables']['follow_up_logs']['Row']
 export type AppNotification = Database['public']['Tables']['notifications']['Row']
 export type PushSubscriptionRow = Database['public']['Tables']['push_subscriptions']['Row']
+```
+
+### src/utils/classIcons.ts
+
+```typescript
+import { Axe, BookOpen, Brain, Gamepad2, Leaf, Shield, type LucideIcon } from 'lucide-react'
+
+// Un ícono vectorial por clase (categoría). Provisional hasta que existan
+// avatares de clase ilustrados (ver pendings.md).
+export const CLASS_ICONS: Record<string, LucideIcon> = {
+  Concentrix: Brain,
+  Delorean: Axe,
+  Estudios: BookOpen,
+  Hobbies: Gamepad2,
+  Personal: Shield,
+  Hogar: Leaf,
+}
 ```
 
 ### src/utils/datetime.ts
@@ -10084,7 +10743,13 @@ webPush.setVapidDetails('mailto:noreply@productividad-rpg.app', vapidPublicKey, 
 
 const supabase = createClient(supabaseUrl, serviceRoleKey)
 
-type NotificationType = 'upcoming' | 'due_today' | 'overdue' | 'follow_up'
+type NotificationType =
+  | 'upcoming'
+  | 'upcoming_3d'
+  | 'upcoming_1d'
+  | 'due_today'
+  | 'overdue'
+  | 'follow_up'
 
 interface Alert {
   user_id: string
@@ -10119,7 +10784,7 @@ Deno.serve(async () => {
         user_id: task.user_id,
         task_id: task.id,
         type: 'overdue',
-        message: `Vencida: ${task.title}`,
+        message: `Por rescatar (XP extra): ${task.title}`,
       })
     } else if (days === 0) {
       alerts.push({
@@ -10128,13 +10793,19 @@ Deno.serve(async () => {
         type: 'due_today',
         message: `Vence hoy: ${task.title}`,
       })
-    } else if (days <= 3) {
-      const when = days === 1 ? 'mañana' : `en ${days} días`
+    } else if (days === 1) {
       alerts.push({
         user_id: task.user_id,
         task_id: task.id,
-        type: 'upcoming',
-        message: `Vence ${when}: ${task.title}`,
+        type: 'upcoming_1d',
+        message: `Vence mañana: ${task.title}`,
+      })
+    } else if (days <= 3) {
+      alerts.push({
+        user_id: task.user_id,
+        task_id: task.id,
+        type: 'upcoming_3d',
+        message: `Vence en ${days} días: ${task.title}`,
       })
     }
   }
@@ -11611,6 +12282,251 @@ create policy "follow_up_logs_all_own_rows"
   to authenticated
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
+```
+
+### supabase/migrations/20261013000001_fase9_rescate_avisos_triage.sql
+
+```sql
+-- Fase 9 (UX ronda 3): rescate de vencidas sin culpa, avisos con escalones
+-- separados y quest de triage al descartar la última captura.
+-- Se corre completa en el SQL Editor de Supabase (ver HANDOFF, sección 1).
+-- Es idempotente: se puede volver a correr sin romper nada.
+
+-- ============================================================
+-- 1. Avisos con escalones separados
+-- Antes 'upcoming' cubría 3, 2 y 1 día(s): al descartar el aviso de "en 3
+-- días" (unique(task_id, type) + dismissed_at que nunca se pisa) el de
+-- "mañana" quedaba silenciado. Ahora cada escalón tiene su propio tipo.
+-- 'upcoming' se conserva solo para que las filas viejas sigan siendo válidas.
+-- ============================================================
+alter table public.notifications
+  drop constraint if exists notifications_type_check;
+
+alter table public.notifications
+  add constraint notifications_type_check
+  check (type in ('upcoming', 'upcoming_3d', 'upcoming_1d', 'due_today', 'overdue', 'follow_up'));
+
+-- ============================================================
+-- 2. Rescate de tareas vencidas
+-- Terminar una tarea DESPUÉS de su deadline da un bonus de XP (+25 %, mínimo
+-- 2). Reencuadre motivador de la spec 4.7 ("quest de rescate") en vez de
+-- castigo. Se guarda en la propia tarea (rescue_bonus) en lugar de crear una
+-- fila en quests: los índices únicos diarios de quests no admiten varios
+-- rescates el mismo día sin romper el ON CONFLICT de los otros triggers.
+-- Solo tareas de nivel superior; las subtareas no generan rescate.
+-- ============================================================
+alter table public.tasks
+  add column if not exists rescue_bonus integer not null default 0 check (rescue_bonus >= 0);
+
+create or replace function public.tasks_set_rescue_bonus()
+returns trigger
+language plpgsql
+security invoker
+set search_path = public
+as $$
+begin
+  if new.status = 'done'
+     and old.status is distinct from 'done'
+     and new.parent_task_id is null
+     and new.deadline is not null
+     and new.xp_reward > 0
+     and now() > new.deadline then
+    new.rescue_bonus := greatest(2, ceil(new.xp_reward * 0.25)::integer);
+  else
+    new.rescue_bonus := 0;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists tasks_before_rescue on public.tasks;
+create trigger tasks_before_rescue
+  before update of status on public.tasks
+  for each row execute function public.tasks_set_rescue_bonus();
+
+-- Misma función de Fase 6 (XP de subtareas), con una sola diferencia: el XP de
+-- una tarea de nivel superior suma también su rescue_bonus.
+create or replace function public.tasks_after_done()
+returns trigger
+language plpgsql
+security invoker
+set search_path = public
+as $$
+declare
+  v_week_start date;
+  v_project_total integer;
+  v_project_done integer;
+  v_project_category_id uuid;
+  v_parent_category_id uuid;
+  v_xp integer;
+begin
+  if not (new.status = 'done' and old.status is distinct from 'done') then
+    return new;
+  end if;
+
+  perform public.register_daily_activity(new.user_id);
+
+  if new.parent_task_id is not null then
+    if new.xp_reward > 0 then
+      select category_id into v_parent_category_id
+        from public.tasks where id = new.parent_task_id;
+
+      if v_parent_category_id is not null then
+        insert into public.user_category_xp (user_id, category_id, current_xp, current_level)
+        values (new.user_id, v_parent_category_id, new.xp_reward, 1 + floor(new.xp_reward / 100.0))
+        on conflict (user_id, category_id) do update
+          set current_xp = public.user_category_xp.current_xp + excluded.current_xp,
+              current_level = 1 + floor((public.user_category_xp.current_xp + excluded.current_xp) / 100.0);
+      end if;
+    end if;
+    return new;
+  end if;
+
+  v_xp := new.xp_reward + new.rescue_bonus;
+
+  if new.category_id is not null and v_xp > 0 then
+    insert into public.user_category_xp (user_id, category_id, current_xp, current_level)
+    values (new.user_id, new.category_id, v_xp, 1 + floor(v_xp / 100.0))
+    on conflict (user_id, category_id) do update
+      set current_xp = public.user_category_xp.current_xp + excluded.current_xp,
+          current_level = 1 + floor((public.user_category_xp.current_xp + excluded.current_xp) / 100.0);
+  end if;
+
+  if exists (
+    select 1 from public.quests
+    where user_id = new.user_id
+      and type = 'daily_priority'
+      and period_start = current_date
+      and task_id = new.id
+      and completed = false
+  ) then
+    update public.quests
+      set completed = true, completed_at = now()
+      where user_id = new.user_id
+        and type = 'daily_priority'
+        and period_start = current_date
+        and task_id = new.id;
+
+    if new.category_id is not null then
+      update public.user_category_xp
+        set current_xp = current_xp + 20,
+            current_level = 1 + floor((current_xp + 20) / 100.0)
+        where user_id = new.user_id and category_id = new.category_id;
+    end if;
+  end if;
+
+  if new.project_id is not null and new.deadline is not null then
+    v_week_start := date_trunc('week', new.deadline::date)::date;
+
+    select count(*), count(*) filter (where status = 'done')
+      into v_project_total, v_project_done
+      from public.tasks
+      where project_id = new.project_id
+        and parent_task_id is null
+        and deadline is not null
+        and deadline::date >= v_week_start
+        and deadline::date < v_week_start + 7;
+
+    if v_project_total > 0 and v_project_total = v_project_done and not exists (
+      select 1 from public.quests
+      where user_id = new.user_id
+        and type = 'weekly_project'
+        and period_start = v_week_start
+        and project_id = new.project_id
+        and completed = true
+    ) then
+      insert into public.quests (user_id, type, period_start, project_id, xp_reward, completed, completed_at)
+      values (new.user_id, 'weekly_project', v_week_start, new.project_id, 50, true, now())
+      on conflict (user_id, type, period_start, project_id) where project_id is not null
+      do update set completed = true, completed_at = now();
+
+      select category_id into v_project_category_id from public.projects where id = new.project_id;
+
+      if v_project_category_id is not null then
+        insert into public.user_category_xp (user_id, category_id, current_xp, current_level)
+        values (new.user_id, v_project_category_id, 50, 1 + floor(50 / 100.0))
+        on conflict (user_id, category_id) do update
+          set current_xp = public.user_category_xp.current_xp + 50,
+              current_level = 1 + floor((public.user_category_xp.current_xp + 50) / 100.0);
+      end if;
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
+-- ============================================================
+-- 3. Quest de triage al descartar la última captura
+-- tasks_after_triage solo reaccionaba a un UPDATE de kanban_column_id: si la
+-- última captura del inbox se descartaba (DELETE), la quest diaria no se
+-- completaba. La lógica se extrae a una función y la usan ambos disparadores.
+-- ============================================================
+create or replace function public.complete_daily_triage_if_empty(p_user_id uuid)
+returns void
+language plpgsql
+security invoker
+set search_path = public
+as $$
+declare
+  v_remaining_inbox integer;
+begin
+  select count(*) into v_remaining_inbox
+    from public.tasks
+    where user_id = p_user_id and parent_task_id is null and kanban_column_id is null;
+
+  if v_remaining_inbox = 0 and not exists (
+    select 1 from public.quests
+    where user_id = p_user_id
+      and type = 'daily_triage'
+      and period_start = current_date
+      and completed = true
+  ) then
+    insert into public.quests (user_id, type, period_start, xp_reward, completed, completed_at)
+    values (p_user_id, 'daily_triage', current_date, 15, true, now())
+    on conflict (user_id, type, period_start) where project_id is null do nothing;
+
+    perform public.register_daily_activity(p_user_id);
+    perform public.check_quest_loot(p_user_id);
+  end if;
+end;
+$$;
+
+create or replace function public.tasks_after_triage()
+returns trigger
+language plpgsql
+security invoker
+set search_path = public
+as $$
+begin
+  if new.kanban_column_id is null or old.kanban_column_id is not null then
+    return new;
+  end if;
+
+  perform public.complete_daily_triage_if_empty(new.user_id);
+  return new;
+end;
+$$;
+
+create or replace function public.tasks_after_discard()
+returns trigger
+language plpgsql
+security invoker
+set search_path = public
+as $$
+begin
+  -- Solo capturas del inbox (sin columna, nivel superior).
+  if old.kanban_column_id is null and old.parent_task_id is null then
+    perform public.complete_daily_triage_if_empty(old.user_id);
+  end if;
+  return old;
+end;
+$$;
+
+drop trigger if exists tasks_after_discard on public.tasks;
+create trigger tasks_after_discard
+  after delete on public.tasks
+  for each row execute function public.tasks_after_discard();
 ```
 
 ### tsconfig.app.json

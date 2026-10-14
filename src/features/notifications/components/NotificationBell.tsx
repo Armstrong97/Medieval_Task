@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { AlertTriangle, Bell, Calendar, Clock, Link2 } from 'lucide-react'
+import { Bell, Calendar, Clock, LifeBuoy, Link2 } from 'lucide-react'
 import {
   useDismissAllNotifications,
   useDismissNotification,
@@ -13,8 +13,10 @@ import type { NotificationType, Task } from '@/types/database.types'
 
 const TYPE_ICON: Record<NotificationType, typeof Bell> = {
   upcoming: Clock,
+  upcoming_3d: Clock,
+  upcoming_1d: Clock,
   due_today: Calendar,
-  overdue: AlertTriangle,
+  overdue: LifeBuoy,
   follow_up: Link2,
 }
 

@@ -7,7 +7,13 @@ export type ProjectStatus = 'active' | 'archived'
 export type TaskSize = 'small' | 'medium' | 'large'
 export type QuestType = 'daily_triage' | 'daily_priority' | 'weekly_project'
 export type LootTriggerType = 'streak' | 'quest_complete' | 'level_up' | 'rank_up'
-export type NotificationType = 'upcoming' | 'due_today' | 'overdue' | 'follow_up'
+export type NotificationType =
+  | 'upcoming'
+  | 'upcoming_3d'
+  | 'upcoming_1d'
+  | 'due_today'
+  | 'overdue'
+  | 'follow_up'
 
 export interface Database {
   public: {
@@ -90,6 +96,7 @@ export interface Database {
           status: TaskStatus
           size: TaskSize | null
           xp_reward: number
+          rescue_bonus: number
           hud_slot: number | null
           created_at: string
           completed_at: string | null

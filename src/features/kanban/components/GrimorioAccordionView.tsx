@@ -279,6 +279,7 @@ function RenderMissionCard({
       </div>
       {isOverdue(task) && (
         <div className="mt-2.5 border-t border-border pt-2.5">
+          <p className="mb-2 font-mono text-xs text-gold">Rescate: termínala y gana XP extra, o reprográmala sin culpa.</p>
           <RescheduleButtons task={task} />
         </div>
       )}

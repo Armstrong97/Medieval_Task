@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ScrollText, Shield, Zap } from 'lucide-react'
+import { ScrollText, Shield, Sparkles, Zap } from 'lucide-react'
 import { useEquipHudSlot, useHudTasks, useSuggestedTask } from '@/features/battle-hud/hooks'
 import { useCategories } from '@/features/projects/hooks'
 import { useCategoryXp, useClassRanks, useStreak } from '@/features/gamification/hooks'
@@ -9,7 +9,7 @@ import { EmptySlotCard } from '@/features/battle-hud/components/EmptySlotCard'
 import { StaminaRing } from '@/features/battle-hud/components/StaminaRing'
 import { GrimorioDrawer } from '@/features/battle-hud/components/GrimorioDrawer'
 import { TaskModal } from '@/features/tasks/components/TaskModal'
-import { bossAvatarSrc } from '@/utils/rpgAssets'
+import { CLASS_ICONS } from '@/utils/classIcons'
 import type { Task } from '@/types/database.types'
 
 const SLOTS = [1, 2, 3]
@@ -28,6 +28,7 @@ function PlayerSummaryHeader() {
   }, [categoryXp])
 
   const dominantCategory = categories?.find((c) => c.id === dominant?.category_id)
+  const HeroIcon = (dominantCategory && CLASS_ICONS[dominantCategory.name]) || Sparkles
   const dominantRank =
     classRanks?.find((r) => r.id === dominant?.current_rank_id) ??
     classRanks?.find((r) => r.category_id === dominant?.category_id && r.rank_order === 1)
@@ -37,11 +38,14 @@ function PlayerSummaryHeader() {
       <div className="flex items-center gap-5">
         <div className="relative">
           <div className="h-16 w-16 rounded-full border-2 border-accent bg-surface-2 p-1 shadow-[0_0_12px_rgb(var(--accent-rgb)/0.35)]">
-            <img
-              src={bossAvatarSrc('dragon_default')}
-              className="h-full w-full rounded-full object-cover"
-              alt="Avatar del Héroe"
-            />
+            <div
+              className="flex h-full w-full items-center justify-center rounded-full"
+              style={{ color: dominantCategory?.color_hex }}
+              role="img"
+              aria-label={`Clase: ${dominantCategory?.name ?? 'Aventurero'}`}
+            >
+              <HeroIcon className="h-8 w-8" aria-hidden="true" />
+            </div>
           </div>
           <div className="absolute -bottom-1 -right-1 rounded border border-bg bg-accent px-1.5 font-mono text-xs font-black text-accent-fg">
             NV. {dominant?.current_level ?? 1}

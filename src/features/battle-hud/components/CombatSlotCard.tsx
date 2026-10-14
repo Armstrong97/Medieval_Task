@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { MoreVertical, PictureInPicture2, Star, Swords } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Crosshair, MoreVertical, Star, Swords } from 'lucide-react'
 import { useCategories } from '@/features/projects/hooks'
 import { useCompleteTask, useSubtasks } from '@/features/tasks/hooks'
-import { useFocusFloat } from '@/features/tasks/FocusFloatContext'
 import { useSendToFollowUp } from '@/features/followups/hooks'
 import { useClearTodayPriority, useSetTodayPriority, useTodayQuests } from '@/features/gamification/hooks'
 import { RescheduleButtons } from '@/features/tasks/components/RescheduleButtons'
@@ -31,7 +31,7 @@ export function CombatSlotCard({
   const completeTask = useCompleteTask()
   const unequip = useUnequipHudSlot()
   const sendToFollowUp = useSendToFollowUp()
-  const { open: openFocusFloat } = useFocusFloat()
+  const navigate = useNavigate()
   const { data: todayQuests } = useTodayQuests()
   const setPriority = useSetTodayPriority()
   const clearPriority = useClearTodayPriority()
@@ -124,6 +124,7 @@ export function CombatSlotCard({
         </button>
         {isOverdue(task) && (
           <div className="mb-3">
+            <p className="mb-2 font-mono text-xs text-gold">Rescate: termínala y gana XP extra, o reprográmala sin culpa.</p>
             <RescheduleButtons task={task} />
           </div>
         )}
@@ -162,10 +163,10 @@ export function CombatSlotCard({
         <div className="grid grid-cols-2 gap-3">
           <button
             type="button"
-            onClick={() => void openFocusFloat()}
+            onClick={() => navigate(`/foco/${task.id}`)}
             className="flex items-center justify-center gap-1.5 rounded-lg border border-glass/10 bg-glass/5 py-3 font-mono text-xs font-black uppercase tracking-widest text-fg-muted transition-all hover:bg-glass/10 hover:text-fg active:scale-95"
           >
-            <PictureInPicture2 className="h-3.5 w-3.5" /> Atacar
+            <Crosshair className="h-3.5 w-3.5" /> Atacar
           </button>
           <button
             type="button"

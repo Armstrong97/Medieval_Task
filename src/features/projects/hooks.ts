@@ -7,6 +7,7 @@ import {
   fetchActiveProjects,
   fetchCategories,
   fetchProjectById,
+  updateProject,
 } from '@/features/projects/api'
 import { useTasksByProject } from '@/features/tasks/hooks'
 
@@ -32,6 +33,15 @@ export function useCreateProject() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] })
     },
+  })
+}
+
+export function useUpdateProject() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Parameters<typeof updateProject>[1] }) =>
+      updateProject(id, patch),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projects'] }),
   })
 }
 
