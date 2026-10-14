@@ -7,7 +7,11 @@
 @import "@fontsource/cinzel/900.css";
 
 /* Tokens de color: valores reales en :root / @media dark más abajo,
-   acá solo se registran como utilidades de Tailwind (bg-bg, text-fg, etc). */
+   acá solo se registran como utilidades de Tailwind (bg-bg, text-fg, etc).
+   Identidad "Hyrule" (rediseño Fase 9): bosque + tecnología rúnica cian +
+   oro reservado SOLO para recompensas/logros. Inspirada en el tono de la
+   naturaleza y las ruinas antiguas de los juegos de aventura; sin marcas,
+   símbolos ni nombres de terceros (la app se publicará). */
 @theme {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
@@ -17,8 +21,13 @@
   --color-border: var(--border);
   --color-accent: var(--accent);
   --color-accent-fg: var(--accent-fg);
+  --color-accent-deep: var(--accent-deep);
+  --color-rune: var(--rune);
+  --color-rune-deep: var(--rune-deep);
   --color-gold: var(--gold);
   --color-gold-bright: var(--gold-bright);
+  --color-parchment: var(--parchment);
+  --color-parchment-ink: var(--parchment-ink);
   --color-surface-card: var(--surface-card);
   --color-border-card: var(--border-card);
   --color-border-glow: var(--border-glow);
@@ -29,6 +38,9 @@
   --color-weapon-daga: var(--weapon-daga);
   --color-weapon-espada: var(--weapon-espada);
   --color-weapon-mandoble: var(--weapon-mandoble);
+  --color-shade: rgb(var(--shade-rgb));
+  --color-glass: rgb(var(--glass-rgb));
+  --color-warn-dot: var(--warn-dot);
   --color-warn-bg: var(--warn-bg);
   --color-warn-fg: var(--warn-fg);
   --color-warn-border: var(--warn-border);
@@ -38,63 +50,96 @@
   --font-display: "Cinzel", ui-sans-serif, serif;
 }
 
+/* Claro = "Día en el valle": crema cálida + verde bosque. Se diseña junto
+   con el oscuro, no es un respaldo. Los tokens *-rgb alimentan los
+   rgb(var(--x-rgb) / alpha) del CSS de componentes, para que cambien con
+   el tema sin hex sueltos. */
 :root {
   color-scheme: light dark;
 
-  /* claro — respaldo, mismo requisito de spec de siempre soportar ambos */
-  --bg: #faf9f6;
-  --surface: #ffffff;
-  --surface-2: #f1efe9;
-  --fg: #181814;
-  --fg-muted: #6b6862;
-  --border: rgba(20, 18, 14, 0.1);
-  --accent: #b8791a;
+  --bg: #f3f1e2;
+  --bg-glow: #e8e6cf;
+  --surface: #fffdf3;
+  --surface-2: #e9e6d0;
+  --fg: #1c2418;
+  --fg-muted: #5b6a58;
+  --border: rgba(28, 36, 24, 0.14);
+  --accent: #2f6b3a;
   --accent-fg: #ffffff;
-  --gold: #b8791a;
-  --gold-bright: #8a5a10;
-  --surface-card: #f5f0e6;
-  --border-card: rgba(20, 18, 14, 0.16);
-  --border-glow: rgba(20, 18, 14, 0.24);
-  --accent-runic: #7c3aed;
-  /* Dungeon Bosses (Fase 7, Módulo 2): HP del jefe, mismos valores en claro
-     y oscuro (la spec de Gemini no distinguió tema para estos). */
+  --accent-deep: #1f4a29;
+  --rune: #0e7490;
+  --rune-deep: #0f766e;
+  --gold: #8a5d0e;
+  --gold-bright: #6e4a0a;
+  --parchment: #efe6c8;
+  --parchment-ink: #2b2a1e;
+  --surface-card: #f7f3df;
+  --border-card: rgba(28, 36, 24, 0.18);
+  --border-glow: rgba(28, 36, 24, 0.28);
+  --accent-runic: var(--rune);
+
+  --bg-rgb: 243 241 226;
+  --surface-rgb: 255 253 243;
+  --accent-rgb: 47 107 58;
+  --gold-rgb: 138 93 14;
+  --rune-rgb: 14 116 144;
+  --glow-rgb: 28 36 24;
+  --shade-rgb: 28 36 24;
+  --glass-rgb: 28 36 24;
+
+  /* Jefes: HP del enemigo, mismo valor en claro y oscuro (es el enemigo,
+     no el progreso del jugador). */
   --hp-full: #dc2626;
   --hp-critical: #991b1b;
   --phase-shield: var(--gold);
-  /* Mesa de Estrategia (Fase 7, Módulo 3): cartas de arma/dificultad,
-     mismos valores en claro y oscuro. */
-  --weapon-daga: #059669;
-  --weapon-espada: #2563eb;
+  /* Mesa de Estrategia: color de cada arma/dificultad. */
+  --weapon-daga: #4fb35f;
+  --weapon-espada: #2bb5aa;
   --weapon-mandoble: #d9a94a;
-  --warn-bg: #fef3e2;
-  --warn-fg: #92400e;
-  --warn-border: rgba(217, 119, 6, 0.3);
+  --weapon-daga-rgb: 79 179 95;
+  --weapon-espada-rgb: 43 181 170;
+  /* Aviso cálido (ámbar): reemplaza al rojo para todo lo que no sea error
+     real, por la regla de diseño sin culpa visual. */
+  --warn-bg: #fdf1d8;
+  --warn-fg: #7a4a08;
+  --warn-border: rgba(217, 119, 6, 0.35);
+  --warn-dot: #d97706;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    /* oscuro — identidad principal: fantasía RPG, base ciruela profunda + acento oro.
-       Valores afinados en el Módulo 4 (Design System) de Fase 7 — Gemini dio
-       hex fijos sin distinguir tema; se aplican acá del lado oscuro nomás,
-       preservando el respaldo claro de arriba (ver HANDOFF, Fase 7 Módulo 4). */
-    --bg: #120c18;
-    --surface: #1e1526;
-    --surface-2: #281c33;
-    --fg: #f3ece4;
-    --fg-muted: #a395b0;
-    --border: #3d2a4e;
-    --border-glow: #63437f;
-    --accent: #d9a94a;
-    --accent-fg: #241705;
-    --accent-runic: #7c3aed;
+    /* Oscuro = "Noche en el bosque": verde profundo, luz rúnica cian. */
+    --bg: #0b1410;
+    --bg-glow: #14281e;
+    --surface: #12211a;
+    --surface-2: #1a2e24;
+    --fg: #eaf1e4;
+    --fg-muted: #8fa99a;
+    --border: #2c4a3a;
+    --border-glow: #3f6b55;
+    --accent: #7ccf6a;
+    --accent-fg: #07140b;
+    --accent-deep: #3d7a34;
+    --rune: #4fd1c5;
+    --rune-deep: #0f766e;
     --gold: #d9a94a;
     --gold-bright: #f0be5d;
-    /* Battle HUD (Fase 7, Módulo 1): superficie/borde de las Combat Slot Cards. */
-    --surface-card: #2d1f3b;
-    --border-card: #3d2a4e;
-    --warn-bg: rgba(146, 64, 14, 0.25);
-    --warn-fg: #fcd9a8;
+    --surface-card: #16291f;
+    --border-card: #2c4a3a;
+
+    --bg-rgb: 11 20 16;
+    --surface-rgb: 18 33 26;
+    --accent-rgb: 124 207 106;
+    --gold-rgb: 217 169 74;
+    --rune-rgb: 79 209 197;
+    --glow-rgb: 63 107 85;
+    --shade-rgb: 0 0 0;
+    --glass-rgb: 255 255 255;
+
+    --warn-bg: rgba(217, 119, 6, 0.16);
+    --warn-fg: #fcd9a0;
     --warn-border: rgba(217, 119, 6, 0.4);
+    --warn-dot: #fbbf24;
   }
 }
 
@@ -111,29 +156,72 @@ body {
 
 @media (prefers-color-scheme: dark) {
   body {
-    background: radial-gradient(circle at 20% 0%, #251636 0%, var(--bg) 55%);
+    background: radial-gradient(circle at 20% 0%, var(--bg-glow) 0%, var(--bg) 55%);
   }
 }
 
 /* Fondo ambiental (ver AmbientBackground.tsx) */
+/* Fondo ambiental "bosque vivo": de noche, luciérnagas + aurora rúnica;
+   de día, haces de luz y polen. Solo transform/opacity (barato en GPU). */
+.ambient-root {
+  --ray-rgb: 232 190 80;
+  --ray-a: 0.16;
+  --mote-a: 214 160 40;
+  --mote-b: 110 160 70;
+}
+
+@media (prefers-color-scheme: dark) {
+  .ambient-root {
+    --ray-rgb: 79 209 197;
+    --ray-a: 0.07;
+    --mote-a: 240 190 93;
+    --mote-b: 124 207 106;
+  }
+}
+
 .ambient-aurora {
   opacity: 0.5;
   filter: blur(60px);
   background: conic-gradient(
     from 0deg at 50% 50%,
-    #8b5cf655,
-    #f0c36433,
-    #ec489944,
-    #3b82f633,
-    #8b5cf655
+    rgb(var(--accent-rgb) / 0.3),
+    rgb(var(--rune-rgb) / 0.2),
+    rgb(var(--gold-rgb) / 0.12),
+    rgb(var(--rune-rgb) / 0.18),
+    rgb(var(--accent-rgb) / 0.3)
   );
   animation: ambient-spin 40s linear infinite;
 }
 
+@media (prefers-color-scheme: light) {
+  .ambient-aurora {
+    display: none;
+  }
+}
+
+.ambient-rays {
+  position: absolute;
+  inset: -25% -15% auto -15%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    105deg,
+    transparent 0 90px,
+    rgb(var(--ray-rgb) / var(--ray-a)) 90px 150px,
+    transparent 150px 280px
+  );
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 80%);
+  filter: blur(8px);
+  animation: ambient-sway 22s ease-in-out infinite alternate;
+}
+
 .ambient-mote {
-  background: radial-gradient(circle, var(--gold-bright), transparent 70%);
-  opacity: 0.75;
-  animation: ambient-float linear infinite;
+  position: absolute;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgb(var(--mote-c)) 0%, transparent 70%);
+  opacity: 0;
+  animation:
+    ambient-wander var(--dur) ease-in-out var(--delay) infinite,
+    ambient-twinkle calc(var(--dur) / 3) ease-in-out var(--delay) infinite;
 }
 
 @keyframes ambient-spin {
@@ -142,28 +230,56 @@ body {
   }
 }
 
-@keyframes ambient-float {
-  0% {
-    transform: translateY(0) translateX(0);
-    opacity: 0;
+@keyframes ambient-sway {
+  from {
+    transform: translateX(-3%) skewX(-2deg);
   }
-  10% {
-    opacity: 0.8;
+  to {
+    transform: translateX(3%) skewX(2deg);
   }
-  90% {
-    opacity: 0.6;
+}
+
+@keyframes ambient-wander {
+  50% {
+    transform: translate(var(--dx), var(--dy));
   }
+}
+
+@keyframes ambient-twinkle {
+  0%,
   100% {
-    transform: translateY(-115vh) translateX(var(--drift, 20px));
-    opacity: 0;
+    opacity: 0.05;
+  }
+  50% {
+    opacity: 0.85;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .ambient-aurora,
+  .ambient-rays,
   .ambient-mote {
     animation: none;
   }
+  .ambient-mote {
+    opacity: 0.3;
+  }
+}
+
+/* Foco visible global (teclado): runa cian, nunca se quita sin reemplazo. */
+:focus-visible {
+  outline: 2px solid var(--rune);
+  outline-offset: 2px;
+}
+
+/* Header y paneles flotantes con filo rúnico sutil */
+.app-header {
+  box-shadow: 0 1px 0 rgb(var(--rune-rgb) / 0.14), 0 8px 24px -12px rgb(var(--shade-rgb) / 0.5);
+}
+
+.panel-rune {
+  border-color: var(--border-glow);
+  box-shadow: 0 0 0 1px rgb(var(--rune-rgb) / 0.12), 0 18px 40px -12px rgb(var(--shade-rgb) / 0.6);
 }
 
 /* Celebracion de logros (ver AchievementCelebration.tsx) */
@@ -186,17 +302,17 @@ body {
   0% {
     opacity: 0;
     transform: scale(0.6);
-    box-shadow: 0 0 0 rgba(240, 195, 100, 0);
+    box-shadow: 0 0 0 rgb(var(--gold-rgb) / 0);
   }
   60% {
     opacity: 1;
     transform: scale(1.05);
-    box-shadow: 0 0 60px rgba(240, 195, 100, 0.5);
+    box-shadow: 0 0 60px rgb(var(--gold-rgb) / 0.5);
   }
   100% {
     opacity: 1;
     transform: scale(1);
-    box-shadow: 0 0 40px rgba(240, 195, 100, 0.35);
+    box-shadow: 0 0 40px rgb(var(--gold-rgb) / 0.35);
   }
 }
 
@@ -241,47 +357,47 @@ body {
 .grimoire-card {
   background: linear-gradient(165deg, var(--surface) 0%, var(--surface-2) 100%);
   border: 2px solid var(--border);
-  box-shadow: 0 0 50px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(61, 42, 78, 0.3);
+  box-shadow: 0 0 50px rgba(0, 0, 0, 0.8), inset 0 0 20px rgb(var(--glow-rgb) / 0.3);
 }
 
 .input-parchment {
-  background-color: rgba(18, 12, 24, 0.7);
+  background-color: rgb(var(--bg-rgb) / 0.7);
   border: 1px solid var(--border);
   transition: all 0.3s ease;
 }
 
 .input-parchment:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 10px rgba(217, 169, 74, 0.2);
+  box-shadow: 0 0 10px rgb(var(--accent-rgb) / 0.2);
   outline: none;
-  background-color: rgba(30, 21, 38, 0.9);
+  background-color: rgb(var(--surface-rgb) / 0.9);
 }
 
 .btn-prime {
-  background: linear-gradient(180deg, var(--gold) 0%, #b3862e 100%);
-  color: #120c18;
+  background: linear-gradient(180deg, var(--accent) 0%, var(--accent-deep) 100%);
+  color: var(--accent-fg);
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 1px;
-  box-shadow: 0 4px 0 #7a5a1d, 0 10px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 0 var(--accent-deep), 0 10px 20px rgba(0, 0, 0, 0.3);
   transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .btn-prime:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 0 #7a5a1d, 0 15px 25px rgba(217, 169, 74, 0.25);
+  box-shadow: 0 6px 0 var(--accent-deep), 0 15px 25px rgb(var(--accent-rgb) / 0.25);
 }
 
 .btn-prime:active {
   transform: translateY(2px);
-  box-shadow: 0 1px 0 #7a5a1d;
+  box-shadow: 0 1px 0 var(--accent-deep);
 }
 
 .tab-active {
   color: var(--gold) !important;
   border-bottom: 2px solid var(--gold);
-  text-shadow: 0 0 8px rgba(217, 169, 74, 0.5);
-  background: linear-gradient(to top, rgba(217, 169, 74, 0.08), transparent);
+  text-shadow: 0 0 8px rgb(var(--accent-rgb) / 0.5);
+  background: linear-gradient(to top, rgb(var(--accent-rgb) / 0.08), transparent);
 }
 
 .glyph-glow {
@@ -305,7 +421,7 @@ body {
   width: 280px;
   background: linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%);
   border-right: 2px solid var(--border);
-  box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+  box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5), inset -1px 0 0 rgb(var(--rune-rgb) / 0.18);
   transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -313,7 +429,7 @@ body {
 .sidebar-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(18, 12, 24, 0.6);
+  background: rgb(var(--bg-rgb) / 0.6);
   backdrop-filter: blur(8px);
   z-index: 40;
   transition: all 0.3s ease;
@@ -329,17 +445,29 @@ body {
 .nav-item-link:hover {
   transform: translateX(4px);
   color: var(--accent);
-  background-color: rgba(217, 169, 74, 0.06);
+  background-color: rgb(var(--accent-rgb) / 0.06);
 }
 
 .nav-item-link.active {
   border-left-color: var(--accent);
-  background: linear-gradient(90deg, rgba(217, 169, 74, 0.12), transparent);
+  background: linear-gradient(90deg, rgb(var(--accent-rgb) / 0.12), transparent);
   color: var(--accent);
 }
 
+.nav-item-link.active::after {
+  content: '';
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  background: var(--rune);
+  transform: translateY(-50%) rotate(45deg);
+  box-shadow: 0 0 10px rgb(var(--rune-rgb) / 0.7);
+}
+
 .nav-item-link.active .nav-label {
-  text-shadow: 0 0 10px rgba(217, 169, 74, 0.4);
+  text-shadow: 0 0 10px rgb(var(--accent-rgb) / 0.4);
   font-weight: 700;
 }
 
@@ -354,14 +482,70 @@ body {
 .combat-card:hover {
   transform: translateY(-6px);
   border-color: var(--card-theme, var(--gold));
-  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.7), 0 0 20px var(--card-glow, rgba(217, 169, 74, 0.2));
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.7), 0 0 20px var(--card-glow, rgb(var(--accent-rgb) / 0.2));
+}
+
+/* Marco rúnico: esquinas de trazo cian, se encienden al enfocar la tarjeta */
+.combat-card::before,
+.combat-card::after,
+.empty-slot-card::before,
+.empty-slot-card::after,
+.rune-frame::before,
+.rune-frame::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  pointer-events: none;
+  border: 0 solid rgb(var(--rune-rgb) / 0.45);
+  transition: border-color 0.3s ease, width 0.3s ease, height 0.3s ease;
+}
+
+.combat-card::before,
+.empty-slot-card::before,
+.rune-frame::before {
+  top: 8px;
+  left: 8px;
+  border-width: 2px 0 0 2px;
+  border-top-left-radius: 8px;
+}
+
+.combat-card::after,
+.empty-slot-card::after,
+.rune-frame::after {
+  right: 8px;
+  bottom: 8px;
+  border-width: 0 2px 2px 0;
+  border-bottom-right-radius: 8px;
+}
+
+.combat-card:hover::before,
+.combat-card:hover::after,
+.empty-slot-card:hover::before,
+.empty-slot-card:hover::after {
+  border-color: var(--rune);
+  width: 26px;
+  height: 26px;
+}
+
+.rune-frame {
+  position: relative;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .combat-card::before,
+  .combat-card::after,
+  .empty-slot-card::before,
+  .empty-slot-card::after {
+    transition: none;
+  }
 }
 
 /* Barra de Salud Segmentada (HP) */
 .hp-segment {
   height: 8px;
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgb(var(--shade-rgb) / 0.5);
+  border: 1px solid rgb(var(--glass-rgb) / 0.05);
   border-radius: 2px;
   transition: all 0.3s ease;
 }
@@ -373,14 +557,15 @@ body {
 
 /* Slot Vacío Rúnico */
 .empty-slot-card {
+  position: relative;
   border: 2px dashed var(--border);
-  background: rgba(0, 0, 0, 0.2);
+  background: rgb(var(--shade-rgb) / 0.2);
   transition: all 0.3s ease;
 }
 
 .empty-slot-card:hover {
-  border-color: var(--gold);
-  background: rgba(217, 169, 74, 0.03);
+  border-color: var(--accent);
+  background: rgb(var(--accent-rgb) / 0.03);
 }
 
 /* Animaciones Feedback TDAH (Shake & Kill Flash) */
@@ -413,7 +598,7 @@ body {
 
 /* Input Pergamino de Captura Rápida (ver InboxPage.tsx) */
 .input-parchment-inbox {
-  background: rgba(30, 21, 38, 0.6);
+  background: rgb(var(--surface-rgb) / 0.6);
   border: 2px solid var(--border);
   box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -421,7 +606,7 @@ body {
 
 .input-parchment-inbox:focus-within {
   border-color: var(--accent);
-  box-shadow: 0 0 20px rgba(217, 169, 74, 0.15), inset 0 0 10px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 20px rgb(var(--accent-rgb) / 0.15), inset 0 0 10px rgba(0, 0, 0, 0.3);
   transform: translateY(-1px);
 }
 
@@ -497,31 +682,31 @@ body {
 /* Botones Selector de Armas */
 .weapon-card-btn {
   border: 2px solid var(--border);
-  background: rgba(0, 0, 0, 0.3);
+  background: rgb(var(--shade-rgb) / 0.3);
   transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .weapon-card-btn.active[data-type="small"] {
-  border-color: var(--weapon-daga, #059669);
-  box-shadow: 0 0 16px rgba(5, 150, 105, 0.4);
+  border-color: var(--weapon-daga);
+  box-shadow: 0 0 16px rgb(var(--weapon-daga-rgb) / 0.4);
   transform: scale(1.04);
 }
 
 .weapon-card-btn.active[data-type="medium"] {
-  border-color: var(--weapon-espada, #2563eb);
-  box-shadow: 0 0 16px rgba(37, 99, 235, 0.4);
+  border-color: var(--weapon-espada);
+  box-shadow: 0 0 16px rgb(var(--weapon-espada-rgb) / 0.4);
   transform: scale(1.04);
 }
 
 .weapon-card-btn.active[data-type="large"] {
-  border-color: var(--weapon-mandoble, #d9a94a);
-  box-shadow: 0 0 16px rgba(217, 169, 74, 0.4);
+  border-color: var(--weapon-mandoble);
+  box-shadow: 0 0 16px rgb(var(--accent-rgb) / 0.4);
   transform: scale(1.04);
 }
 
 /* Selects con Estilo Pergamino Oscuro */
 .parchment-select {
-  background: rgba(0, 0, 0, 0.3);
+  background: rgb(var(--shade-rgb) / 0.3);
   border: 1px solid var(--border);
   color: var(--fg);
   cursor: pointer;
@@ -556,7 +741,7 @@ body {
   top: 0;
   bottom: 0;
   width: 2px;
-  background: rgba(255, 255, 255, 0.25);
+  background: rgb(var(--glass-rgb) / 0.25);
   z-index: 10;
 }
 
@@ -585,7 +770,7 @@ body {
 
 /* Modal de Recompensa con Destello de Oro */
 .gold-shimmer-bg {
-  background: linear-gradient(90deg, transparent, rgba(217, 169, 74, 0.2), transparent);
+  background: linear-gradient(90deg, transparent, rgb(var(--gold-rgb) / 0.2), transparent);
   background-size: 200% 100%;
   animation: goldShimmer 2.2s infinite linear;
 }
@@ -603,7 +788,7 @@ body {
 
 /* Toggle de Modo de Vista (Foco Gradual vs Ámbitos) — ver KanbanPage.tsx */
 .view-mode-toggle {
-  background: rgba(0, 0, 0, 0.4);
+  background: rgb(var(--shade-rgb) / 0.4);
   border: 1px solid var(--border);
   border-radius: 9999px;
   padding: 4px;
@@ -623,8 +808,8 @@ body {
 
 .view-mode-btn.active {
   background: var(--gold);
-  color: var(--plum-dark, #120c18);
-  box-shadow: 0 0 12px rgba(217, 169, 74, 0.35);
+  color: var(--accent-fg);
+  box-shadow: 0 0 12px rgb(var(--accent-rgb) / 0.35);
 }
 
 /* Acordeón de Foco Gradual */
@@ -657,7 +842,7 @@ body {
 .wax-seal-btn.active {
   filter: grayscale(0) brightness(1.2);
   transform: translateY(-4px);
-  box-shadow: 0 0 20px rgba(217, 169, 74, 0.4);
+  box-shadow: 0 0 20px rgb(var(--accent-rgb) / 0.4);
   border-color: var(--gold) !important;
 }
 
@@ -719,9 +904,9 @@ body {
 
 /* Destello del Nodo HOY */
 .node-today-active {
-  background: rgba(217, 169, 74, 0.04);
+  background: rgb(var(--accent-rgb) / 0.04);
   border-radius: 1rem;
-  border: 1px solid rgba(217, 169, 74, 0.2);
+  border: 1px solid rgb(var(--accent-rgb) / 0.2);
 }
 
 .node-today-active .day-node-dot {
@@ -741,14 +926,14 @@ body {
 .energy-meter-track {
   height: 5px;
   border-radius: 3px;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgb(var(--shade-rgb) / 0.4);
   overflow: hidden;
 }
 
 /* Cuadrícula de Mapa de Calor Astral */
 .grid-day-cell {
   aspect-ratio: 1 / 1;
-  background: rgba(0, 0, 0, 0.25);
+  background: rgb(var(--shade-rgb) / 0.25);
   border: 1px solid var(--border);
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
@@ -763,13 +948,13 @@ body {
 
 .grid-day-cell.selected {
   border-color: var(--gold);
-  box-shadow: 0 0 15px rgba(217, 169, 74, 0.4);
-  background: rgba(217, 169, 74, 0.08);
+  box-shadow: 0 0 15px rgb(var(--accent-rgb) / 0.4);
+  background: rgb(var(--accent-rgb) / 0.08);
 }
 
-.heat-low { box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.03); }
-.heat-mid { box-shadow: inset 0 0 15px rgba(234, 88, 12, 0.25); border-color: rgba(234, 88, 12, 0.35); }
-.heat-high { box-shadow: inset 0 0 20px rgba(220, 38, 38, 0.45); border-color: rgba(220, 38, 38, 0.55); }
+.heat-low { box-shadow: inset 0 0 10px rgb(var(--glass-rgb) / 0.03); }
+.heat-mid { box-shadow: inset 0 0 15px rgb(var(--accent-rgb) / 0.25); border-color: rgb(var(--accent-rgb) / 0.4); }
+.heat-high { box-shadow: inset 0 0 20px rgb(var(--gold-rgb) / 0.4); border-color: rgb(var(--gold-rgb) / 0.6); }
 
 /* Gemas de Color por Categoría */
 .gem-rune {
@@ -813,8 +998,8 @@ body {
 }
 
 @keyframes streakGlow {
-  0%, 100% { box-shadow: 0 0 8px rgba(217, 169, 74, 0.2); }
-  50% { box-shadow: 0 0 22px rgba(217, 169, 74, 0.45); }
+  0%, 100% { box-shadow: 0 0 8px rgb(var(--gold-rgb) / 0.2); }
+  50% { box-shadow: 0 0 22px rgb(var(--gold-rgb) / 0.45); }
 }
 
 /* Destello de XP al completar misión */
@@ -830,9 +1015,9 @@ body {
 
 /* Modal Pergamino de Clase */
 .modal-parchment-scroll {
-  background: #f4e4bc;
-  color: #2d241e;
-  border: 12px solid #2d241e;
+  background: var(--parchment);
+  color: var(--parchment-ink);
+  border: 12px solid var(--parchment-ink);
   box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85);
 }
 
@@ -849,7 +1034,7 @@ body {
 .grimoire-editor-modal {
   background: linear-gradient(165deg, var(--surface) 0%, var(--surface-2) 100%);
   border: 2px solid var(--border);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85), 0 0 20px rgba(61, 42, 78, 0.35);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85), 0 0 20px rgb(var(--glow-rgb) / 0.35);
   max-height: 90vh;
   overflow-y: auto;
 }
@@ -867,7 +1052,7 @@ body {
 
 /* Chips Táctiles */
 .tactile-chip {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgb(var(--glass-rgb) / 0.03);
   border: 1px solid var(--border);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
@@ -875,37 +1060,37 @@ body {
 }
 
 .tactile-chip:hover {
-  border-color: rgba(217, 169, 74, 0.5);
-  background: rgba(255, 255, 255, 0.06);
+  border-color: rgb(var(--accent-rgb) / 0.5);
+  background: rgb(var(--glass-rgb) / 0.06);
 }
 
 .tactile-chip.active-weapon-small {
-  border-color: #059669;
-  box-shadow: 0 0 10px rgba(5, 150, 105, 0.35);
-  color: #34d399;
+  border-color: var(--weapon-daga);
+  box-shadow: 0 0 10px rgb(var(--weapon-daga-rgb) / 0.35);
+  color: var(--weapon-daga);
 }
 
 .tactile-chip.active-weapon-medium {
-  border-color: #2563eb;
-  box-shadow: 0 0 10px rgba(37, 99, 235, 0.35);
-  color: #60a5fa;
+  border-color: var(--weapon-espada);
+  box-shadow: 0 0 10px rgb(var(--weapon-espada-rgb) / 0.35);
+  color: var(--weapon-espada);
 }
 
 .tactile-chip.active-weapon-large {
   border-color: var(--gold);
-  box-shadow: 0 0 10px rgba(217, 169, 74, 0.35);
+  box-shadow: 0 0 10px rgb(var(--accent-rgb) / 0.35);
   color: var(--gold);
 }
 
 .tactile-chip.active-gold {
   border-color: var(--gold);
-  background: rgba(217, 169, 74, 0.12);
+  background: rgb(var(--gold-rgb) / 0.12);
   color: var(--gold);
 }
 
 /* Barra de Integridad HP de Submisiones */
 .quest-hp-track {
-  background: rgba(0, 0, 0, 0.4);
+  background: rgb(var(--shade-rgb) / 0.4);
   height: 6px;
   border-radius: 3px;
   overflow: hidden;
@@ -913,7 +1098,7 @@ body {
 
 .quest-hp-fill {
   height: 100%;
-  background: linear-gradient(90deg, #991b1b, #ef4444);
+  background: linear-gradient(90deg, var(--accent-deep), var(--accent));
   transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -940,13 +1125,13 @@ body {
 .follow-up-card {
   background: linear-gradient(165deg, var(--surface) 0%, var(--surface-2) 100%);
   border: 1px solid var(--border);
-  border-left: 4px solid var(--sky-pact, #38bdf8);
+  border-left: 4px solid var(--rune);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .follow-up-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 10px 30px -5px rgba(56, 189, 248, 0.2);
+  box-shadow: 0 10px 30px -5px rgb(var(--rune-rgb) / 0.2);
   border-left-width: 8px;
 }
 
@@ -955,21 +1140,21 @@ body {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgb(var(--glass-rgb) / 0.1);
+  border: 1px solid rgb(var(--glass-rgb) / 0.2);
   transition: all 0.3s ease;
 }
 
 .insistence-dot.active {
-  background: #22c55e;
-  box-shadow: 0 0 8px #22c55e;
-  border-color: #4ade80;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+  border-color: var(--accent);
 }
 
 .insistence-dot.warning {
-  background: #ef4444;
-  box-shadow: 0 0 8px #ef4444;
-  border-color: #f87171;
+  background: var(--warn-dot);
+  box-shadow: 0 0 8px var(--warn-dot);
+  border-color: var(--warn-dot);
 }
 
 /* Acordeón de Bitácora Histórica */
@@ -985,10 +1170,10 @@ body {
 
 /* Modal Pergamino de Registro */
 .modal-parchment-log {
-  background: #f4e4bc;
-  color: #2d241e;
+  background: var(--parchment);
+  color: var(--parchment-ink);
   box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
-  border: 8px solid #2d241e;
+  border: 8px solid var(--parchment-ink);
 }
 
 /* Animación de Resolución de Follow-Up */
@@ -1009,5 +1194,23 @@ body {
   .animate-success-glow {
     animation: none;
     transition: none;
+  }
+}
+
+/* Avisos efímeros (Toaster) */
+.toast-pop {
+  animation: toast-pop 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes toast-pop {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast-pop {
+    animation: none;
   }
 }

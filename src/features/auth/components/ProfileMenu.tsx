@@ -21,7 +21,7 @@ export function ProfileMenu() {
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="modal-panel absolute right-0 z-50 mt-2 w-64 rounded-lg border border-border bg-surface p-2 shadow-xl">
+          <div className="modal-panel panel-rune absolute right-0 z-50 mt-2 w-64 rounded-lg border border-border bg-surface p-2 shadow-xl">
             <div className="border-b border-border px-2 pb-2">
               <p className="text-sm font-medium text-fg">Mi Perfil</p>
               {session?.user.email && (

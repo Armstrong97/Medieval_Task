@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/features/auth/AuthProvider'
+import { BrandMark } from '@/components/ui/BrandMark'
 import { AmbientBackground } from '@/components/ui/AmbientBackground'
 
 type Mode = 'magic' | 'password' | 'signup'
@@ -66,14 +67,10 @@ export function LoginPage() {
         <header className="mb-8 text-center">
           <div className="mb-3 flex justify-center">
             <div className="h-16 w-16">
-              <svg className="glyph-glow h-full w-full" viewBox="0 0 100 100" fill="none">
-                <path d="M50 5L90 30V70L50 95L10 70V30L50 5Z" stroke="#d9a94a" strokeWidth="2" />
-                <path d="M50 20V80M30 40H70M40 70L60 70" stroke="#d9a94a" strokeWidth="4" strokeLinecap="round" />
-                <circle cx="50" cy="50" r="5" fill="#d9a94a" />
-              </svg>
+              <BrandMark className="glyph-glow h-full w-full text-accent" />
             </div>
           </div>
-          <h1 className="font-display text-4xl font-black tracking-tight text-accent drop-shadow-[0_0_10px_rgba(217,169,74,0.3)] sm:text-5xl">
+          <h1 className="font-display text-4xl font-black tracking-tight text-accent drop-shadow-[0_0_10px_rgb(var(--accent-rgb)/0.35)] sm:text-5xl">
             QUESTLY
           </h1>
           <p className="mt-1 font-display text-xs font-semibold uppercase tracking-[0.2em] text-fg-muted">
@@ -99,7 +96,7 @@ export function LoginPage() {
                   setMode(tab.key)
                   setMessage(null)
                 }}
-                className={`flex-1 py-3.5 font-mono text-[11px] uppercase tracking-widest transition-all ${
+                className={`flex-1 py-3.5 font-mono text-xs uppercase tracking-widest transition-all ${
                   mode === tab.key
                     ? 'tab-active font-semibold'
                     : 'text-fg-muted/60 hover:text-fg'
@@ -115,7 +112,7 @@ export function LoginPage() {
             <form onSubmit={handleSubmit} className="flex flex-col gap-5">
               {mode === 'signup' && (
                 <div className="flex flex-col gap-1.5">
-                  <label className="font-mono text-[10px] font-bold uppercase tracking-widest text-accent/90">
+                  <label className="font-mono text-xs font-bold uppercase tracking-widest text-accent/90">
                     Nombre de Héroe
                   </label>
                   <input
@@ -130,7 +127,7 @@ export function LoginPage() {
               )}
 
               <div className="flex flex-col gap-1.5">
-                <label className="font-mono text-[10px] font-bold uppercase tracking-widest text-accent/90">
+                <label className="font-mono text-xs font-bold uppercase tracking-widest text-accent/90">
                   {mode === 'password' ? 'Correo Electrónico' : 'Dirección de Correo'}
                 </label>
                 <input
@@ -145,7 +142,7 @@ export function LoginPage() {
 
               {mode !== 'magic' && (
                 <div className="flex flex-col gap-1.5">
-                  <label className="font-mono text-[10px] font-bold uppercase tracking-widest text-accent/90">
+                  <label className="font-mono text-xs font-bold uppercase tracking-widest text-accent/90">
                     Palabra Secreta
                   </label>
                   <input
@@ -175,7 +172,7 @@ export function LoginPage() {
               </button>
 
               {mode === 'magic' && (
-                <p className="text-center font-mono text-[10px] uppercase tracking-wider text-fg-muted/50">
+                <p className="text-center font-mono text-xs uppercase tracking-wider text-fg-muted/50">
                   Sin contraseñas, solo magia.
                 </p>
               )}
@@ -197,7 +194,7 @@ export function LoginPage() {
 
         {/* Footer info */}
         <footer className="mt-8 text-center opacity-40 transition-opacity hover:opacity-100">
-          <p className="font-mono text-[10px] tracking-tighter text-fg-muted">
+          <p className="font-mono text-xs tracking-tighter text-fg-muted">
             QUESTLY v4.0.1 — SOFTWARE DE GESTIÓN ÉPICA
           </p>
         </footer>

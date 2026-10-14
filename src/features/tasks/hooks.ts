@@ -5,7 +5,6 @@ import {
   deleteTask,
   fetchActiveTasksWithDeadline,
   fetchAllBoardTasks,
-  fetchBoardTasks,
   fetchInboxTasks,
   fetchInProgressTasks,
   fetchLastCompletedTask,
@@ -18,10 +17,10 @@ import {
   fetchTasksCompletedToday,
   fetchTasksInRange,
   reopenTask,
-  sendTaskToFollowUp,
   updateTask,
 } from '@/features/tasks/api'
-import type { Task } from '@/types/database.types'
+import { showToast } from '@/components/ui/toast-store'
+import type { Category, Task } from '@/types/database.types'
 
 export function useTaskById(id: string | null) {
   return useQuery({
@@ -94,13 +93,6 @@ export function useInboxTasks() {
   })
 }
 
-export function useBoardTasks(projectId: string | null) {
-  return useQuery({
-    queryKey: ['tasks', 'board', projectId],
-    queryFn: () => fetchBoardTasks(projectId),
-  })
-}
-
 export function useAllBoardTasks() {
   return useQuery({
     queryKey: ['tasks', 'board', 'all'],
@@ -159,17 +151,28 @@ export function useDeleteTask() {
 
 export function useCompleteTask() {
   const invalidate = useInvalidateTasks()
-  return useMutation({ mutationFn: completeTask, onSuccess: invalidate })
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: completeTask,
+    onSuccess: (task) => {
+      invalidate()
+      // Recompensa inmediata: el XP real lo calcula el trigger de Postgres
+      // (tasks.xp_reward); acá solo se muestra.
+      const category = queryClient
+        .getQueryData<Category[]>(['categories'])
+        ?.find((c) => c.id === task.category_id)
+      showToast(
+        task.xp_reward > 0
+          ? { title: `+${task.xp_reward} XP`, detail: category?.name ?? task.title, tone: 'reward' }
+          : { title: 'Misión completada', detail: task.title, tone: 'reward' },
+      )
+    },
+  })
 }
 
 export function useReopenTask() {
   const invalidate = useInvalidateTasks()
   return useMutation({ mutationFn: reopenTask, onSuccess: invalidate })
-}
-
-export function useSendTaskToFollowUp() {
-  const invalidate = useInvalidateTasks()
-  return useMutation({ mutationFn: sendTaskToFollowUp, onSuccess: invalidate })
 }
 
 // Captura del Inbox: actualiza el cache al toque (antes de que la mutación

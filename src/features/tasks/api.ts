@@ -102,22 +102,7 @@ export async function fetchInboxTasks(): Promise<Task[]> {
   return data
 }
 
-export async function fetchBoardTasks(projectId: string | null): Promise<Task[]> {
-  const query = supabase
-    .from('tasks')
-    .select('*')
-    .is('parent_task_id', null)
-    .not('kanban_column_id', 'is', null)
-    .neq('status', 'follow_up')
-  const { data, error } = await (projectId
-    ? query.eq('project_id', projectId)
-    : query.is('project_id', null))
-  if (error) throw error
-  return data
-}
-
-// A diferencia de fetchBoardTasks(null) (que trae solo tareas sueltas), esta
-// trae TODAS las misiones trianas sin importar proyecto — la usa El Grimorio
+// Trae TODAS las misiones trianas sin importar proyecto — la usa El Grimorio
 // (Fase 7, Módulo 6), que unifica proyectos y tareas sueltas en una sola vista.
 export async function fetchAllBoardTasks(): Promise<Task[]> {
   const { data, error } = await supabase
@@ -179,11 +164,32 @@ export async function deleteTask(id: string): Promise<void> {
 export async function completeTask(task: Pick<Task, 'id' | 'project_id'>): Promise<Task> {
   const columns = await fetchKanbanColumns(task.project_id)
   const doneColumn = columns.find((c) => c.name === 'Hecho')
+  await closeFollowUpForTask(task.id)
   return updateTask(task.id, {
     status: 'done',
     hud_slot: null,
     ...(doneColumn ? { kanban_column_id: doneColumn.id } : {}),
   })
+}
+
+// Cierra el seguimiento activo de la tarea (si existe) y descarta sus
+// notificaciones pendientes, para que no sigan llegando avisos de algo ya
+// resuelto. Idempotente: sin follow-up activo no toca nada.
+export async function closeFollowUpForTask(taskId: string): Promise<void> {
+  const now = new Date().toISOString()
+  const { error } = await supabase
+    .from('follow_ups')
+    .update({ resolved_at: now })
+    .eq('task_id', taskId)
+    .is('resolved_at', null)
+  if (error) throw error
+  const { error: notifError } = await supabase
+    .from('notifications')
+    .update({ dismissed_at: now })
+    .eq('task_id', taskId)
+    .eq('type', 'follow_up')
+    .is('dismissed_at', null)
+  if (notifError) throw notifError
 }
 
 // Revierte una tarea "Hecha" de vuelta a activa, moviéndola a "Por hacer".

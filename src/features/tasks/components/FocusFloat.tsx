@@ -42,7 +42,7 @@ function FocusFloatContent() {
                   }
                   title="Completar"
                   aria-label={`Completar ${task.title}`}
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-accent-fg transition-all duration-150 hover:shadow-[0_0_10px_rgba(217,169,74,0.5)] active:scale-90"
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-accent-fg transition-all duration-150 hover:shadow-[0_0_10px_rgb(var(--accent-rgb)/0.5)] active:scale-90"
                 >
                   <Check className="h-3.5 w-3.5" />
                 </button>
@@ -79,7 +79,7 @@ export function FocusFloatButton() {
         aria-label="Ventana flotante de foco"
         className={`transition-colors ${
           pipWindow
-            ? 'text-accent drop-shadow-[0_0_6px_rgba(217,169,74,0.5)]'
+            ? 'text-accent drop-shadow-[0_0_6px_rgb(var(--accent-rgb)/0.5)]'
             : 'text-fg-muted hover:text-fg'
         }`}
       >

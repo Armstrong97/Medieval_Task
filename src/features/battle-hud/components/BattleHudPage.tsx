@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Flame, ScrollText, Shield, Zap } from 'lucide-react'
-import { useHudTasks } from '@/features/battle-hud/hooks'
+import { ScrollText, Shield, Zap } from 'lucide-react'
+import { useEquipHudSlot, useHudTasks, useSuggestedTask } from '@/features/battle-hud/hooks'
 import { useCategories } from '@/features/projects/hooks'
 import { useCategoryXp, useClassRanks, useStreak } from '@/features/gamification/hooks'
 import { CombatSlotCard } from '@/features/battle-hud/components/CombatSlotCard'
 import { EmptySlotCard } from '@/features/battle-hud/components/EmptySlotCard'
+import { StaminaRing } from '@/features/battle-hud/components/StaminaRing'
 import { GrimorioDrawer } from '@/features/battle-hud/components/GrimorioDrawer'
 import { TaskModal } from '@/features/tasks/components/TaskModal'
 import { bossAvatarSrc } from '@/utils/rpgAssets'
@@ -32,23 +33,23 @@ function PlayerSummaryHeader() {
     classRanks?.find((r) => r.category_id === dominant?.category_id && r.rank_order === 1)
 
   return (
-    <header className="mb-10 flex flex-col items-center justify-between gap-6 rounded-2xl border border-border bg-surface/40 p-6 backdrop-blur-md md:flex-row">
+    <header className="rune-frame mb-10 flex flex-col items-center justify-between gap-6 rounded-2xl border border-border bg-surface/40 p-6 backdrop-blur-md md:flex-row">
       <div className="flex items-center gap-5">
         <div className="relative">
-          <div className="h-16 w-16 rounded-full border-2 border-accent bg-surface-2 p-1 shadow-[0_0_12px_rgba(217,169,74,0.3)]">
+          <div className="h-16 w-16 rounded-full border-2 border-accent bg-surface-2 p-1 shadow-[0_0_12px_rgb(var(--accent-rgb)/0.35)]">
             <img
               src={bossAvatarSrc('dragon_default')}
               className="h-full w-full rounded-full object-cover"
               alt="Avatar del Héroe"
             />
           </div>
-          <div className="absolute -bottom-1 -right-1 rounded border border-bg bg-accent px-1.5 font-mono text-[10px] font-black text-accent-fg">
+          <div className="absolute -bottom-1 -right-1 rounded border border-bg bg-accent px-1.5 font-mono text-xs font-black text-accent-fg">
             NV. {dominant?.current_level ?? 1}
           </div>
         </div>
 
         <div>
-          <h1 className="font-display text-2xl font-black uppercase tracking-tight text-accent drop-shadow-[0_0_10px_rgba(217,169,74,0.4)]">
+          <h1 className="font-display text-2xl font-black uppercase tracking-tight text-accent drop-shadow-[0_0_10px_rgb(var(--accent-rgb)/0.4)]">
             {dominantRank?.rank_name ?? dominantCategory?.class_name ?? 'Héroe de Questly'}
           </h1>
           <div className="mt-1 flex items-center gap-3">
@@ -56,26 +57,22 @@ function PlayerSummaryHeader() {
               Clase: {dominantCategory?.name ?? 'Aventurero'}
             </span>
             <span className="h-1 w-1 rounded-full bg-border" />
-            <span className="flex items-center gap-1 font-mono text-xs font-bold text-sky-400">
-              <Shield className="h-3.5 w-3.5 fill-sky-400" />
+            <span className="flex items-center gap-1 font-mono text-xs font-bold text-rune">
+              <Shield className="h-3.5 w-3.5 fill-rune" />
               {streak?.shields_available ?? 0} ESCUDOS
             </span>
           </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-6">
-        <div className="text-center">
-          <p className="mb-1 font-mono text-[10px] uppercase text-fg-muted/60">
-            Racha Actual
+      <div className="flex items-center gap-4">
+        <div className="text-right">
+          <p className="font-mono text-xs uppercase text-fg-muted">Racha Actual</p>
+          <p className="font-mono text-xs text-fg-muted/80">
+            Escudo cada 7 días
           </p>
-          <div className="flex items-center gap-2 rounded-xl border border-accent/20 bg-accent/10 px-4 py-2">
-            <Flame className="h-5 w-5 text-accent animate-bounce" />
-            <span className="font-display text-lg font-bold text-accent">
-              {streak?.current_streak_days ?? 0} DÍAS
-            </span>
-          </div>
         </div>
+        <StaminaRing days={streak?.current_streak_days ?? 0} />
       </div>
     </header>
   )
@@ -83,6 +80,8 @@ function PlayerSummaryHeader() {
 
 export function BattleHudPage() {
   const { data: hudTasks, isLoading } = useHudTasks()
+  const suggestion = useSuggestedTask()
+  const equip = useEquipHudSlot()
   const [drawerSlot, setDrawerSlot] = useState<number | null>(null)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
 
@@ -109,6 +108,8 @@ export function BattleHudPage() {
                 key={slot}
                 slot={slot}
                 onEquip={() => setDrawerSlot(slot)}
+                suggestion={suggestion}
+                onEquipSuggestion={() => suggestion && equip.mutate({ taskId: suggestion.id, slot })}
               />
             )
           })}

@@ -25,7 +25,7 @@ export function BossHealthBar({
       </div>
 
       {/* Barra de Salud Masiva */}
-      <div className="boss-hp-container relative h-10 w-full overflow-hidden rounded-xl bg-black/60">
+      <div className="boss-hp-container relative h-10 w-full overflow-hidden rounded-xl bg-shade/60">
         <div
           className="boss-hp-fill h-full"
           style={{ width: `${Math.max(0, Math.min(100, percentRemaining))}%` }}
@@ -59,7 +59,7 @@ export function BossHealthBar({
                 alt={phase === 0 ? 'Victoria final' : `Fase ${phase}%`}
                 className="h-8 w-8 object-contain"
               />
-              <span className="font-mono text-[9px] uppercase tracking-widest text-fg-muted/70">
+              <span className="font-mono text-xs uppercase tracking-widest text-fg-muted/70">
                 {phase === 0 ? 'Victoria' : `${phase}% Loot`}
               </span>
             </div>

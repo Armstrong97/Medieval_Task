@@ -1,3 +1,4 @@
+import { Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { addDays, endOfDay, startOfDay, subDays } from 'date-fns'
 import { useTasksInRange } from '@/features/tasks/hooks'
@@ -58,7 +59,7 @@ export function CalendarPage() {
             onClick={() => handleModeChange('heatmap')}
             className={`view-mode-btn ${mode === 'heatmap' ? 'active' : ''}`}
           >
-            🔮 Mapa Astral
+            <Sparkles className="mr-1.5 inline h-4 w-4" aria-hidden="true" /> Mapa Astral
           </button>
         </div>
       </header>

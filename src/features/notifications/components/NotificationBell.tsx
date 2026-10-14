@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { AlertTriangle, Bell, Calendar, Clock, Link2 } from 'lucide-react'
 import {
+  useDismissAllNotifications,
   useDismissNotification,
   useNotifications,
   useSyncNotifications,
@@ -23,6 +24,7 @@ export function NotificationBell() {
   const sync = useSyncNotifications()
   const { data: notifications } = useNotifications()
   const dismiss = useDismissNotification()
+  const dismissAll = useDismissAllNotifications()
 
   useEffect(() => {
     sync.mutate()
@@ -42,7 +44,7 @@ export function NotificationBell() {
       >
         <Bell className="h-5 w-5" />
         {unread.length > 0 && (
-          <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 font-mono text-[10px] font-medium text-accent-fg">
+          <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 font-mono text-xs font-medium text-accent-fg">
             {unread.length}
           </span>
         )}
@@ -51,10 +53,22 @@ export function NotificationBell() {
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="modal-panel absolute right-0 z-50 mt-2 w-80 rounded-lg border border-border bg-surface p-2 shadow-xl">
+          <div className="modal-panel panel-rune absolute right-0 z-50 mt-2 w-80 rounded-lg border border-border bg-surface p-2 shadow-xl">
             {unread.length === 0 ? (
               <p className="p-3 text-sm text-fg-muted">Sin notificaciones pendientes.</p>
             ) : (
+              <>
+              <div className="flex items-center justify-between px-2 pb-1 pt-0.5">
+                <span className="font-mono text-xs text-fg-muted">{unread.length} pendientes</span>
+                <button
+                  type="button"
+                  onClick={() => dismissAll.mutate()}
+                  disabled={dismissAll.isPending}
+                  className="rounded-md px-2 py-1 font-mono text-xs font-bold uppercase tracking-wider text-accent transition-colors hover:bg-surface-2 disabled:opacity-50"
+                >
+                  Descartar todas
+                </button>
+              </div>
               <ul className="flex flex-col gap-1">
                 {unread.map((notification) => {
                   const Icon = TYPE_ICON[notification.type]
@@ -91,6 +105,7 @@ export function NotificationBell() {
                   )
                 })}
               </ul>
+              </>
             )}
             <PushToggle />
           </div>

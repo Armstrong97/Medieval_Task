@@ -17,6 +17,7 @@ export function useTriageSession() {
   })
 
   return {
+    items: items ?? [],
     current: items?.[0],
     remainingCount: items?.length ?? 0,
     isLoading,

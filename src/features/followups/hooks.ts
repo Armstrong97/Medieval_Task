@@ -6,9 +6,7 @@ import {
   fetchFollowUpLogs,
   fetchFollowUps,
   logFollowUpContact,
-  registerFollowUpContact,
   resolveFollowUp,
-  updateFollowUp,
 } from '@/features/followups/api'
 import { sendTaskToFollowUp } from '@/features/tasks/api'
 
@@ -34,25 +32,6 @@ export function useFollowUpForTask(taskId: string | null) {
 function useInvalidateFollowUps() {
   const queryClient = useQueryClient()
   return () => queryClient.invalidateQueries({ queryKey: ['follow-ups'] })
-}
-
-export function useCreateFollowUp() {
-  const invalidate = useInvalidateFollowUps()
-  return useMutation({ mutationFn: createFollowUp, onSuccess: invalidate })
-}
-
-export function useUpdateFollowUp() {
-  const invalidate = useInvalidateFollowUps()
-  return useMutation({
-    mutationFn: ({ id, patch }: { id: string; patch: Parameters<typeof updateFollowUp>[1] }) =>
-      updateFollowUp(id, patch),
-    onSuccess: invalidate,
-  })
-}
-
-export function useRegisterFollowUpContact() {
-  const invalidate = useInvalidateFollowUps()
-  return useMutation({ mutationFn: registerFollowUpContact, onSuccess: invalidate })
 }
 
 export function useDeleteFollowUp() {

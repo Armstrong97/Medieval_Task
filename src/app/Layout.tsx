@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { Flame, Shield, Swords } from 'lucide-react'
+import { Flame, Inbox, Menu, ScrollText, Shield, Swords, Wand2 } from 'lucide-react'
+import { useInboxTasks } from '@/features/tasks/hooks'
 import { useStreak } from '@/features/gamification/hooks'
 import { NotificationBell } from '@/features/notifications/components/NotificationBell'
 import { FocusFloatButton } from '@/features/tasks/components/FocusFloat'
 import { FocusFloatProvider } from '@/features/tasks/FocusFloatContext'
 import { ProfileMenu } from '@/features/auth/components/ProfileMenu'
 import { AmbientBackground } from '@/components/ui/AmbientBackground'
+import { BrandMark } from '@/components/ui/BrandMark'
+import { Toaster } from '@/components/ui/Toaster'
+import { QuickCaptureFab } from '@/features/inbox/components/QuickCaptureFab'
 import { AchievementWatcher } from '@/features/gamification/components/AchievementWatcher'
 import { NAV_ICONS, type NavIconKey } from '@/utils/rpgAssets'
 
@@ -41,8 +45,8 @@ function StreakIndicator() {
         {streak.current_streak_days} DÍAS
       </span>
       {streak.shields_available > 0 && (
-        <span className="flex items-center gap-1 text-sky-400">
-          <Shield className="h-3 w-3 fill-sky-400" />
+        <span className="flex items-center gap-1 text-rune">
+          <Shield className="h-3 w-3 fill-rune" />
           {streak.shields_available}
         </span>
       )}
@@ -50,8 +54,28 @@ function StreakIndicator() {
   )
 }
 
+// Barra inferior en móvil: 4 destinos de uso diario + "Más" (abre el menú
+// completo). La captura vive en el botón flotante.
+const bottomItems = [
+  { to: '/', label: 'Combate', icon: Swords, end: true },
+  { to: '/inbox', label: 'Inbox', icon: Inbox, end: false },
+  { to: '/triage', label: 'Estrategia', icon: Wand2, end: false },
+  { to: '/kanban', label: 'Grimorio', icon: ScrollText, end: false },
+] as const
+
+function CountBadge({ count }: { count: number }) {
+  if (count <= 0) return null
+  return (
+    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 font-mono text-xs font-bold text-accent-fg">
+      {count > 99 ? '99+' : count}
+    </span>
+  )
+}
+
 export function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { data: inboxItems } = useInboxTasks()
+  const pendingTriage = inboxItems?.length ?? 0
   const location = useLocation()
 
   useEffect(() => {
@@ -76,9 +100,11 @@ export function Layout() {
       <div className="min-h-dvh text-fg">
         <AmbientBackground />
         <AchievementWatcher />
+        <Toaster />
+        <QuickCaptureFab />
 
         {/* Top Header Minimalista */}
-        <header className="fixed top-0 left-0 z-30 flex h-16 w-full items-center justify-between border-b border-border bg-bg/85 px-4 backdrop-blur-md sm:px-6">
+        <header className="app-header fixed top-0 left-0 z-30 flex h-16 w-full items-center justify-between border-b border-border bg-bg/85 px-4 backdrop-blur-md sm:px-6">
           <div className="flex items-center gap-3">
             {/* Botón Hamburguesa Rúnico */}
             <button
@@ -92,7 +118,8 @@ export function Layout() {
 
             {/* Identidad en Header */}
             <div className="flex items-center gap-2">
-              <span className="font-display text-xl font-black tracking-tight text-accent drop-shadow-[0_0_8px_rgba(217,169,74,0.3)]">
+              <BrandMark className="h-6 w-6 text-accent" />
+              <span className="font-display text-xl font-black tracking-tight text-accent drop-shadow-[0_0_8px_rgb(var(--accent-rgb)/0.35)]">
                 QUESTLY
               </span>
               <span className="select-none font-light text-border">|</span>
@@ -125,8 +152,9 @@ export function Layout() {
             sidebarOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
-          <div className="mb-6 px-6">
-            <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent/60">
+          <div className="mb-6 flex items-center gap-3 px-6">
+            <BrandMark className="h-7 w-7 shrink-0 text-accent" />
+            <p className="font-display text-xs uppercase tracking-[0.25em] text-accent">
               Menú del Héroe
             </p>
           </div>
@@ -146,26 +174,63 @@ export function Layout() {
                 <img
                   src={NAV_ICONS[item.iconKey]}
                   alt=""
-                  className="h-6 w-6 object-contain drop-shadow-[0_0_4px_rgba(0,0,0,0.5)]"
+                  className="h-6 w-6 object-contain drop-shadow-[0_0_4px_rgb(var(--shade-rgb)/0.5)]"
                 />
                 <span className="nav-label font-display text-xs tracking-wider uppercase">
                   {item.label}
                 </span>
+                {item.to === '/triage' && <CountBadge count={pendingTriage} />}
               </NavLink>
             ))}
           </nav>
 
           <div className="mt-auto border-t border-border/40 px-6 pt-4">
-            <p className="font-mono text-[9px] tracking-tight uppercase text-fg-muted/50">
+            <p className="font-mono text-xs tracking-tight uppercase text-fg-muted">
               QUESTLY v4.0.1 · MISIONES ACTIVAS
             </p>
           </div>
         </aside>
 
         {/* Contenido Principal con Offset para el Header */}
-        <main className="pt-16">
+        <main className="pb-24 pt-16 md:pb-0">
           <Outlet />
         </main>
+
+        {/* Barra inferior (solo móvil) */}
+        <nav
+          aria-label="Navegación principal"
+          className="fixed inset-x-0 bottom-0 z-30 flex border-t border-border bg-bg/95 backdrop-blur-md md:hidden"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+        >
+          {bottomItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              className={({ isActive }) =>
+                `relative flex min-h-16 flex-1 flex-col items-center justify-center gap-1 font-mono text-xs ${
+                  isActive ? 'text-accent' : 'text-fg-muted'
+                }`
+              }
+            >
+              <item.icon className="h-6 w-6" aria-hidden="true" />
+              {item.label}
+              {item.to === '/triage' && pendingTriage > 0 && (
+                <span className="absolute right-[22%] top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1 font-mono text-xs font-bold text-accent-fg">
+                  {pendingTriage > 99 ? '99+' : pendingTriage}
+                </span>
+              )}
+            </NavLink>
+          ))}
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(true)}
+            className="flex min-h-16 flex-1 flex-col items-center justify-center gap-1 font-mono text-xs text-fg-muted"
+          >
+            <Menu className="h-6 w-6" aria-hidden="true" />
+            Más
+          </button>
+        </nav>
       </div>
     </FocusFloatProvider>
   )

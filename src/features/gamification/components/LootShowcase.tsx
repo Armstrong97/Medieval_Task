@@ -28,13 +28,13 @@ export function LootShowcase() {
             key={loot.id}
             className={`flex flex-col items-center gap-1 rounded-lg border p-3 text-center transition-all duration-200 ${
               unlock
-                ? 'border-accent/40 bg-accent/5 shadow-[0_0_16px_rgba(217,169,74,0.25)] hover:-translate-y-0.5 hover:shadow-[0_0_24px_rgba(217,169,74,0.4)]'
+                ? 'border-accent/40 bg-accent/5 shadow-[0_0_16px_rgb(var(--gold-rgb)/0.25)] hover:-translate-y-0.5 hover:shadow-[0_0_24px_rgb(var(--accent-rgb)/0.4)]'
                 : 'border-dashed border-border opacity-50'
             }`}
           >
-            <Icon className={`h-6 w-6 ${unlock ? 'text-accent drop-shadow-[0_0_4px_rgba(217,169,74,0.5)]' : 'text-fg-muted/60'}`} />
+            <Icon className={`h-6 w-6 ${unlock ? 'text-gold drop-shadow-[0_0_4px_rgb(var(--gold-rgb)/0.5)]' : 'text-fg-muted/60'}`} />
             <p className="text-xs font-medium text-fg">{loot.name}</p>
-            <p className="text-[11px] text-fg-muted">{loot.description}</p>
+            <p className="text-xs text-fg-muted">{loot.description}</p>
           </div>
         )
       })}

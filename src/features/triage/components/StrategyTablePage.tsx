@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Link2, Swords } from 'lucide-react'
+import { showToast } from '@/components/ui/toast-store'
+import { useDeleteTask } from '@/features/tasks/hooks'
+import { Castle, Link2, Swords } from 'lucide-react'
 import { useCategories, useCreateProject, useProjects } from '@/features/projects/hooks'
 import { useHudTasks } from '@/features/battle-hud/hooks'
 import { useTriageSession } from '@/features/triage/hooks'
@@ -12,32 +14,59 @@ import type { DispatchOutcome } from '@/features/triage/api'
 
 const NEW_PROJECT = '__new__'
 const NO_PROJECT = ''
+const LAST_CHOICE_KEY = 'questly_triage_last'
+
+// Recordar la última clase/destino: la mayoría de capturas seguidas comparten
+// contexto, y cada decisión repetida es fricción (parálisis en TDAH).
+function readLastChoice(): { categoryId: string; projectChoice: string } {
+  try {
+    const raw = localStorage.getItem(LAST_CHOICE_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw) as { categoryId?: string; projectChoice?: string }
+      return { categoryId: parsed.categoryId ?? '', projectChoice: parsed.projectChoice ?? NO_PROJECT }
+    }
+  } catch {
+    // localStorage no disponible: se arranca sin recuerdo.
+  }
+  return { categoryId: '', projectChoice: NO_PROJECT }
+}
 
 export function StrategyTablePage() {
-  const { current, remainingCount, isLoading, dispatch } = useTriageSession()
+  const { items, isLoading, dispatch } = useTriageSession()
+  const deleteTask = useDeleteTask()
   const { data: categories } = useCategories()
   const { data: projects } = useProjects()
   const createProject = useCreateProject()
   const { data: hudTasks } = useHudTasks()
 
   const [title, setTitle] = useState('')
-  const [categoryId, setCategoryId] = useState('')
-  const [projectChoice, setProjectChoice] = useState(NO_PROJECT)
+  const [categoryId, setCategoryId] = useState(() => readLastChoice().categoryId)
+  const [projectChoice, setProjectChoice] = useState(() => readLastChoice().projectChoice)
+  const [skipped, setSkipped] = useState<string[]>([])
+  const [showErrors, setShowErrors] = useState(false)
+  const [confirmingDiscard, setConfirmingDiscard] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
   const [deadline, setDeadline] = useState('')
   const [size, setSize] = useState<TaskSize | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [animatingOut, setAnimatingOut] = useState(false)
 
-  // Reset del formulario cuando entra una nueva carta
+  // "Saltar por ahora" manda la carta al final de la cola durante esta sesión.
+  const pending = items.filter((i) => !skipped.includes(i.id))
+  const current = pending[0] ?? items[0]
+  const remainingCount = items.length
+
+  // Reset del formulario cuando entra una nueva carta. Clase y destino se
+  // conservan a propósito (ver readLastChoice); fecha y arma no, porque son
+  // decisiones propias de cada misión.
   useEffect(() => {
     setTitle(current?.title ?? '')
-    setCategoryId('')
-    setProjectChoice(NO_PROJECT)
     setNewProjectName('')
     setDeadline('')
     setSize(null)
     setError(null)
+    setShowErrors(false)
+    setConfirmingDiscard(false)
     setAnimatingOut(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current?.id])
@@ -45,30 +74,49 @@ export function StrategyTablePage() {
   const occupiedSlots = new Set((hudTasks ?? []).map((t) => t.hud_slot))
   const firstFreeSlot = [1, 2, 3].find((s) => !occupiedSlots.has(s)) ?? null
 
+  const problems = {
+    title: !title.trim(),
+    category: !categoryId,
+    deadline: !deadline,
+    size: !size,
+    project: projectChoice === NEW_PROJECT && !newProjectName.trim(),
+  }
+  const missing = [
+    problems.title && 'título',
+    problems.category && 'clase',
+    problems.deadline && 'fecha',
+    problems.size && 'arma',
+    problems.project && 'nombre del proyecto',
+  ].filter(Boolean) as string[]
+
+  function persistChoice() {
+    try {
+      localStorage.setItem(LAST_CHOICE_KEY, JSON.stringify({ categoryId, projectChoice: projectChoice === NEW_PROJECT ? NO_PROJECT : projectChoice }))
+    } catch {
+      // sin localStorage: solo se pierde el recuerdo.
+    }
+  }
+
+  function handleSkip() {
+    if (!current) return
+    setSkipped((ids) => (pending.length <= 1 ? [] : [...ids, current.id]))
+  }
+
+  function handleDiscard() {
+    if (!current) return
+    deleteTask.mutate(current.id, { onSuccess: () => showToast({ title: 'Captura descartada' }) })
+  }
+
   async function handleDispatch(outcome: DispatchOutcome) {
     if (!current) return
     setError(null)
 
-    if (!title.trim()) {
-      setError('La misión necesita un título.')
+    if (missing.length > 0) {
+      setShowErrors(true)
       return
     }
-    if (!categoryId) {
-      setError('Elegí una categoría para tu clase.')
-      return
-    }
-    if (!deadline) {
-      setError('El deadline es obligatorio para despachar el pergamino.')
-      return
-    }
-    if (!size) {
-      setError('Selecciona un arma (define la dificultad y XP).')
-      return
-    }
-    if (projectChoice === NEW_PROJECT && !newProjectName.trim()) {
-      setError('Ponele nombre al nuevo proyecto.')
-      return
-    }
+    const chosenCategoryId = categoryId
+    const chosenSize = size as TaskSize
 
     // Iniciar física de deslizamiento
     setAnimatingOut(true)
@@ -86,13 +134,14 @@ export function StrategyTablePage() {
         await dispatch.mutateAsync({
           taskId: current.id,
           title: title.trim(),
-          categoryId,
+          categoryId: chosenCategoryId,
           projectId,
           deadlineIso: fromDatetimeLocalValue(deadline),
-          size,
+          size: chosenSize,
           outcome,
           hudSlot: outcome === 'equip' ? firstFreeSlot : null,
         })
+        persistChoice()
       } catch (err) {
         setAnimatingOut(false)
         setError(err instanceof Error ? err.message : 'No se pudo despachar la carta.')
@@ -108,7 +157,7 @@ export function StrategyTablePage() {
   if (!current) {
     return (
       <div className="mx-auto flex min-h-[70vh] max-w-lg flex-col items-center justify-center px-4 py-8 text-center">
-        <div className="mb-6 text-7xl">🏰</div>
+        <Castle className="mb-6 h-20 w-20 text-accent" aria-hidden="true" />
         <h1 className="mb-2 font-display text-4xl font-black uppercase tracking-tighter text-accent">
           Maza Limpia
         </h1>
@@ -132,7 +181,7 @@ export function StrategyTablePage() {
         <h1 className="font-display text-lg font-bold tracking-wide text-fg">
           Mesa de Estrategia
         </h1>
-        <span className="rounded-full border border-border bg-black/40 px-3 py-1 font-mono text-[10px] font-bold text-accent">
+        <span className="rounded-full border border-border bg-shade/40 px-3 py-1 font-mono text-xs font-bold text-accent">
           {remainingCount} PERGAMINOS PENDIENTES
         </span>
       </header>
@@ -150,21 +199,28 @@ export function StrategyTablePage() {
           }`}
         >
           {/* Título & Deadline */}
-          <InboxCardDeck
-            remainingCount={remainingCount}
-            title={title}
-            onTitleChange={setTitle}
-            deadline={deadline}
-            onDeadlineChange={setDeadline}
-          />
+          <div>
+            <InboxCardDeck
+              remainingCount={remainingCount}
+              title={title}
+              onTitleChange={setTitle}
+              deadline={deadline}
+              onDeadlineChange={setDeadline}
+            />
+            {showErrors && problems.title && <FieldError>Ponle un título a la misión.</FieldError>}
+            {showErrors && problems.deadline && <FieldError>Elige una fecha límite.</FieldError>}
+          </div>
 
           {/* Selector de Armas / Dificultad */}
-          <WeaponSelector value={size} onChange={setSize} />
+          <div>
+            <WeaponSelector value={size} onChange={setSize} />
+            {showErrors && problems.size && <FieldError>Elige un arma: define la dificultad y el XP.</FieldError>}
+          </div>
 
           {/* Categoría y Proyecto */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="font-mono text-[9px] uppercase tracking-widest text-fg-muted/50">
+              <label className="font-mono text-xs uppercase tracking-widest text-fg-muted/50">
                 Categoría / Clase
               </label>
               <select
@@ -181,10 +237,11 @@ export function StrategyTablePage() {
                   </option>
                 ))}
               </select>
+              {showErrors && problems.category && <FieldError>Elige una clase.</FieldError>}
             </div>
 
             <div className="space-y-1.5">
-              <label className="font-mono text-[9px] uppercase tracking-widest text-fg-muted/50">
+              <label className="font-mono text-xs uppercase tracking-widest text-fg-muted/50">
                 Proyecto / Destino
               </label>
               <select
@@ -212,8 +269,14 @@ export function StrategyTablePage() {
               className="input-parchment w-full rounded-xl p-3 text-sm text-fg"
             />
           )}
+          {showErrors && problems.project && <FieldError>Ponle nombre al nuevo proyecto.</FieldError>}
 
-          {error && <p className="font-mono text-xs font-medium text-warn-fg">{error}</p>}
+          {showErrors && missing.length > 0 && (
+            <p role="alert" className="rounded-lg border border-warn-border bg-warn-bg px-3 py-2 font-mono text-xs font-medium text-warn-fg">
+              Falta: {missing.join(', ')}.
+            </p>
+          )}
+          {error && <p role="alert" className="font-mono text-xs font-medium text-warn-fg">{error}</p>}
 
           {/* Botones de Despacho Inmediato */}
           <footer className="mt-2 flex flex-col gap-3">
@@ -222,7 +285,7 @@ export function StrategyTablePage() {
                 type="button"
                 onClick={() => void handleDispatch('grimorio')}
                 disabled={dispatch.isPending}
-                className="rounded-xl border border-border py-3.5 font-mono text-[10px] font-black uppercase tracking-widest text-fg transition-all hover:bg-white/5 active:scale-95 disabled:opacity-50"
+                className="rounded-xl border border-border py-3.5 font-mono text-xs font-black uppercase tracking-widest text-fg transition-all hover:bg-glass/5 active:scale-95 disabled:opacity-50"
               >
                 Despachar al Grimorio
               </button>
@@ -230,7 +293,7 @@ export function StrategyTablePage() {
                 type="button"
                 onClick={() => void handleDispatch('follow_up')}
                 disabled={dispatch.isPending}
-                className="flex items-center justify-center gap-1.5 rounded-xl border border-sky-900/50 py-3.5 font-mono text-[10px] font-black uppercase tracking-widest text-sky-400 transition-all hover:bg-sky-400/10 active:scale-95 disabled:opacity-50"
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-rune/30 py-3.5 font-mono text-xs font-black uppercase tracking-widest text-rune transition-all hover:bg-rune/10 active:scale-95 disabled:opacity-50"
               >
                 <Link2 className="h-3.5 w-3.5" /> Seguimiento
               </button>
@@ -244,9 +307,55 @@ export function StrategyTablePage() {
             >
               <Swords className="h-4 w-4" /> Equipar en Combate
             </button>
+            <div className="flex items-center justify-center gap-2 pt-1">
+              {remainingCount > 1 && (
+                <button
+                  type="button"
+                  onClick={handleSkip}
+                  className="rounded-lg px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-widest text-fg-muted transition-colors hover:text-fg"
+                >
+                  Saltar por ahora
+                </button>
+              )}
+              {confirmingDiscard ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleDiscard}
+                    disabled={deleteTask.isPending}
+                    className="rounded-lg border border-red-600/40 bg-red-600/20 px-4 py-2.5 font-mono text-xs font-black uppercase tracking-widest text-red-400"
+                  >
+                    Sí, descartar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingDiscard(false)}
+                    className="rounded-lg px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-widest text-fg-muted"
+                  >
+                    Cancelar
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setConfirmingDiscard(true)}
+                  className="rounded-lg px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-widest text-fg-muted transition-colors hover:text-red-400"
+                >
+                  Descartar
+                </button>
+              )}
+            </div>
           </footer>
         </article>
       </main>
     </div>
+  )
+}
+
+function FieldError({ children }: { children: string }) {
+  return (
+    <p role="alert" className="mt-1.5 font-mono text-xs font-medium text-warn-fg">
+      {children}
+    </p>
   )
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Swords } from 'lucide-react'
 import { useBossStats, useCategories, useClaimBossPhase, useProjectById } from '@/features/projects/hooks'
 import { useCompleteTask, useTasksByProject } from '@/features/tasks/hooks'
 import { useEquipHudSlot, useHudTasks } from '@/features/battle-hud/hooks'
@@ -70,12 +70,12 @@ export function BossEncounterPage() {
             <img
               src={bossAvatarSrc(project.boss_avatar)}
               alt={project.boss_title}
-              className="h-full w-full rounded-full object-cover bg-black/40"
+              className="h-full w-full rounded-full object-cover bg-shade/40"
             />
           </div>
           <div
-            className="absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border-2 border-bg px-4 py-0.5 font-mono text-[10px] font-black uppercase tracking-tighter text-fg shadow-lg"
-            style={{ backgroundColor: category?.color_hex ?? '#7c3aed' }}
+            className="absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border-2 border-bg px-4 py-0.5 font-mono text-xs font-black uppercase tracking-tighter text-fg shadow-lg"
+            style={{ backgroundColor: category?.color_hex ?? '#4a8f5a' }}
           >
             {category?.name ?? 'Proyecto'} / {category?.class_name ?? 'Clase'}
           </div>
@@ -124,7 +124,7 @@ export function BossEncounterPage() {
                   <h3 className="truncate font-display text-base font-bold text-fg">
                     {task.title}
                   </h3>
-                  <p className="font-mono text-[10px] uppercase text-fg-muted/60">
+                  <p className="font-mono text-xs uppercase text-fg-muted/60">
                     Recompensa: +{task.xp_reward || 10} XP
                   </p>
                 </button>
@@ -136,19 +136,23 @@ export function BossEncounterPage() {
                     onClick={() =>
                       firstFreeSlot && equipToHud.mutate({ taskId: task.id, slot: firstFreeSlot })
                     }
-                    className={`rounded px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-widest transition-all ${
+                    className={`rounded px-3 py-2 font-mono text-xs font-bold uppercase tracking-widest transition-all ${
                       task.hud_slot !== null
                         ? 'border border-accent/40 bg-accent/20 text-accent'
-                        : 'border border-white/10 bg-white/5 text-fg-muted hover:bg-white/10 hover:text-fg disabled:opacity-40'
+                        : 'border border-glass/10 bg-glass/5 text-fg-muted hover:bg-glass/10 hover:text-fg disabled:opacity-40'
                     }`}
                   >
-                    {task.hud_slot !== null ? 'En HUD' : '⚔️ Equipar'}
+                    {task.hud_slot !== null ? (
+                      'En HUD'
+                    ) : (
+                      <span className="inline-flex items-center gap-1"><Swords className="h-3.5 w-3.5" aria-hidden="true" /> Equipar</span>
+                    )}
                   </button>
 
                   <button
                     type="button"
                     onClick={() => completeTask.mutate({ id: task.id, project_id: task.project_id })}
-                    className="rounded border border-red-600/40 bg-red-600/20 px-4 py-2 font-mono text-[10px] font-black uppercase tracking-widest text-red-400 transition-all hover:bg-red-600 hover:text-white"
+                    className="rounded border border-red-600/40 bg-red-600/20 px-4 py-2 font-mono text-xs font-black uppercase tracking-widest text-red-400 transition-all hover:bg-red-600 hover:text-white"
                   >
                     Golpear
                   </button>

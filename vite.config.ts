@@ -26,8 +26,8 @@ export default defineConfig({
         name: 'Questly',
         short_name: 'Questly',
         description: 'Maneja tus misiones. Conquista el caos.',
-        theme_color: '#121212',
-        background_color: '#121212',
+        theme_color: '#0b1410',
+        background_color: '#0b1410',
         display: 'standalone',
         start_url: '/',
         icons: [

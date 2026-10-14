@@ -1,13 +1,18 @@
-import { Plus } from 'lucide-react'
+import { Plus, Sparkles } from 'lucide-react'
+import type { Task } from '@/types/database.types'
 
 const SLOT_ROMAN = ['I', 'II', 'III']
 
 export function EmptySlotCard({
   slot,
   onEquip,
+  suggestion,
+  onEquipSuggestion,
 }: {
   slot: number
   onEquip: () => void
+  suggestion: Task | null
+  onEquipSuggestion: () => void
 }) {
   return (
     <article className="empty-slot-card group flex h-[420px] flex-col items-center justify-center rounded-2xl p-6 text-center">
@@ -20,13 +25,29 @@ export function EmptySlotCard({
       <p className="mb-8 max-w-[200px] font-mono text-xs text-fg-muted/40">
         No hay misiones equipadas en este flanco táctico.
       </p>
-      <button
-        type="button"
-        onClick={onEquip}
-        className="rounded-full border border-accent px-6 py-2.5 font-display text-xs font-bold uppercase tracking-wider text-accent transition-all hover:bg-accent hover:text-accent-fg active:scale-95"
-      >
-        Equipar Misión
-      </button>
+      <div className="flex w-full max-w-[240px] flex-col gap-2.5">
+        {suggestion && (
+          <button
+            type="button"
+            onClick={onEquipSuggestion}
+            className="btn-prime flex items-center justify-center gap-2 rounded-full px-6 py-3 font-display text-xs font-bold uppercase tracking-wider"
+          >
+            <Sparkles className="h-4 w-4" aria-hidden="true" /> Elegir por mí
+          </button>
+        )}
+        {suggestion && (
+          <p className="truncate font-mono text-xs text-fg-muted" title={suggestion.title}>
+            Sugerida: {suggestion.title}
+          </p>
+        )}
+        <button
+          type="button"
+          onClick={onEquip}
+          className="rounded-full border border-accent px-6 py-3 font-display text-xs font-bold uppercase tracking-wider text-accent transition-all hover:bg-accent hover:text-accent-fg active:scale-95"
+        >
+          {suggestion ? 'Elegir yo' : 'Equipar Misión'}
+        </button>
+      </div>
     </article>
   )
 }

@@ -29,18 +29,18 @@ export function CalendarTimelineView({
         <button
           type="button"
           onClick={scrollToToday}
-          className="rounded-full border border-accent/40 bg-accent/10 px-4 py-1.5 font-mono text-[10px] font-black uppercase text-accent transition-all hover:bg-accent hover:text-accent-fg"
+          className="rounded-full border border-accent/40 bg-accent/10 px-4 py-1.5 font-mono text-xs font-black uppercase text-accent transition-all hover:bg-accent hover:text-accent-fg"
         >
           Ir a Hoy
         </button>
 
-        <div className="flex items-center gap-1 rounded-xl border border-border bg-black/40 p-1">
+        <div className="flex items-center gap-1 rounded-xl border border-border bg-shade/40 p-1">
           {([3, 7, 14] as const).map((count) => (
             <button
               key={count}
               type="button"
               onClick={() => setDaysCount(count)}
-              className={`rounded-lg px-3 py-1 font-mono text-[10px] font-bold uppercase transition-all ${
+              className={`rounded-lg px-3 py-1 font-mono text-xs font-bold uppercase transition-all ${
                 daysCount === count
                   ? 'bg-accent text-accent-fg shadow'
                   : 'text-fg-muted hover:text-fg'
@@ -86,16 +86,16 @@ export function CalendarTimelineView({
                       ? 'Hoy'
                       : format(dayDate, 'EEEE', { locale: es })}
                   </h3>
-                  <p className="font-mono text-[10px] uppercase tracking-widest text-fg-muted/50">
+                  <p className="font-mono text-xs uppercase tracking-widest text-fg-muted/50">
                     {format(dayDate, 'd MMMM', { locale: es })}
                   </p>
                 </div>
 
                 {/* Medidor de Energía */}
                 <div className="w-28 text-right">
-                  <div className="mb-1 flex justify-between font-mono text-[8px] font-bold uppercase text-fg-muted/60">
+                  <div className="mb-1 flex justify-between font-mono text-xs font-bold uppercase text-fg-muted/60">
                     <span>Energía</span>
-                    <span className={isFatigueHigh ? 'text-red-400 font-black' : ''}>
+                    <span className={isFatigueHigh ? 'font-black text-warn-fg' : ''}>
                       {energyUsage}%
                     </span>
                   </div>
@@ -103,10 +103,10 @@ export function CalendarTimelineView({
                     <div
                       className={`h-full transition-all duration-700 ${
                         isFatigueHigh
-                          ? 'bg-red-500'
+                          ? 'bg-warn-dot'
                           : energyUsage > 40
                             ? 'bg-amber-500'
-                            : 'bg-emerald-500'
+                            : 'bg-accent'
                       }`}
                       style={{ width: `${energyUsage}%` }}
                     />
@@ -116,9 +116,9 @@ export function CalendarTimelineView({
 
               {/* Aviso de Fatiga */}
               {isFatigueHigh && (
-                <div className="mb-3 flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-2 text-red-400">
+                <div className="mb-3 flex items-center gap-2 rounded-lg border border-warn-border bg-warn-bg p-2 text-warn-fg">
                   <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                  <p className="font-mono text-[9px] font-bold uppercase tracking-tight">
+                  <p className="font-mono text-xs font-bold uppercase tracking-tight">
                     Aviso de Fatiga: Carga de misiones elevada
                   </p>
                 </div>
@@ -127,7 +127,7 @@ export function CalendarTimelineView({
               {/* Lista de Misiones del Día */}
               <div className="space-y-2.5">
                 {dayTasks.length === 0 ? (
-                  <p className="font-mono text-[11px] italic text-fg-muted/40">
+                  <p className="font-mono text-xs italic text-fg-muted/40">
                     Sin misiones agendadas para esta fecha.
                   </p>
                 ) : (
@@ -145,7 +145,7 @@ export function CalendarTimelineView({
                         }
                       >
                         <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                          <span className="font-mono text-[10px] text-fg-muted/60">
+                          <span className="font-mono text-xs text-fg-muted/60">
                             {format(new Date(task.deadline!), 'HH:mm')}
                           </span>
                           <div className="min-w-0 flex-1">
@@ -154,7 +154,7 @@ export function CalendarTimelineView({
                             </h4>
                             {category && (
                               <span
-                                className="inline-block rounded px-1.5 py-0.5 font-mono text-[8px] font-black uppercase"
+                                className="inline-block rounded px-1.5 py-0.5 font-mono text-xs font-black uppercase"
                                 style={{
                                   backgroundColor: `${category.color_hex}25`,
                                   color: category.color_hex,

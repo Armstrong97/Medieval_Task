@@ -1,7 +1,7 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { Mic, Square, Trash2, WifiOff } from 'lucide-react'
-import { useCaptureInboxTask, useDeleteTask, useInboxTasks } from '@/features/tasks/hooks'
+import { Mic, ScrollText, Square, Trash2, WifiOff } from 'lucide-react'
+import { useCaptureInboxTask, useDeleteTask, useInboxTasks, useUpdateTask } from '@/features/tasks/hooks'
 import { useOnlineStatus } from '@/utils/useOnlineStatus'
 import { useSpeechDictation } from '@/utils/useSpeechDictation'
 import { InboxEmptyState, InboxTopBar } from '@/features/inbox/components/InboxDashboard'
@@ -14,6 +14,9 @@ export function InboxPage() {
   const { data: items, isLoading } = useInboxTasks()
   const captureTask = useCaptureInboxTask()
   const deleteTask = useDeleteTask()
+  const updateTask = useUpdateTask()
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [draft, setDraft] = useState('')
   const online = useOnlineStatus()
   const [editingTask, setEditingTask] = useState<Task | null>(null)
 
@@ -32,6 +35,18 @@ export function InboxPage() {
         inputRef.current?.focus()
       },
     })
+  }
+
+  function startEdit(item: Task) {
+    if (item.id.startsWith('optimistic-')) return
+    setEditingId(item.id)
+    setDraft(item.title)
+  }
+
+  function saveEdit(item: Task) {
+    const next = draft.trim()
+    setEditingId(null)
+    if (next && next !== item.title) updateTask.mutate({ id: item.id, patch: { title: next } })
   }
 
   return (
@@ -74,7 +89,7 @@ export function InboxPage() {
                 className={`flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-90 ${
                   dictation.listening
                     ? 'pulse-recording bg-red-500/20 text-red-400'
-                    : 'bg-white/5 text-fg-muted hover:bg-white/10 hover:text-fg'
+                    : 'bg-glass/5 text-fg-muted hover:bg-glass/10 hover:text-fg'
                 }`}
               >
                 {dictation.listening ? <Square className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
@@ -92,12 +107,12 @@ export function InboxPage() {
         </form>
 
         <div className="mt-2.5 flex justify-between px-3">
-          <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-fg-muted/50">
-            <span className={`h-1.5 w-1.5 rounded-full ${online ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+          <span className="flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-fg-muted/50">
+            <span className={`h-1.5 w-1.5 rounded-full ${online ? 'bg-accent' : 'bg-amber-500'}`} />
             {online ? 'Conexión Estable' : 'Modo Offline Resiliente'}
           </span>
           {!online && (
-            <span className="font-mono text-[10px] uppercase tracking-widest text-amber-400">
+            <span className="font-mono text-xs uppercase tracking-widest text-amber-400">
               <WifiOff className="mr-1 inline h-3 w-3" /> Guarda localmente
             </span>
           )}
@@ -120,12 +135,32 @@ export function InboxPage() {
                 className="inbox-item-card group flex items-center justify-between rounded-xl p-4 transition-all hover:border-accent"
               >
                 <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                  <span className="text-lg opacity-40 transition-opacity group-hover:opacity-100 group-hover:text-accent">
-                    📜
-                  </span>
-                  <p className="truncate font-medium text-fg">{item.title}</p>
+                  <ScrollText className="h-5 w-5 shrink-0 opacity-40 transition-opacity group-hover:text-accent group-hover:opacity-100" aria-hidden="true" />
+                  {editingId === item.id ? (
+                    <input
+                      autoFocus
+                      value={draft}
+                      onChange={(e) => setDraft(e.target.value)}
+                      onBlur={() => saveEdit(item)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') saveEdit(item)
+                        if (e.key === 'Escape') setEditingId(null)
+                      }}
+                      aria-label="Editar captura"
+                      className="input-parchment min-w-0 flex-1 rounded-lg px-3 py-2 text-fg"
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => startEdit(item)}
+                      title="Tocar para corregir"
+                      className="min-w-0 flex-1 truncate text-left font-medium text-fg"
+                    >
+                      {item.title}
+                    </button>
+                  )}
                   {item.id.startsWith('optimistic-') && (
-                    <span className="font-mono text-[10px] text-fg-muted/50">
+                    <span className="font-mono text-xs text-fg-muted/50">
                       (sincronizando...)
                     </span>
                   )}
@@ -135,7 +170,7 @@ export function InboxPage() {
                   type="button"
                   onClick={() => deleteTask.mutate(item.id)}
                   aria-label="Descartar captura"
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-fg-muted/40 transition-all hover:bg-red-500/20 hover:text-red-400 opacity-0 group-hover:opacity-100"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-fg-muted transition-all hover:bg-red-500/20 hover:text-red-400"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>

@@ -1,15 +1,16 @@
+import { Axe, BookOpen, Brain, Check, Gamepad2, Landmark, Leaf, Shield, Trophy, type LucideIcon } from 'lucide-react'
 import { useState } from 'react'
 import { useCategories } from '@/features/projects/hooks'
 import { useCompleteTask } from '@/features/tasks/hooks'
 import type { Category, Task } from '@/types/database.types'
 
-const CLASS_ICONS: Record<string, string> = {
-  Concentrix: '🔮',
-  Delorean: '🪓',
-  Estudios: '📜',
-  Hobbies: '🎮',
-  Personal: '🛡️',
-  Hogar: '🌿',
+const CLASS_ICONS: Record<string, LucideIcon> = {
+  Concentrix: Brain,
+  Delorean: Axe,
+  Estudios: BookOpen,
+  Hobbies: Gamepad2,
+  Personal: Shield,
+  Hogar: Leaf,
 }
 
 export function GrimorioTabsView({
@@ -37,22 +38,22 @@ export function GrimorioTabsView({
         <button
           type="button"
           onClick={() => setActiveCategoryId(null)}
-          className={`wax-seal-btn flex w-20 flex-col items-center rounded-xl border-2 border-border bg-surface p-3 text-center md:w-24 ${
+          className={`wax-seal-btn flex w-24 flex-col items-center rounded-xl border-2 border-border bg-surface p-3 text-center md:w-28 ${
             !activeCategoryId ? 'active' : ''
           }`}
         >
-          <span className="mb-1 text-2xl">🏺</span>
-          <span className="font-mono text-[9px] font-bold uppercase tracking-tighter text-fg">
+          <Landmark className="mb-1 h-6 w-6" aria-hidden="true" />
+          <span className="font-mono text-xs font-bold uppercase tracking-tighter text-fg">
             Todas
           </span>
-          <span className="mt-1 font-mono text-[10px] text-fg-muted/60">
+          <span className="mt-1 font-mono text-xs text-fg-muted/60">
             {tasks.filter((t) => t.status !== 'done').length}
           </span>
         </button>
 
         {categories?.map((cat) => {
           const catCount = tasks.filter((t) => t.category_id === cat.id && t.status !== 'done').length
-          const icon = CLASS_ICONS[cat.name] ?? '🛡️'
+          const CatIcon = CLASS_ICONS[cat.name] ?? Shield
           const isActive = activeCategoryId === cat.id
 
           return (
@@ -60,15 +61,15 @@ export function GrimorioTabsView({
               key={cat.id}
               type="button"
               onClick={() => setActiveCategoryId(cat.id)}
-              className={`wax-seal-btn flex w-20 flex-col items-center rounded-xl border-2 border-border bg-surface p-3 text-center md:w-24 ${
+              className={`wax-seal-btn flex w-24 flex-col items-center rounded-xl border-2 border-border bg-surface p-3 text-center md:w-28 ${
                 isActive ? 'active' : ''
               }`}
             >
-              <span className="mb-1 text-2xl">{icon}</span>
-              <span className="truncate font-mono text-[9px] font-bold uppercase tracking-tighter text-fg">
+              <CatIcon className="mb-1 h-6 w-6" aria-hidden="true" />
+              <span className="truncate font-mono text-xs font-bold uppercase tracking-tighter text-fg">
                 {cat.class_name}
               </span>
-              <span className="mt-1 font-mono text-[10px] text-fg-muted/60">{catCount}</span>
+              <span className="mt-1 font-mono text-xs text-fg-muted/60">{catCount}</span>
             </button>
           )
         })}
@@ -106,7 +107,7 @@ export function GrimorioTabsView({
         {/* Completadas Recientemente */}
         <section className="space-y-4 opacity-75">
           <div className="flex items-center gap-2.5 border-b border-border pb-2.5">
-            <span className="text-xl">🏆</span>
+            <Trophy className="h-5 w-5 text-gold" aria-hidden="true" />
             <h2 className="font-display text-base font-bold uppercase tracking-widest text-fg-muted">
               Completadas Recientemente
             </h2>
@@ -162,7 +163,7 @@ function RenderTabCard({
         className="min-w-0 flex-1 text-left"
       >
         <h3 className="truncate font-display text-sm font-bold text-fg">{task.title}</h3>
-        <div className="mt-1 flex items-center gap-3 font-mono text-[10px]">
+        <div className="mt-1 flex items-center gap-3 font-mono text-xs">
           {category && (
             <span
               className="rounded px-2 py-0.5 uppercase"
@@ -185,7 +186,7 @@ function RenderTabCard({
           onClick={onComplete}
           className="flex h-8 w-8 items-center justify-center rounded border border-border text-xs transition-colors hover:border-accent hover:text-accent"
         >
-          ✓
+          <Check className="h-4 w-4" aria-label="Completar" />
         </button>
       )}
     </div>

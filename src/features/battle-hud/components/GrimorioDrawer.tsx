@@ -2,15 +2,18 @@ import { useState } from 'react'
 import { format } from 'date-fns'
 import { X } from 'lucide-react'
 import { useCategories } from '@/features/projects/hooks'
-import { useEquipHudSlot, useEquippableTasks } from '@/features/battle-hud/hooks'
+import { useEquipHudSlot, useEquippableTasks, useSuggestedTask } from '@/features/battle-hud/hooks'
 
 export function GrimorioDrawer({ slot, onClose }: { slot: number; onClose: () => void }) {
   const { data: tasks, isLoading } = useEquippableTasks()
   const { data: categories } = useCategories()
   const equip = useEquipHudSlot()
+  const suggested = useSuggestedTask()
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null)
 
-  const filtered = tasks?.filter((t) => !activeCategoryId || t.category_id === activeCategoryId)
+  const filtered = tasks
+    ?.filter((t) => !activeCategoryId || t.category_id === activeCategoryId)
+    .sort((a, b) => Number(b.id === suggested?.id) - Number(a.id === suggested?.id))
 
   function handleEquip(taskId: string) {
     equip.mutate({ taskId, slot }, { onSuccess: onClose })
@@ -18,12 +21,12 @@ export function GrimorioDrawer({ slot, onClose }: { slot: number; onClose: () =>
 
   return (
     <div
-      className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex justify-end bg-shade/40 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="modal-panel flex h-full w-full max-w-sm flex-col border-l border-border bg-surface p-4"
+        className="modal-panel panel-rune flex h-full w-full max-w-sm flex-col border-l border-border bg-surface p-4"
       >
         <div className="flex items-center justify-between">
           <h2 className="font-display text-base font-semibold tracking-tight text-fg">
@@ -38,7 +41,7 @@ export function GrimorioDrawer({ slot, onClose }: { slot: number; onClose: () =>
             <X className="h-4 w-4" />
           </button>
         </div>
-        <p className="mt-1 text-sm text-fg-muted">Elegí una misión del backlog para equipar.</p>
+        <p className="mt-1 text-sm text-fg-muted">Elige una misión del backlog para equipar.</p>
 
         <div className="mt-3 flex flex-wrap gap-1.5">
           <button
@@ -83,6 +86,11 @@ export function GrimorioDrawer({ slot, onClose }: { slot: number; onClose: () =>
                       style={category ? { borderLeftWidth: '3px', borderLeftColor: category.color_hex } : undefined}
                     >
                       <span className="min-w-0 flex-1 truncate text-fg">{task.title}</span>
+                      {task.id === suggested?.id && (
+                        <span className="shrink-0 rounded-full bg-accent/20 px-2 py-0.5 font-mono text-xs font-bold uppercase text-accent">
+                          Sugerida
+                        </span>
+                      )}
                       {task.deadline && (
                         <span className="shrink-0 font-mono text-xs text-fg-muted">
                           {format(new Date(task.deadline), 'd MMM')}

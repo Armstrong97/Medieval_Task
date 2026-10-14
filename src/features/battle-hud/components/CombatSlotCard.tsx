@@ -1,9 +1,12 @@
 import { useState } from 'react'
-import { MoreVertical, PictureInPicture2, Swords } from 'lucide-react'
+import { MoreVertical, PictureInPicture2, Star, Swords } from 'lucide-react'
 import { useCategories } from '@/features/projects/hooks'
 import { useCompleteTask, useSubtasks } from '@/features/tasks/hooks'
 import { useFocusFloat } from '@/features/tasks/FocusFloatContext'
 import { useSendToFollowUp } from '@/features/followups/hooks'
+import { useClearTodayPriority, useSetTodayPriority, useTodayQuests } from '@/features/gamification/hooks'
+import { RescheduleButtons } from '@/features/tasks/components/RescheduleButtons'
+import { isOverdue } from '@/utils/datetime'
 import { useUnequipHudSlot } from '@/features/battle-hud/hooks'
 import { WEAPON_ICONS } from '@/utils/rpgAssets'
 import type { Task, TaskSize } from '@/types/database.types'
@@ -29,6 +32,10 @@ export function CombatSlotCard({
   const unequip = useUnequipHudSlot()
   const sendToFollowUp = useSendToFollowUp()
   const { open: openFocusFloat } = useFocusFloat()
+  const { data: todayQuests } = useTodayQuests()
+  const setPriority = useSetTodayPriority()
+  const clearPriority = useClearTodayPriority()
+  const isPriority = todayQuests?.find((q) => q.type === 'daily_priority')?.task_id === task.id
 
   const [menuOpen, setMenuOpen] = useState(false)
   const [animatingKill, setAnimatingKill] = useState(false)
@@ -54,7 +61,7 @@ export function CombatSlotCard({
     }, 280)
   }
 
-  const categoryColor = category?.color_hex ?? '#d9a94a'
+  const categoryColor = category?.color_hex ?? '#7ccf6a'
 
   return (
     <article
@@ -71,7 +78,7 @@ export function CombatSlotCard({
       {/* Header de Categoria e Insignia de Arma */}
       <div className="mb-4 flex items-start justify-between">
         <span
-          className="rounded border px-2.5 py-1 font-mono text-[9px] font-black uppercase tracking-widest"
+          className="rounded border px-2.5 py-1 font-mono text-xs font-black uppercase tracking-widest"
           style={{
             backgroundColor: `${categoryColor}20`,
             color: categoryColor,
@@ -80,15 +87,25 @@ export function CombatSlotCard({
         >
           {category?.name ?? 'Misión'}
         </span>
+        <button
+          type="button"
+          onClick={() => (isPriority ? clearPriority.mutate() : setPriority.mutate(task.id))}
+          aria-pressed={isPriority}
+          aria-label={isPriority ? 'Quitar prioridad de hoy' : 'Marcar como prioridad de hoy'}
+          title="Prioridad de hoy (+20 XP al terminarla)"
+          className="flex h-11 w-11 items-center justify-center rounded-lg transition-transform hover:scale-110 active:scale-95"
+        >
+          <Star className={`h-6 w-6 ${isPriority ? 'fill-gold text-gold' : 'text-fg-muted'}`} aria-hidden="true" />
+        </button>
         {task.size && (
           <div
-            className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-black/40 shadow-inner"
+            className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-shade/40 shadow-inner"
             title={`${difficulty?.label} (${difficulty?.xp} XP)`}
           >
             <img
               src={WEAPON_ICONS[task.size]}
               alt={difficulty?.label}
-              className="h-6 w-6 object-contain drop-shadow-[0_0_4px_rgba(217,169,74,0.4)]"
+              className="h-6 w-6 object-contain drop-shadow-[0_0_4px_rgb(var(--accent-rgb)/0.4)]"
             />
           </div>
         )}
@@ -105,6 +122,11 @@ export function CombatSlotCard({
             {task.title}
           </h2>
         </button>
+        {isOverdue(task) && (
+          <div className="mb-3">
+            <RescheduleButtons task={task} />
+          </div>
+        )}
         <p className="mb-6 font-mono text-xs text-fg-muted/70">
           {hasSubtasks
             ? `Submisiones: ${hpTotal - hpCurrent} / ${hpTotal}`
@@ -113,9 +135,9 @@ export function CombatSlotCard({
 
         {/* Barra de HP Segmentada */}
         <div className="mb-6 space-y-2">
-          <div className="flex justify-between font-mono text-[10px] uppercase text-fg-muted">
+          <div className="flex justify-between font-mono text-xs uppercase text-fg-muted">
             <span>Integridad del Enemigo</span>
-            <span className={hpCurrent === 0 ? 'text-red-500 font-bold' : ''}>
+            <span className={hpCurrent === 0 ? 'font-bold text-gold' : ''}>
               {hpPercent}%
             </span>
           </div>
@@ -141,14 +163,14 @@ export function CombatSlotCard({
           <button
             type="button"
             onClick={() => void openFocusFloat()}
-            className="flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 py-2.5 font-mono text-[10px] font-black uppercase tracking-widest text-fg-muted transition-all hover:bg-white/10 hover:text-fg active:scale-95"
+            className="flex items-center justify-center gap-1.5 rounded-lg border border-glass/10 bg-glass/5 py-3 font-mono text-xs font-black uppercase tracking-widest text-fg-muted transition-all hover:bg-glass/10 hover:text-fg active:scale-95"
           >
             <PictureInPicture2 className="h-3.5 w-3.5" /> Atacar
           </button>
           <button
             type="button"
             onClick={handleGolpeFinal}
-            className="btn-prime flex items-center justify-center gap-1.5 rounded-lg py-2.5 font-mono text-[10px] font-black uppercase tracking-widest"
+            className="btn-prime flex items-center justify-center gap-1.5 rounded-lg py-3 font-mono text-xs font-black uppercase tracking-widest"
           >
             <Swords className="h-3.5 w-3.5" /> Golpe Final
           </button>
@@ -158,7 +180,7 @@ export function CombatSlotCard({
           <button
             type="button"
             onClick={() => setMenuOpen((v) => !v)}
-            className="w-full py-1.5 font-mono text-[10px] font-bold uppercase tracking-widest text-fg-muted/50 transition-opacity hover:text-fg"
+            className="w-full py-1.5 font-mono text-xs font-bold uppercase tracking-widest text-fg-muted/50 transition-opacity hover:text-fg"
           >
             <MoreVertical className="mr-1 inline h-3 w-3" /> Retirada Táctica
           </button>
@@ -168,7 +190,7 @@ export function CombatSlotCard({
                 className="fixed inset-0 z-40"
                 onClick={() => setMenuOpen(false)}
               />
-              <div className="modal-panel absolute bottom-full right-0 z-50 mb-2 w-52 rounded-xl border border-border bg-surface p-1.5 shadow-2xl">
+              <div className="modal-panel panel-rune absolute bottom-full right-0 z-50 mb-2 w-52 rounded-xl border border-border bg-surface p-1.5 shadow-2xl">
                 <button
                   type="button"
                   onClick={() => {
@@ -179,7 +201,7 @@ export function CombatSlotCard({
                       stakeholderName: null,
                     })
                   }}
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left font-mono text-xs text-fg-muted transition-colors hover:bg-surface-2 hover:text-sky-400"
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left font-mono text-xs text-fg-muted transition-colors hover:bg-surface-2 hover:text-rune"
                 >
                   Mover a Follow-up
                 </button>

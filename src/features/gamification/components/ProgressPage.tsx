@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Flame, Shield } from 'lucide-react'
+import { Flame, Shield, Check, Sparkles } from 'lucide-react'
 import { useCategories, useProjects } from '@/features/projects/hooks'
 import {
   useCategoryXp,
@@ -38,7 +38,7 @@ export function ProgressPage() {
       {/* Header Titular */}
       <header className="mb-10 flex items-end justify-between border-b border-border pb-6">
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent/70">
+          <p className="font-mono text-xs uppercase tracking-[0.3em] text-accent/70">
             Estadísticas de Héroe
           </p>
           <h1 className="font-display text-3xl font-black uppercase tracking-widest text-fg md:text-4xl">
@@ -46,7 +46,7 @@ export function ProgressPage() {
           </h1>
         </div>
         <div className="text-right">
-          <span className="block font-mono text-[10px] uppercase text-fg-muted">Nivel Global</span>
+          <span className="block font-mono text-xs uppercase text-fg-muted">Nivel Global</span>
           <span className="font-display text-3xl font-black text-accent">{globalLevel}</span>
         </div>
       </header>
@@ -64,17 +64,17 @@ export function ProgressPage() {
                   <h2 className="font-display text-2xl font-bold text-accent">
                     {streak?.current_streak_days ?? 0} DÍAS
                   </h2>
-                  <p className="font-mono text-[10px] uppercase text-fg-muted">
+                  <p className="font-mono text-xs uppercase text-fg-muted">
                     Racha de Fuego Activa
                   </p>
                 </div>
               </div>
-              <div className="rounded-xl border border-border bg-black/40 px-4 py-2 text-center">
-                <span className="flex items-center gap-1 font-mono text-base font-bold text-sky-400">
-                  <Shield className="h-4 w-4 fill-sky-400" />
+              <div className="rounded-xl border border-border bg-shade/40 px-4 py-2 text-center">
+                <span className="flex items-center gap-1 font-mono text-base font-bold text-rune">
+                  <Shield className="h-4 w-4 fill-rune" />
                   {streak?.shields_available ?? 0}
                 </span>
-                <p className="font-mono text-[8px] uppercase text-fg-muted/60">Escudos</p>
+                <p className="font-mono text-xs uppercase text-fg-muted/60">Escudos</p>
               </div>
             </div>
           </section>
@@ -89,15 +89,19 @@ export function ProgressPage() {
               {todayQuests?.map((q) => (
                 <div
                   key={q.id}
-                  className="flex items-center justify-between rounded-xl border border-border bg-black/30 p-3"
+                  className="flex items-center justify-between rounded-xl border border-border bg-shade/30 p-3"
                 >
                   <span className="font-display text-xs text-fg">{QUEST_TITLES[q.type]}</span>
                   <span
-                    className={`font-mono text-[10px] font-bold ${
-                      q.completed ? 'text-emerald-400' : 'text-accent animate-pulse'
+                    className={`font-mono text-xs font-bold ${
+                      q.completed ? 'text-accent' : 'text-accent animate-pulse'
                     }`}
                   >
-                    {q.completed ? '✓ COMPLETO' : 'PENDIENTE'}
+                    {q.completed ? (
+                      <span className="inline-flex items-center gap-1"><Check className="h-3.5 w-3.5" aria-hidden="true" /> COMPLETO</span>
+                    ) : (
+                      'PENDIENTE'
+                    )}
                   </span>
                 </div>
               ))}
@@ -137,14 +141,14 @@ export function ProgressPage() {
                   onClick={() => setSelectedCategory(cat)}
                   className="card-stone-bg card-rune-interactive cursor-pointer rounded-2xl p-4 transition-all"
                 >
-                  <span className="mb-2 block text-2xl">🔮</span>
+                  <Sparkles className="mb-2 h-6 w-6" aria-hidden="true" />
                   <h4 className="truncate font-display text-xs font-bold uppercase tracking-widest text-fg">
                     {rank?.rank_name ?? cat.class_name}
                   </h4>
-                  <p className="font-mono text-[9px] uppercase text-fg-muted/60 mb-3">
+                  <p className="font-mono text-xs uppercase text-fg-muted/60 mb-3">
                     Nv. {level} · {cat.name}
                   </p>
-                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-black/40">
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-shade/40">
                     <div
                       className="h-full transition-all duration-500"
                       style={{ width: `${percent}%`, backgroundColor: cat.color_hex }}

@@ -2,49 +2,63 @@ import { useMemo } from 'react'
 
 interface Mote {
   left: number
+  top: number
   size: number
-  drift: number
+  dx: number
+  dy: number
   duration: number
   delay: number
+  tone: 'a' | 'b'
 }
 
 function useMotes(count: number): Mote[] {
   return useMemo(
     () =>
-      Array.from({ length: count }, () => ({
+      Array.from({ length: count }, (_, i) => ({
         left: Math.random() * 100,
-        size: 2 + Math.random() * 4,
-        drift: Math.random() * 80 - 40,
-        duration: 10 + Math.random() * 14,
-        delay: Math.random() * 14,
+        top: 10 + Math.random() * 85,
+        size: 3 + Math.random() * 5,
+        dx: Math.random() * 120 - 60,
+        dy: Math.random() * 90 - 60,
+        duration: 14 + Math.random() * 16,
+        delay: -Math.random() * 20,
+        tone: i % 2 === 0 ? 'a' : 'b',
       })),
     [count],
   )
 }
 
 /**
- * Fondo ambiental global: aurora rotando muy lento + motas doradas ascendiendo.
- * Solo visible en modo oscuro (identidad principal); en claro queda inerte para no
- * competir con la legibilidad. Se apaga con prefers-reduced-motion.
+ * Fondo ambiental global "bosque vivo". De noche: aurora rúnica + luciérnagas.
+ * De día: haces de luz entre el follaje + polen dorado. El tema lo resuelve el
+ * CSS (prefers-color-scheme), no este componente. Se congela con
+ * prefers-reduced-motion.
  */
 export function AmbientBackground() {
-  const motes = useMotes(18)
+  const motes = useMotes(16)
 
   return (
-    <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden dark:opacity-100 opacity-0">
+    <div
+      aria-hidden="true"
+      className="ambient-root pointer-events-none fixed inset-0 -z-10 overflow-hidden"
+    >
       <div className="ambient-aurora absolute -inset-1/5" />
+      <div className="ambient-rays" />
       {motes.map((mote, i) => (
         <div
           key={i}
-          className="ambient-mote absolute bottom-[-5%] rounded-full"
+          className="ambient-mote"
           style={
             {
               left: `${mote.left}%`,
+              top: `${mote.top}%`,
               width: mote.size,
               height: mote.size,
-              '--drift': `${mote.drift}px`,
-              animationDuration: `${mote.duration}s`,
-              animationDelay: `${mote.delay}s`,
+              '--dx': `${mote.dx}px`,
+              '--dy': `${mote.dy}px`,
+              '--dur': `${mote.duration}s`,
+              '--delay': `${mote.delay}s`,
+              '--mote-c': `var(--mote-${mote.tone})`,
             } as React.CSSProperties
           }
         />

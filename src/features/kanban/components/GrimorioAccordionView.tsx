@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import { ChevronDown, Search } from 'lucide-react'
+import { ChevronDown, Search, Check, Landmark, ScrollText, Swords } from 'lucide-react'
 import { format, differenceInDays } from 'date-fns'
 import { useCategories } from '@/features/projects/hooks'
 import { useCompleteTask } from '@/features/tasks/hooks'
 import { WEAPON_ICONS } from '@/utils/rpgAssets'
+import { RescheduleButtons } from '@/features/tasks/components/RescheduleButtons'
+import { isOverdue } from '@/utils/datetime'
 import type { Category, Task } from '@/types/database.types'
 
 export function GrimorioAccordionView({
@@ -59,7 +61,7 @@ export function GrimorioAccordionView({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar misiones o pergaminos..."
-            className="w-full rounded-2xl border border-border bg-black/40 py-3.5 pl-11 pr-4 text-sm text-fg outline-none transition-all focus:border-accent"
+            className="w-full rounded-2xl border border-border bg-shade/40 py-3.5 pl-11 pr-4 text-sm text-fg outline-none transition-all focus:border-accent"
           />
           <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 opacity-40 text-fg" />
         </div>
@@ -68,7 +70,7 @@ export function GrimorioAccordionView({
           <button
             type="button"
             onClick={() => setSelectedCategory(null)}
-            className={`rounded-full px-3.5 py-1 font-mono text-[10px] font-bold uppercase tracking-widest transition-all ${
+            className={`rounded-full px-3.5 py-1 font-mono text-xs font-bold uppercase tracking-widest transition-all ${
               !selectedCategory
                 ? 'bg-accent text-accent-fg'
                 : 'border border-border text-fg-muted hover:text-fg'
@@ -81,7 +83,7 @@ export function GrimorioAccordionView({
               key={cat.id}
               type="button"
               onClick={() => setSelectedCategory(cat.id)}
-              className={`rounded-full border px-3.5 py-1 font-mono text-[10px] font-bold uppercase tracking-widest transition-all ${
+              className={`rounded-full border px-3.5 py-1 font-mono text-xs font-bold uppercase tracking-widest transition-all ${
                 selectedCategory === cat.id
                   ? 'border-transparent text-fg'
                   : 'border-border text-fg-muted/60 hover:text-fg'
@@ -108,11 +110,11 @@ export function GrimorioAccordionView({
             className="flex w-full items-center justify-between border-b border-accent/40 bg-surface/80 p-4"
           >
             <div className="flex items-center gap-3">
-              <span className="text-xl">⚔️</span>
+              <Swords className="h-5 w-5 text-accent" aria-hidden="true" />
               <h2 className="font-display text-sm font-bold uppercase tracking-widest text-accent">
                 Enfrentamiento Activo (HUD)
               </h2>
-              <span className="rounded-full bg-accent px-2 font-mono text-[10px] font-bold text-accent-fg">
+              <span className="rounded-full bg-accent px-2 font-mono text-xs font-bold text-accent-fg">
                 {activeTasks.length}
               </span>
             </div>
@@ -143,11 +145,11 @@ export function GrimorioAccordionView({
             className="flex w-full items-center justify-between border-b border-border bg-surface/80 p-4"
           >
             <div className="flex items-center gap-3">
-              <span className="text-xl">📜</span>
+              <ScrollText className="h-5 w-5" aria-hidden="true" />
               <h2 className="font-display text-sm font-bold uppercase tracking-widest text-fg">
                 Estrategia Próxima (Hoy - 3 Días)
               </h2>
-              <span className="rounded-full bg-border px-2 font-mono text-[10px] font-bold text-fg">
+              <span className="rounded-full bg-border px-2 font-mono text-xs font-bold text-fg">
                 {upcomingTasks.length}
               </span>
             </div>
@@ -178,11 +180,11 @@ export function GrimorioAccordionView({
             className="flex w-full items-center justify-between border-b border-border bg-surface/80 p-4"
           >
             <div className="flex items-center gap-3 opacity-60">
-              <span className="text-xl">🏛️</span>
+              <Landmark className="h-5 w-5" aria-hidden="true" />
               <h2 className="font-display text-sm font-bold uppercase tracking-widest text-fg">
                 Archivos de la Orden (Backlog Futuro)
               </h2>
-              <span className="rounded-full bg-border px-2 font-mono text-[10px] font-bold text-fg">
+              <span className="rounded-full bg-border px-2 font-mono text-xs font-bold text-fg">
                 {archiveTasks.length}
               </span>
             </div>
@@ -223,7 +225,8 @@ function RenderMissionCard({
   const category = categories?.find((c) => c.id === task.category_id)
 
   return (
-    <div className="mission-scroll-card flex items-center justify-between rounded-xl p-3.5 transition-all">
+    <div className="mission-scroll-card rounded-xl p-3.5 transition-all">
+      <div className="flex items-center justify-between">
       <button
         type="button"
         onClick={() => onOpenTask(task)}
@@ -239,7 +242,7 @@ function RenderMissionCard({
           )}
           <h3 className="truncate font-display text-sm font-bold text-fg">{task.title}</h3>
         </div>
-        <div className="mt-1 flex items-center gap-2 font-mono text-[10px]">
+        <div className="mt-1 flex items-center gap-2 font-mono text-xs">
           {category && (
             <span
               className="rounded px-1.5 py-0.5 font-black uppercase"
@@ -261,7 +264,7 @@ function RenderMissionCard({
 
       <div className="flex items-center gap-3">
         {task.hud_slot !== null && (
-          <span className="animate-pulse font-mono text-[10px] font-black text-accent">
+          <span className="animate-pulse font-mono text-xs font-black text-accent">
             SLOT {task.hud_slot}
           </span>
         )}
@@ -270,9 +273,15 @@ function RenderMissionCard({
           onClick={onComplete}
           className="flex h-7 w-7 items-center justify-center rounded border border-border text-xs transition-colors hover:border-accent hover:text-accent"
         >
-          ✓
+          <Check className="h-4 w-4" aria-label="Completar" />
         </button>
       </div>
+      </div>
+      {isOverdue(task) && (
+        <div className="mt-2.5 border-t border-border pt-2.5">
+          <RescheduleButtons task={task} />
+        </div>
+      )}
     </div>
   )
 }

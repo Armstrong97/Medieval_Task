@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTodayQuests } from '@/features/gamification/hooks'
 import { equipTaskToSlot, fetchEquippableTasks, fetchHudTasks, unequipTaskFromSlot } from '@/features/battle-hud/api'
 
 export function useHudTasks() {
@@ -32,4 +33,15 @@ export function useUnequipHudSlot() {
     mutationFn: unequipTaskFromSlot,
     onSuccess: invalidate,
   })
+}
+
+// Misión sugerida para un slot libre: primero la prioridad del día (si el
+// usuario la marcó y no está equipada); si no, la de deadline más cercano.
+// El backlog ya viene ordenado por deadline ascendente (fetchEquippableTasks).
+export function useSuggestedTask() {
+  const { data: tasks } = useEquippableTasks()
+  const { data: todayQuests } = useTodayQuests()
+  const priorityId = todayQuests?.find((q) => q.type === 'daily_priority')?.task_id
+  const list = tasks ?? []
+  return list.find((t) => t.id === priorityId) ?? list[0] ?? null
 }

@@ -1,3 +1,4 @@
+import { Trophy } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { LOOT_ICONS } from '@/utils/rpgAssets'
 
@@ -29,18 +30,18 @@ export function PhaseRewardModal({
       <div
         ref={stageRef}
         onClick={(e) => e.stopPropagation()}
-        className="modal-panel relative w-full max-w-sm rounded-3xl border-2 border-accent bg-surface p-8 text-center shadow-[0_0_100px_rgba(217,169,74,0.3)]"
+        className="modal-panel relative w-full max-w-sm rounded-3xl border-2 border-accent bg-surface p-8 text-center shadow-[0_0_100px_rgb(var(--accent-rgb)/0.35)]"
       >
         <div className="gold-shimmer-bg pointer-events-none absolute inset-0 rounded-3xl opacity-30" />
 
         <div className="mb-4 flex justify-center">
           {isDefeat ? (
-            <span className="animate-bounce text-6xl">🏆</span>
+            <Trophy className="h-16 w-16 animate-bounce text-gold" aria-hidden="true" />
           ) : (
             <img
               src={LOOT_ICONS.chest_phase}
               alt="Cofre de fase"
-              className="h-16 w-16 animate-bounce object-contain drop-shadow-[0_0_12px_rgba(217,169,74,0.6)]"
+              className="h-16 w-16 animate-bounce object-contain drop-shadow-[0_0_12px_rgb(var(--gold-rgb)/0.6)]"
             />
           )}
         </div>
@@ -52,11 +53,11 @@ export function PhaseRewardModal({
           {isDefeat ? 'PROYECTO CONQUISTADO' : `FASE ${phase}% ROTA`}
         </p>
 
-        <div className="mb-6 rounded-2xl border border-border bg-black/40 p-4">
-          <p className="mb-1 font-mono text-[10px] uppercase text-fg-muted/60">
+        <div className="mb-6 rounded-2xl border border-border bg-shade/40 p-4">
+          <p className="mb-1 font-mono text-xs uppercase text-fg-muted/60">
             Tesoro Desbloqueado
           </p>
-          <p className="font-mono text-xl font-black text-sky-400">+{xp} XP EXTRA</p>
+          <p className="font-mono text-xl font-black text-rune">+{xp} XP EXTRA</p>
         </div>
 
         <button

@@ -16,7 +16,7 @@ export function WeaponSelector({
 }) {
   return (
     <div className="space-y-2">
-      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-muted/60">
+      <p className="font-mono text-xs uppercase tracking-[0.2em] text-fg-muted/60">
         Seleccionar Envergadura (Dificultad)
       </p>
       <div className="grid grid-cols-3 gap-3">
@@ -37,7 +37,7 @@ export function WeaponSelector({
                 alt={weapon.label}
                 className="h-9 w-9 object-contain transition-transform group-hover:scale-110 drop-shadow-[0_0_6px_rgba(0,0,0,0.5)]"
               />
-              <span className="font-mono text-[9px] font-black uppercase tracking-tight text-fg">
+              <span className="font-mono text-xs font-black uppercase tracking-tight text-fg">
                 {weapon.label} (+{weapon.xp} XP)
               </span>
             </button>

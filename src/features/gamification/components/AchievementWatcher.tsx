@@ -1,3 +1,4 @@
+import { Gem, Swords } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import {
   useCategoryXp,
@@ -58,7 +59,7 @@ export function AchievementWatcher() {
               kicker: `Nuevo rango — ${category.name}`,
               title: rank.rank_name,
               description: `Tu clase ${category.class_name} evolucionó en ${category.name}.`,
-              icon: '⚔',
+              icon: Swords,
             })
           }
         }
@@ -76,7 +77,7 @@ export function AchievementWatcher() {
               kicker: 'Loot desbloqueado',
               title: def.name,
               description: def.description,
-              icon: '🜂',
+              icon: Gem,
             })
           }
         }

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { isPast } from 'date-fns'
-import { Flame, Shield } from 'lucide-react'
+import { Flame, Shield, Bird } from 'lucide-react'
 import { useActiveFollowUps } from '@/features/followups/hooks'
 import { useTasksByIds } from '@/features/tasks/hooks'
 import { FollowUpCard } from '@/features/followups/components/FollowUpCard'
@@ -41,15 +41,15 @@ export function FollowUpsPage() {
         </p>
 
         <div className="flex flex-wrap gap-4">
-          <div className="flex items-center gap-3 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2">
-            <Flame className="h-5 w-5 text-red-500" />
-            <span className="font-mono text-xs font-bold uppercase text-red-400">
+          <div className="flex items-center gap-3 rounded-lg border border-warn-border bg-warn-bg px-4 py-2">
+            <Flame className="h-5 w-5 text-warn-fg" />
+            <span className="font-mono text-xs font-bold uppercase text-warn-fg">
               {overdueCount} Necesitan Contacto Hoy
             </span>
           </div>
-          <div className="flex items-center gap-3 rounded-lg border border-sky-500/30 bg-sky-500/10 px-4 py-2">
-            <Shield className="h-5 w-5 text-sky-400" />
-            <span className="font-mono text-xs font-bold uppercase text-sky-400">
+          <div className="flex items-center gap-3 rounded-lg border border-rune/30 bg-rune/10 px-4 py-2">
+            <Shield className="h-5 w-5 text-rune" />
+            <span className="font-mono text-xs font-bold uppercase text-rune">
               {waitingCount} En Espera Paciente
             </span>
           </div>
@@ -64,7 +64,7 @@ export function FollowUpsPage() {
           </p>
         ) : rows.length === 0 ? (
           <div className="col-span-full py-16 text-center opacity-40">
-            <span className="mb-4 block text-5xl">🕊️</span>
+            <Bird className="mx-auto mb-4 h-14 w-14" aria-hidden="true" />
             <p className="font-display text-lg uppercase tracking-widest">
               No hay pactos pendientes de respuesta.
             </p>

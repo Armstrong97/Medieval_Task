@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { X, Trash2, Swords, Check, Undo2, Link2 } from 'lucide-react'
+import { X, Trash2, Swords, Check, Undo2, Link2, ChevronRight, ScrollText, Star } from 'lucide-react'
 import { addDays } from 'date-fns'
 import { useCategories, useProjects } from '@/features/projects/hooks'
 import {
@@ -19,7 +19,6 @@ import {
 import {
   useDeleteFollowUp,
   useFollowUpForTask,
-  useRegisterFollowUpContact,
   useSendToFollowUp,
 } from '@/features/followups/hooks'
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '@/utils/datetime'
@@ -66,7 +65,6 @@ export function TaskModal({
   const { data: existingFollowUp } = useFollowUpForTask(task?.id ?? null)
   const sendToFollowUp = useSendToFollowUp()
   const deleteFollowUp = useDeleteFollowUp()
-  const registerContact = useRegisterFollowUpContact()
   const [showFollowUpForm, setShowFollowUpForm] = useState(false)
   const [followUpIntervalDays, setFollowUpIntervalDays] = useState(DEFAULT_FOLLOW_UP_INTERVAL_DAYS)
   const [followUpStakeholder, setFollowUpStakeholder] = useState('')
@@ -193,11 +191,11 @@ export function TaskModal({
         }`}
       >
         {/* Encabezado con Estado y Acciones Rápidas */}
-        <header className="flex items-center justify-between gap-3 border-b border-white/5 p-6">
-          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 font-mono text-[10px] font-bold text-fg-muted">
+        <header className="flex items-center justify-between gap-3 border-b border-glass/5 p-6">
+          <span className="rounded-full border border-glass/10 bg-glass/5 px-3 py-1 font-mono text-xs font-bold text-fg-muted">
             {task?.hud_slot !== null && task?.hud_slot !== undefined
-              ? `⚔️ EQUIPADO EN HUD SLOT ${task.hud_slot}`
-              : '📜 EN EL GRIMORIO'}
+              ? (<><Swords className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />EQUIPADO EN HUD SLOT {task.hud_slot}</>)
+              : (<><ScrollText className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />EN EL GRIMORIO</>)}
           </span>
 
           <div className="flex items-center gap-2">
@@ -207,7 +205,7 @@ export function TaskModal({
                 <button
                   type="button"
                   onClick={handleReopen}
-                  className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-widest text-fg-muted transition-colors hover:text-fg"
+                  className="flex items-center gap-1.5 rounded-full border border-glass/10 bg-glass/5 px-3.5 py-1.5 font-mono text-xs font-bold uppercase tracking-widest text-fg-muted transition-colors hover:text-fg"
                 >
                   <Undo2 className="h-3.5 w-3.5" /> Reabrir
                 </button>
@@ -215,7 +213,7 @@ export function TaskModal({
                 <button
                   type="button"
                   onClick={handleComplete}
-                  className="btn-prime flex items-center gap-1.5 rounded-full px-4 py-1.5 font-mono text-[10px] font-black uppercase tracking-widest"
+                  className="btn-prime flex items-center gap-1.5 rounded-full px-4 py-1.5 font-mono text-xs font-black uppercase tracking-widest"
                 >
                   <Check className="h-3.5 w-3.5" /> Completar
                 </button>
@@ -223,7 +221,7 @@ export function TaskModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex h-9 w-9 items-center justify-center rounded-full text-fg-muted transition-colors hover:bg-white/5 hover:text-fg"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-fg-muted transition-colors hover:bg-glass/5 hover:text-fg"
             >
               <X className="h-5 w-5" />
             </button>
@@ -234,7 +232,7 @@ export function TaskModal({
         <div className="space-y-8 p-6 md:p-8">
           {/* Título Principal */}
           <div className="space-y-1.5">
-            <label className="font-mono text-[10px] font-bold uppercase tracking-[0.3em] text-accent/70">
+            <label className="font-mono text-xs font-bold uppercase tracking-[0.3em] text-accent/70">
               Decreto de Misión
             </label>
             <input
@@ -251,7 +249,7 @@ export function TaskModal({
             {/* Chips de Envergadura (XP / Arma) */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <p className="font-mono text-[10px] uppercase tracking-widest text-fg-muted/60">
+                <p className="font-mono text-xs uppercase tracking-widest text-fg-muted/60">
                   Envergadura (Dificultad & XP)
                 </p>
                 {canBePriority && task && (
@@ -261,13 +259,14 @@ export function TaskModal({
                       isTodayPriority ? clearTodayPriority.mutate() : setTodayPriority.mutate(task.id)
                     }
                     title="Prioridad de hoy"
+                    aria-label="Prioridad de hoy"
                     className={`text-base leading-none transition-all duration-150 hover:scale-110 active:scale-95 ${
                       isTodayPriority
-                        ? 'text-accent drop-shadow-[0_0_6px_rgba(217,169,74,0.6)]'
-                        : 'text-fg-muted/40 hover:text-accent/60'
+                        ? 'text-gold drop-shadow-[0_0_6px_rgb(var(--gold-rgb)/0.6)]'
+                        : 'text-fg-muted/40 hover:text-gold/60'
                     }`}
                   >
-                    {isTodayPriority ? '★' : '☆'}
+                    <Star className={`h-5 w-5 ${isTodayPriority ? 'fill-gold' : ''}`} aria-hidden="true" />
                   </button>
                 )}
               </div>
@@ -290,7 +289,7 @@ export function TaskModal({
                       }`}
                     >
                       <img src={w.icon} alt="" className="h-6 w-6 object-contain" />
-                      <span className="font-mono text-[9px] font-black uppercase">{w.xp} XP</span>
+                      <span className="font-mono text-xs font-black uppercase">{w.xp} XP</span>
                     </button>
                   )
                 })}
@@ -299,28 +298,28 @@ export function TaskModal({
 
             {/* Chips de Plazo Rápidos */}
             <div className="space-y-3">
-              <p className="font-mono text-[10px] uppercase tracking-widest text-fg-muted/60">
+              <p className="font-mono text-xs uppercase tracking-widest text-fg-muted/60">
                 Plazo de Entrega
               </p>
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => setQuickDeadline(0)}
-                  className="tactile-chip rounded-full px-4 py-2 font-mono text-[10px] font-bold uppercase active-gold"
+                  className="tactile-chip rounded-full px-4 py-2 font-mono text-xs font-bold uppercase active-gold"
                 >
                   Hoy
                 </button>
                 <button
                   type="button"
                   onClick={() => setQuickDeadline(1)}
-                  className="tactile-chip rounded-full px-4 py-2 font-mono text-[10px] font-bold uppercase"
+                  className="tactile-chip rounded-full px-4 py-2 font-mono text-xs font-bold uppercase"
                 >
                   Mañana
                 </button>
                 <button
                   type="button"
                   onClick={() => setQuickDeadline(3)}
-                  className="tactile-chip rounded-full px-4 py-2 font-mono text-[10px] font-bold uppercase"
+                  className="tactile-chip rounded-full px-4 py-2 font-mono text-xs font-bold uppercase"
                 >
                   Finde
                 </button>
@@ -328,7 +327,7 @@ export function TaskModal({
                   type="datetime-local"
                   value={deadline}
                   onChange={(e) => setDeadline(e.target.value)}
-                  className="tactile-chip rounded-full px-3 py-1.5 font-mono text-[10px] text-fg outline-none"
+                  className="tactile-chip rounded-full px-3 py-1.5 font-mono text-xs text-fg outline-none"
                 />
               </div>
             </div>
@@ -336,7 +335,7 @@ export function TaskModal({
 
           {/* Chips de Clase / Ámbitos */}
           <div className="space-y-3">
-            <p className="font-mono text-[10px] uppercase tracking-widest text-fg-muted/60">
+            <p className="font-mono text-xs uppercase tracking-widest text-fg-muted/60">
               Ámbito de la Orden (Clase)
             </p>
             <div className="flex flex-wrap gap-2">
@@ -347,7 +346,7 @@ export function TaskModal({
                     key={cat.id}
                     type="button"
                     onClick={() => setCategoryId(cat.id)}
-                    className={`tactile-chip rounded-xl px-4 py-2 font-mono text-[10px] font-bold uppercase ${
+                    className={`tactile-chip rounded-xl px-4 py-2 font-mono text-xs font-bold uppercase ${
                       isActive ? 'active-gold' : ''
                     }`}
                   >
@@ -360,8 +359,8 @@ export function TaskModal({
 
           {/* Seguimiento (Follow-up) */}
           {isEditing && task && task.status !== 'done' && (
-            <div className="space-y-3 rounded-2xl border border-white/5 bg-black/20 p-5">
-              <p className="font-mono text-[10px] uppercase tracking-widest text-fg-muted/60">
+            <div className="space-y-3 rounded-2xl border border-glass/5 bg-shade/20 p-5">
+              <p className="font-mono text-xs uppercase tracking-widest text-fg-muted/60">
                 Seguimiento (Follow-up)
               </p>
 
@@ -372,23 +371,16 @@ export function TaskModal({
                     {existingFollowUp.stakeholder_name ? ` con ${existingFollowUp.stakeholder_name}` : ''} · cada{' '}
                     {existingFollowUp.interval_days} días
                   </p>
-                  <p className="font-mono text-[10px] text-fg-muted/60">
+                  <p className="font-mono text-xs text-fg-muted/60">
                     Próximo recordatorio: {toDatetimeLocalValue(existingFollowUp.next_reminder_at).slice(0, 10)}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
                       onClick={handleCancelFollowUp}
-                      className="tactile-chip rounded-full px-4 py-2 font-mono text-[10px] font-bold uppercase"
+                      className="tactile-chip rounded-full px-4 py-2 font-mono text-xs font-bold uppercase"
                     >
                       Cancelar seguimiento
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => registerContact.mutate(existingFollowUp.id)}
-                      className="tactile-chip rounded-full px-4 py-2 font-mono text-[10px] font-bold uppercase"
-                    >
-                      Registrar contacto ahora
                     </button>
                   </div>
                 </div>
@@ -396,14 +388,14 @@ export function TaskModal({
                 showFollowUpForm ? (
                   <div className="space-y-2.5">
                     <div className="flex flex-wrap items-center gap-2">
-                      <label className="flex items-center gap-1.5 font-mono text-[10px] text-fg-muted">
+                      <label className="flex items-center gap-1.5 font-mono text-xs text-fg-muted">
                         Cada
                         <input
                           type="number"
                           min={1}
                           value={followUpIntervalDays}
                           onChange={(e) => setFollowUpIntervalDays(Number(e.target.value) || 1)}
-                          className="w-14 rounded-lg border border-white/10 bg-black/30 px-2 py-1 font-mono text-xs text-fg outline-none focus:border-accent"
+                          className="w-14 rounded-lg border border-glass/10 bg-shade/30 px-2 py-1 font-mono text-xs text-fg outline-none focus:border-accent"
                         />
                         días
                       </label>
@@ -411,21 +403,21 @@ export function TaskModal({
                         value={followUpStakeholder}
                         onChange={(e) => setFollowUpStakeholder(e.target.value)}
                         placeholder="Nombre del stakeholder (opcional)"
-                        className="flex-1 rounded-lg border border-white/10 bg-black/30 px-3 py-1.5 font-mono text-xs text-fg outline-none focus:border-accent"
+                        className="flex-1 rounded-lg border border-glass/10 bg-shade/30 px-3 py-1.5 font-mono text-xs text-fg outline-none focus:border-accent"
                       />
                     </div>
                     <div className="flex gap-2">
                       <button
                         type="button"
                         onClick={handleConfirmFollowUp}
-                        className="tactile-chip active-gold rounded-full px-4 py-2 font-mono text-[10px] font-bold uppercase"
+                        className="tactile-chip active-gold rounded-full px-4 py-2 font-mono text-xs font-bold uppercase"
                       >
                         Confirmar seguimiento
                       </button>
                       <button
                         type="button"
                         onClick={() => setShowFollowUpForm(false)}
-                        className="tactile-chip rounded-full px-4 py-2 font-mono text-[10px] font-bold uppercase"
+                        className="tactile-chip rounded-full px-4 py-2 font-mono text-xs font-bold uppercase"
                       >
                         Cancelar
                       </button>
@@ -435,7 +427,7 @@ export function TaskModal({
                   <button
                     type="button"
                     onClick={() => setShowFollowUpForm(true)}
-                    className="tactile-chip flex w-fit items-center gap-1.5 rounded-full px-4 py-2 font-mono text-[10px] font-bold uppercase"
+                    className="tactile-chip flex w-fit items-center gap-1.5 rounded-full px-4 py-2 font-mono text-xs font-bold uppercase"
                   >
                     <Link2 className="h-3.5 w-3.5" /> Enviar a Follow-up
                   </button>
@@ -446,12 +438,12 @@ export function TaskModal({
 
           {/* Micro-Stepping (Submisiones & Integridad HP) */}
           {isEditing && task && (
-            <div className="space-y-4 rounded-2xl border border-white/5 bg-black/20 p-5">
+            <div className="space-y-4 rounded-2xl border border-glass/5 bg-shade/20 p-5">
               <div className="flex items-center justify-between">
-                <p className="font-mono text-[10px] uppercase tracking-widest text-fg-muted/60">
+                <p className="font-mono text-xs uppercase tracking-widest text-fg-muted/60">
                   Integridad de la Quest (Submisiones)
                 </p>
-                <span className="font-mono text-[10px] font-bold text-accent">{hpPercent}%</span>
+                <span className="font-mono text-xs font-bold text-accent">{hpPercent}%</span>
               </div>
 
               <div className="quest-hp-track">
@@ -470,11 +462,11 @@ export function TaskModal({
                           patch: { status: st.status === 'done' ? 'pending' : 'done' },
                         })
                       }
-                      className={`flex h-5 w-5 items-center justify-center rounded border font-mono text-[10px] transition-all ${
-                        st.status === 'done' ? 'border-accent bg-accent text-accent-fg' : 'border-white/20'
+                      className={`flex h-5 w-5 items-center justify-center rounded border font-mono text-xs transition-all ${
+                        st.status === 'done' ? 'border-accent bg-accent text-accent-fg' : 'border-glass/20'
                       }`}
                     >
-                      {st.status === 'done' ? '✓' : ''}
+                      {st.status === 'done' ? <Check className="h-3 w-3" aria-hidden="true" /> : null}
                     </button>
                     <span
                       className={`flex-1 text-xs text-fg ${
@@ -502,12 +494,12 @@ export function TaskModal({
                   onChange={(e) => setNewSubtaskText(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleAddSubtask()}
                   placeholder="+ Añadir Micro-paso (2 min)..."
-                  className="flex-1 rounded-lg border border-dashed border-white/10 bg-transparent px-3 py-2 font-mono text-xs text-fg outline-none focus:border-accent"
+                  className="flex-1 rounded-lg border border-dashed border-glass/10 bg-transparent px-3 py-2 font-mono text-xs text-fg outline-none focus:border-accent"
                 />
                 <button
                   type="button"
                   onClick={handleAddSubtask}
-                  className="rounded-lg border border-border bg-white/5 px-3 py-2 font-mono text-xs font-bold text-fg hover:bg-white/10"
+                  className="rounded-lg border border-border bg-glass/5 px-3 py-2 font-mono text-xs font-bold text-fg hover:bg-glass/10"
                 >
                   Añadir
                 </button>
@@ -517,20 +509,19 @@ export function TaskModal({
 
           {/* Acordeón Oculto de Notas y Proyecto Complejo */}
           <details className="group">
-            <summary className="flex cursor-pointer items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-fg-muted/40 transition-all hover:text-fg group-open:text-accent">
-              <span className="transition-transform group-open:rotate-90">▶</span> 📜 Notas y
-              Detalles Arcanos
+            <summary className="flex cursor-pointer items-center gap-2 font-mono text-xs uppercase tracking-widest text-fg-muted/40 transition-all hover:text-fg group-open:text-accent">
+              <ChevronRight className="h-3.5 w-3.5 transition-transform group-open:rotate-90" aria-hidden="true" /> Notas y Detalles Arcanos
             </summary>
             <div className="space-y-4 pt-4">
               {/* Selección de Proyecto */}
               <div className="space-y-1">
-                <label className="font-mono text-[9px] uppercase text-fg-muted/50">
+                <label className="font-mono text-xs uppercase text-fg-muted/50">
                   Proyecto Asociado (Mazmorra)
                 </label>
                 <select
                   value={projectId ?? ''}
                   onChange={(e) => setProjectId(e.target.value || null)}
-                  className="w-full rounded-xl border border-border bg-black/40 p-3 font-mono text-xs font-bold uppercase text-fg"
+                  className="w-full rounded-xl border border-border bg-shade/40 p-3 font-mono text-xs font-bold uppercase text-fg"
                 >
                   <option value="">Sin Proyecto (Misión Suelta)</option>
                   {projects?.map((p) => (
@@ -546,7 +537,7 @@ export function TaskModal({
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Escribe aquí los detalles del hechizo, links o instrucciones..."
-                className="h-24 w-full resize-none rounded-xl border border-white/5 bg-black/30 p-4 text-sm text-fg outline-none focus:border-accent/30"
+                className="h-24 w-full resize-none rounded-xl border border-glass/5 bg-shade/30 p-4 text-sm text-fg outline-none focus:border-accent/30"
               />
             </div>
           </details>
@@ -555,14 +546,14 @@ export function TaskModal({
         </div>
 
         {/* Footer de Acciones Principales */}
-        <footer className="flex flex-col gap-3 border-t border-white/5 bg-black/20 p-6 md:flex-row md:p-8">
+        <footer className="flex flex-col gap-3 border-t border-glass/5 bg-shade/20 p-6 md:flex-row md:p-8">
           <button
             type="button"
             onClick={handleSubmit}
             disabled={!title.trim() || !categoryId || saving}
             className="btn-prime flex-1 rounded-xl py-4 font-display text-sm font-black uppercase tracking-widest disabled:opacity-40"
           >
-            📜 Sellar Decreto
+            <ScrollText className="mr-2 inline h-4 w-4" aria-hidden="true" /> Sellar Decreto
           </button>
 
           <div className="flex gap-2">
@@ -573,7 +564,7 @@ export function TaskModal({
                   equipToHud.mutate({ taskId: task.id, slot: firstFreeSlot })
                   onClose()
                 }}
-                className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-5 py-4 font-mono text-[10px] font-black uppercase tracking-widest text-fg hover:bg-white/10"
+                className="flex items-center gap-1.5 rounded-xl border border-glass/10 bg-glass/5 px-5 py-4 font-mono text-xs font-black uppercase tracking-widest text-fg hover:bg-glass/10"
               >
                 <Swords className="h-4 w-4" /> Equipar
               </button>

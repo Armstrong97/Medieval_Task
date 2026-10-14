@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X } from 'lucide-react'
+import { X, PartyPopper } from 'lucide-react'
 import { useLogFollowUpContact, useResolveFollowUp } from '@/features/followups/hooks'
 import type { FollowUp } from '@/types/database.types'
 
@@ -55,14 +55,14 @@ export function LogContactModal({
         onClick={(e) => e.stopPropagation()}
         className="modal-parchment-log w-full max-w-lg rounded flex flex-col"
       >
-        <header className="flex items-center justify-between border-b border-[#2d241e]/20 p-6">
-          <h3 className="font-display text-2xl uppercase tracking-tighter text-[#2d241e]">
+        <header className="flex items-center justify-between border-b border-parchment-ink/20 p-6">
+          <h3 className="font-display text-2xl uppercase tracking-tighter text-parchment-ink">
             Bitácora de Encuentro
           </h3>
           <button
             type="button"
             onClick={onClose}
-            className="text-xl text-[#2d241e]/60 transition-transform hover:scale-110 hover:text-[#2d241e]"
+            className="text-xl text-parchment-ink/60 transition-transform hover:scale-110 hover:text-parchment-ink"
           >
             <X className="h-6 w-6" />
           </button>
@@ -70,19 +70,19 @@ export function LogContactModal({
 
         <div className="p-8 space-y-6">
           <div className="space-y-2">
-            <label className="font-mono text-[10px] font-bold uppercase text-[#2d241e]/60">
+            <label className="font-mono text-xs font-bold uppercase text-parchment-ink/60">
               Resumen del contacto
             </label>
             <textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="¿Qué respuesta recibiste del aliado/cliente?"
-              className="h-32 w-full resize-none rounded border border-[#2d241e]/20 bg-black/5 p-4 text-sm text-[#2d241e] outline-none focus:border-[#2d241e]/50"
+              className="h-32 w-full resize-none rounded border border-parchment-ink/20 bg-shade/5 p-4 text-sm text-parchment-ink outline-none focus:border-parchment-ink/50"
             />
           </div>
 
           <div className="space-y-2">
-            <label className="font-mono text-[10px] font-bold uppercase text-[#2d241e]/60">
+            <label className="font-mono text-xs font-bold uppercase text-parchment-ink/60">
               Próximo aviso (Foco Corto)
             </label>
             <div className="grid grid-cols-3 gap-2">
@@ -91,28 +91,28 @@ export function LogContactModal({
                   key={d}
                   type="button"
                   onClick={() => setDays(d)}
-                  className={`rounded border py-4 font-mono text-[10px] font-bold uppercase transition-all ${
+                  className={`rounded border py-4 font-mono text-xs font-bold uppercase transition-all ${
                     days === d
-                      ? 'border-[#0284c7] bg-[#0284c7] text-white shadow-md'
-                      : 'border-[#2d241e]/20 bg-black/5 text-[#2d241e]/70 hover:bg-black/10'
+                      ? 'border-rune-deep bg-rune-deep text-white shadow-md'
+                      : 'border-parchment-ink/20 bg-shade/5 text-parchment-ink/70 hover:bg-shade/10'
                   }`}
                 >
                   +{d} DÍA{d > 1 ? 'S' : ''}
                 </button>
               ))}
             </div>
-            <p className="mt-2 font-mono text-[9px] italic text-[#2d241e]/50">
+            <p className="mt-2 font-mono text-xs italic text-parchment-ink/50">
               * El tiempo corto evita que la misión caiga en el olvido.
             </p>
           </div>
         </div>
 
-        <footer className="flex flex-col gap-4 bg-black/5 p-6 sm:flex-row">
+        <footer className="flex flex-col gap-4 bg-shade/5 p-6 sm:flex-row">
           <button
             type="button"
             disabled={!note.trim() || logContact.isPending}
             onClick={handleSaveWait}
-            className="flex-1 bg-[#2d241e] py-4 font-display text-sm font-black uppercase tracking-widest text-[#f4e4bc] transition-all hover:brightness-125 disabled:opacity-50"
+            className="flex-1 bg-parchment-ink py-4 font-display text-sm font-black uppercase tracking-widest text-parchment transition-all hover:brightness-125 disabled:opacity-50"
           >
             Sigue en Espera ⏳
           </button>
@@ -120,9 +120,9 @@ export function LogContactModal({
             type="button"
             disabled={!note.trim() || resolve.isPending}
             onClick={handleResolveSuccess}
-            className="flex-1 border-2 border-[#2d241e] py-4 font-display text-sm font-black uppercase tracking-widest text-[#2d241e] transition-all hover:bg-black/5 disabled:opacity-50"
+            className="flex-1 border-2 border-parchment-ink py-4 font-display text-sm font-black uppercase tracking-widest text-parchment-ink transition-all hover:bg-shade/5 disabled:opacity-50"
           >
-            Resolver Éxito 🎉
+            Resolver Éxito <PartyPopper className="ml-1.5 inline h-4 w-4" aria-hidden="true" />
           </button>
         </footer>
       </div>

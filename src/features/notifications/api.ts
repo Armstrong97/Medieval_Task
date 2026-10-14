@@ -21,6 +21,17 @@ export async function dismissNotification(id: string): Promise<void> {
   if (error) throw error
 }
 
+// "Descartar todas": marca como descartadas todas las pendientes. No borra las
+// filas a propósito: el sync usa unique(task_id, type) y un borrado haría que
+// la misma alerta reapareciera como nueva en la siguiente apertura.
+export async function dismissAllNotifications(): Promise<void> {
+  const { error } = await supabase
+    .from('notifications')
+    .update({ dismissed_at: new Date().toISOString() })
+    .is('dismissed_at', null)
+  if (error) throw error
+}
+
 interface ComputedAlert {
   task_id: string
   type: NotificationType

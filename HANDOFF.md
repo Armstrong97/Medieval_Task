@@ -1,6 +1,6 @@
 # Productividad RPG (ahora «Questly») — Documento de continuidad del proyecto
 
-> Generado el 2026-07-25 para retomar el trabajo en otra sesión, actualizado el 2026-07-26 (Fase 8, ver sección 15). Cubre qué es la app, qué se construyó, cómo funciona por dentro, y qué falta. Leelo junto con [`spec-app-productividad-rpg.md`](spec-app-productividad-rpg.md) (el documento de especificaciones original, sin modificar, en la raíz del repo).
+> Generado el 2026-07-25 para retomar el trabajo en otra sesión, actualizado el 2026-07-27 (Fase 8 + Paso 10, ver sección 15; auditoría y limpieza, ver sección 16). Cubre qué es la app, qué se construyó, cómo funciona por dentro, y qué falta. Leelo junto con [`spec-app-productividad-rpg.md`](spec-app-productividad-rpg.md) (el documento de especificaciones original, sin modificar, en la raíz del repo).
 
 ---
 
@@ -14,6 +14,12 @@ Esta restricción de diseño (no punitivo, fricción mínima) es la lente con la
 
 **Repositorio**: https://github.com/Armstrong97/Medieval_Task
 **Supabase**: proyecto "Medieval Task", ref `dlztajgoljayfmqjdqio`, URL `https://dlztajgoljayfmqjdqio.supabase.co`
+**Dónde está la base de datos (para no olvidarlo)**: es Supabase (Postgres hospedado), proyecto **"Medieval Task"**, ref `dlztajgoljayfmqjdqio`.
+- Panel: `https://supabase.com/dashboard/project/dlztajgoljayfmqjdqio` (entrar con la cuenta de Supabase del usuario).
+- **Migraciones**: se corren a mano en el panel → *SQL Editor* → pegar el contenido de `supabase/migrations/<archivo>.sql` → *Run*. Nunca se usó `supabase db push`.
+- Edge Function de notificaciones: `npx supabase functions deploy send-notifications --project-ref dlztajgoljayfmqjdqio` (requiere `npx supabase login` una vez). Cron Job y secrets (`VAPID_PRIVATE_KEY`) se ven en el mismo panel.
+- Claves (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) viven en `.env.local` (no versionado) y en la sección *Project Settings → API* del panel.
+
 **Hosting**: todavía no deployado. `netlify.toml` listo en la raíz; falta que el usuario conecte su cuenta de Netlify (no puedo crear cuentas ni deployar por él).
 
 ---
@@ -45,7 +51,7 @@ Después de las 5 fases, hubo una sesión extra de rediseño visual completo (ve
 | Estilos | Tailwind CSS v4 (config CSS-first vía `@theme` en `src/index.css`, sin `tailwind.config.js`) |
 | Backend/DB | Supabase (Postgres, Auth, Edge Functions) |
 | Data fetching | TanStack React Query v5 (no hay contexto Redux/Zustand real en uso — ver nota abajo) |
-| Drag & drop | `@dnd-kit/core` (kanban), `@dnd-kit/sortable` instalado pero no usado (se optó por flechas ‹ › para reordenar columnas, más simple/robusto que drag de columnas) |
+| Drag & drop | Ninguno. `@dnd-kit` se desinstaló en la auditoría (sección 16): el Grimorio Dual (Paso 6) reemplazó el Kanban de columnas arrastrables |
 | Fechas | `date-fns` v4 |
 | PWA | `vite-plugin-pwa` (estrategia `injectManifest`, service worker propio en `src/sw.ts`) |
 | Offline | `@tanstack/react-query-persist-client` + `@tanstack/query-async-storage-persister` sobre IndexedDB (`idb-keyval`) |
@@ -54,7 +60,7 @@ Después de las 5 fases, hubo una sesión extra de rediseño visual completo (ve
 | Fuentes | `@fontsource-variable/inter`, `@fontsource-variable/jetbrains-mono`, `@fontsource-variable/space-grotesk` (autohospedadas, no Google Fonts CDN) |
 | Lint | `oxlint` |
 
-**Nota**: `zustand` está en `package.json` (dependencia original del plan de stack) pero **nunca se usó** — toda la gestión de estado de servidor quedó en React Query, y no hubo necesidad de estado global de cliente que justificara Zustand. Si una sesión futura busca un store y no lo encuentra, es porque no existe; se puede quitar la dependencia o usarla si surge un caso real.
+**Nota**: `zustand` se desinstaló en la auditoría (sección 16) — nunca se usó; todo el estado de servidor vive en React Query. Tampoco queda `web-push` en `package.json`: solo lo usa la Edge Function (Deno, `npm:web-push@3`), y las VAPID keys se generan con `npx web-push generate-vapid-keys`.
 
 ---
 
@@ -72,24 +78,25 @@ Prod App/
 │   ├── app/                        Layout, ProtectedRoute, router, providers, PwaUpdatePrompt
 │   ├── lib/supabase.ts             cliente supabase-js tipado
 │   ├── types/database.types.ts     tipos de la DB escritos a mano (no hay `supabase gen types` corrido nunca — ver sección 6)
-│   ├── components/ui/              Modal, Logomark (compartidos, no específicos de un feature)
-│   ├── utils/                      datetime, categoryIcon, useOnlineStatus, useSpeechDictation
+│   ├── components/ui/              Modal, AmbientBackground, AchievementCelebration (compartidos, no específicos de un feature)
+│   ├── utils/                      datetime, rpgAssets, useOnlineStatus, useSpeechDictation
 │   └── features/                   un folder por dominio, cada uno con api.ts + hooks.ts + components/
 │       ├── auth/                   AuthProvider + LoginPage (magic link + password)
 │       ├── projects/                categories + projects (categorías son de solo lectura, seed fijo)
-│       ├── kanban/                  columnas (CRUD custom) + board + card + drag-and-drop
+│       ├── kanban/                  El Grimorio Dual (KanbanPage + GrimorioAccordionView/TabsView); api.ts solo conserva lectura de columnas (completeTask/reopenTask/triage las usan)
 │       ├── tasks/                   CRUD de tasks/subtasks, TaskModal (el componente más grande del proyecto)
 │       ├── inbox/                   captura rápida + offline-first + dictado por voz
-│       ├── triage/                  vaciar el inbox
+│       ├── triage/                  Mesa de Estrategia (StrategyTablePage, mazo de cartas) para vaciar el inbox
+│       ├── battle-hud/              Battle HUD: 3 Combat Slots (ruta `/`)
 │       ├── calendar/                vista mes/semana/día
 │       ├── gamification/            XP, streaks, quests, class_ranks, loot, página Progreso
-│       ├── followups/               follow-ups recurrentes
+│       ├── followups/               Pacto de Custodia: follow-ups con bitácora (follow_up_logs) y resolución blanda (resolved_at)
 │       └── notifications/           centro in-app + Web Push (suscripción + service worker)
 ├── supabase/
 │   ├── config.toml
 │   ├── migrations/                  5 archivos SQL, uno por fase (ver sección 6)
 │   └── functions/send-notifications/index.ts   Edge Function (Deno) que escanea y manda push
-└── scripts/                         generate-icons.mjs + SVGs fuente de los íconos del PWA
+└── scripts/                         optimize-rpg-assets.mjs, generate-project-snapshot.mjs
 ```
 
 **Patrón por feature**: cada `features/<nombre>/api.ts` son funciones puras que llaman a `supabase.from(...)`; `hooks.ts` envuelve esas funciones con `useQuery`/`useMutation` de React Query; `components/` son los componentes React que consumen esos hooks. Las queries entre categorías/proyectos/tareas se cruzan **del lado del cliente** (ej. `categories.find(c => c.id === task.category_id)`) en vez de usar joins de PostgREST — decisión deliberada porque el tipado manual de `database.types.ts` no modela `Relationships`, así que los embeds de PostgREST no tipan bien; las listas de referencia (categorías, columnas) son chicas y se cachean con `staleTime: Infinity`.
@@ -208,12 +215,16 @@ Estas son las respuestas que el usuario dio en las rondas de `AskUserQuestion` a
 
 ## 10. Qué falta / pasos manuales pendientes
 
-- **Deploy a Netlify**: no se hizo. `netlify.toml` está listo. Falta que el usuario conecte su cuenta (no puedo crear cuentas de terceros) — vía dashboard de Netlify conectando el repo de GitHub, o `netlify deploy` desde su CLI. Variables de entorno a cargar en Netlify: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_VAPID_PUBLIC_KEY`.
-- **Dominio propio**: pendiente, lo configura el usuario cuando lo tenga (mencionado desde el spec original como paso independiente).
-- **`supabase gen types`**: nunca se corrió (el CLI no estaba logueado durante la mayoría del proyecto). `database.types.ts` sigue escrito a mano. Si en algún momento se loguea el CLI (`supabase login` + `supabase link --project-ref dlztajgoljayfmqjdqio`), se puede regenerar con `supabase gen types typescript --project-id dlztajgoljayfmqjdqio > src/types/database.types.ts` — pero ojo, hay que revisar que coincida con las convenciones ya usadas (los tipos hechos a mano no incluyen `Relationships` reales, así que un regenerado real cambiaría cómo se pueden hacer los selects con joins de PostgREST; ahora mismo el código nunca usa esos joins, así que sería un cambio de tipos sin romper nada, pero vale la pena revisar el diff).
-- **Zustand sin usar**: ver sección 3. Se puede quitar de `package.json` si se confirma que no hará falta, o dejarlo para cuando surja un caso real de estado de cliente compartido.
-- **Código no verificado end-to-end con datos reales del usuario en todas las fases**: cada fase se verificó con typecheck/lint/build/browser (login page, estilos), pero no con screenshots visuales reales (el compositing del Browser pane no estuvo disponible en varias sesiones) — el usuario sí probó manualmente la app funcional después de cada fase y confirmó que andaba.
-- **Roadmap del spec original**: las 5 fases están completas según el documento. No hay items pendientes del roadmap original — cualquier trabajo nuevo a partir de acá es "Fase 6" no especificada en el spec.
+*(Reescrita en la auditoría del 2026-07-27; los pendientes ya resueltos viven en las secciones de cada fase.)*
+
+- **Deploy a Netlify**: no se hizo. `netlify.toml` está listo; falta que el usuario conecte su cuenta. Variables a cargar: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_VAPID_PUBLIC_KEY`.
+- **Dominio propio**: pendiente, lo configura el usuario cuando lo tenga.
+- **Paso 10 — confirmar con el usuario**: que corrió `20260727000001_fase8_followup_logs.sql` en el SQL Editor y volvió a desplegar `send-notifications` (`npx supabase functions deploy send-notifications --project-ref dlztajgoljayfmqjdqio`). No quedó registrado que se hiciera. Sin la migración, el follow-up falla (`resolved_at` y `follow_up_logs` no existen).
+- **Ícono maskable real** para la PWA: el de 512 no tiene zona de seguridad; regenerar con ~20% de padding si se quiere `purpose: 'maskable'`.
+- **`supabase gen types`**: nunca se corrió; `database.types.ts` sigue escrito a mano.
+- **Cancelar seguimiento** (`TaskModal`) borra el `follow_up` pero no descarta sus notificaciones ya generadas (menor; `completeTask` y "Resolver Éxito" sí las descartan).
+- **Warnings de oxlint** (2, fast-refresh en `AuthProvider` y `FocusFloatContext`): inofensivos, sin tocar.
+- **No hay Paso 11 especificado** por Gemini al cierre de esta sesión.
 
 ---
 
@@ -261,15 +272,19 @@ Pivote respecto al spec original: el usuario decidió que el follow-up **no se c
 - Acción **"Enviar a Follow-up"**: crea el registro en `follow_ups` (intervalo + stakeholder opcional) y pone `status = 'follow_up'` en un solo paso (`useSendToFollowUp` en `followups/hooks.ts`). Disponible como botón rápido en la tarjeta de Kanban (usa default de 7 días, sin stakeholder — se puede editar después) y como acción con formulario inline en `TaskModal`.
 - `fetchBoardTasks` ahora excluye `status = 'follow_up'` — la tarea desaparece del Kanban activo ("libera mentalmente") pero sigue viva en la página de Follow-ups (que lee de la tabla `follow_ups`, no del status de la tarea, así que no se ve afectada).
 - Las notificaciones de deadline (`fetchActiveTasksWithDeadline` en el cliente y la Edge Function `send-notifications`) también excluyen `follow_up` — una tarea en seguimiento deja de generar alertas de vencida/vence-hoy; solo genera su propia notificación tipo `follow_up` vía `next_reminder_at`, como ya funcionaba.
-- Se puede "Cancelar seguimiento" (borra el `follow_up` y reabre la tarea) o completarla directamente desde ahí — ambas rutas conviven en `TaskModal` y en `FollowUpsPage`.
+- Se puede "Cancelar seguimiento" (borra el `follow_up` y reabre la tarea) o completarla desde `TaskModal`. Desde el Paso 10, `FollowUpsPage` ya no tiene "Completar": ofrece "Registrar contacto" y "Resolver Éxito" (ver Paso 10 y sección 16).
 
 **Pendiente manual del usuario**: la Edge Function `supabase/functions/send-notifications/index.ts` cambió (excluye `follow_up` del query de deadlines) y necesita `npx supabase functions deploy send-notifications` para tomar efecto en producción — no se pudo correr porque el CLI no está logueado en esta máquina (mismo motivo que siempre, ver sección 6).
+
+> **Superado por el Paso 6 (Fase 8):** `TaskCard` y el Kanban con botones inline ya no existen (borrados en la auditoría, sección 16). Lo que sigue describe el estado de la Fase 6.
 
 ### 6.3 — Botón "Completar" en vez de checkbox, + botón en el Kanban
 El checkbox "Hecha" del modal se reemplazó por un botón dorado prominente (`Completar` / `Reabrir` según el estado). Se agregó el mismo par de acciones (`Completar` + `Enviar a Follow-up`) como botones en la esquina inferior derecha de cada tarjeta de Kanban — fuera del área de drag-and-drop para no interferir con `@dnd-kit`. Nuevas funciones compartidas `completeTask`/`reopenTask` en `tasks/api.ts` (mueven la tarea a la columna "Hecho"/"Por hacer" del proyecto, igual que ya hacía el checkbox viejo) usadas desde `TaskCard`, `TaskModal` y `FollowUpsPage`.
 
 ### 6.4 — Triage ahora exige tamaño (XP) para guardar
 **Contradice una decisión anterior** (sección 9: "tamaño opcional, sin fricción obligatoria") — confirmado explícitamente con el usuario antes de cambiarlo, como pide la regla de la sección 12.5. La decisión final: el Inbox no cambia (captura sigue sin fricción), pero el paso de Triage ahora exige categoría + proyecto/tareas sueltas + deadline (como ya era) **+ tamaño**, con validación de formulario (`TriagePage.tsx`) — no se puede sacar una tarea del inbox sin elegir Pequeña/Mediana/Grande. El tamaño sigue siendo opcional en cualquier otro punto de edición posterior (TaskModal).
+
+> **Superado por el Paso 6 (Fase 8):** `KanbanBoard.tsx` y sus filtros se borraron.
 
 ### 6.5 — Filtros de Kanban (fecha + categoría)
 `KanbanBoard.tsx` ahora tiene una barra de filtros: pestañas de selección única (Todas/Vencidas/Hoy/Mañana/Fin de semana/Esta semana/Este mes, default "Todas") + chips de categoría multi-toggle (mismo patrón visual que el filtro de Calendario). Filtra client-side sobre las tareas ya traídas del board, antes de repartirlas en columnas — pensado explícitamente para reducir la sobrecarga visual del Kanban con muchas tareas (mencionado como problema de TDAH por el usuario).
@@ -284,6 +299,8 @@ El checkbox "Hecha" del modal se reemplazó por un botón dorado prominente (`Co
 - La ventana flota por encima de cualquier app, se puede redimensionar, y muestra hasta 3 tareas `in_progress` (query `['tasks','in-progress']`, `fetchInProgressTasks` en `tasks/api.ts`) con borde del color de su categoría y un check dorado para completarlas desde ahí mismo (`useCompleteTask` compartido).
 - El contenido se renderiza con `createPortal` de React hacia el `document.body` de la ventana PiP — sigue dentro del árbol de React principal, así que React Query/mutations funcionan normal. Los estilos se copian hoja por hoja (`copyStylesInto`) con un `<base>` apuntando al origin para que las fuentes autohospedadas resuelvan; hereda tokens, Cinzel y modo oscuro.
 - **Solo Chrome/Edge de escritorio** — si `documentPictureInPicture` no existe (Firefox, Safari, móvil), el botón directamente no se renderiza.
+
+> **Superado por el Paso 7 (Fase 8):** el calendario se reemplazó por el Oráculo del Tiempo; el toggle "Mostrar completadas" ya no existe.
 
 ### 6.7 — Calendario: completadas tachadas + toggle
 Las tareas `done` se ven tachadas y atenuadas en las vistas mes/semana (chips de `DayCell`) y día (`DayListView`). Checkbox "Mostrar completadas" en la barra superior del calendario (default: activado) para ocultarlas del todo. Solo estado de cliente, sin persistencia de la preferencia.
@@ -510,8 +527,106 @@ da2208a Inbox pergamino, Mesa de Estrategia y Sala del Jefe (Gemini Pasos 3, 4, 
 ```
 El dev server no se cerró entre pasos en esta sesión (a pedido explícito del usuario) — quedó corriendo en `http://localhost:5173` durante toda la sesión.
 
-**Qué falta / candidatos a limpieza**:
-- Código huérfano sin borrar, a la espera de que el usuario confirme que no hace falta: `KanbanBoard.tsx`, `KanbanColumn.tsx`, hooks de CRUD de columnas (`useCreateColumn`, `useKanbanColumns`, `useUpdateColumnPosition`) — todo el sistema de drag-and-drop de las Fases 1/3 — y `Logomark.tsx`.
-- No hay ningún "Paso 10" especificado todavía por Gemini al cierre de esta sesión.
-- No hubo migraciones SQL nuevas en ninguno de los 9 pasos — todo el trabajo fue frontend (React/TS/CSS) sobre el schema ya existente de las Fases 1-7.
-- `PROJECT_SNAPSHOT.md` se regeneró al final de la sesión (`node scripts/generate-project-snapshot.mjs`) para reflejar el estado post-Fase-8, listo para compartir con Gemini de nuevo si trae el Paso 10.
+### Paso 10 — Pacto de Custodia (commit `8059cee`)
+- Migración `20260727000001_fase8_followup_logs.sql`: tabla `follow_up_logs` (bitácora, RLS por `user_id`) y columna `follow_ups.resolved_at`.
+- **Resolución blanda**: "Resolver Éxito" pone `resolved_at` y reabre la tarea (`reopenTask`), en vez de borrar la fila como pedía la spec — borrarla se llevaría la bitácora recién escrita. "Cancelar seguimiento" (TaskModal) sigue borrando de verdad.
+- `contact_count` se deriva de los logs, no se guarda. "Registrar contacto" (`LogContactModal`) inserta un log y reinicia `last_contacted_at`/`interval_days` (+1/+2/+3 días); el trigger existente recalcula `next_reminder_at`.
+- UI: `FollowUpCard` (medidor de insistencia + acordeón histórico), `LogContactModal`, `FollowUpsPage` rediseñada. La Edge Function y `fetchFollowUps` excluyen follow-ups con `resolved_at`.
+
+---
+
+## 16. Auditoría y limpieza (2026-07-27)
+
+Revisión completa del código tras la Fase 8 + Paso 10. Antes de tocar: `tsc -b` limpio, `oxlint` con 2 warnings de fast-refresh. Después: `tsc -b`, `oxlint` (mismos 2 warnings) y `npm run build` limpios (28 entradas de precache).
+
+### Bugs corregidos
+1. **Re-enviar a seguimiento una tarea ya resuelta fallaba**: `follow_ups` tiene `unique(task_id)` y, desde el Paso 10, resolver ya no borra la fila → el `INSERT` chocaba. `createFollowUp` ahora hace `upsert` por `task_id` con `resolved_at: null` y `last_contacted_at` reiniciado (reactiva el seguimiento conservando la bitácora).
+2. **`fetchFollowUpForTask` devolvía follow-ups resueltos**, así que `TaskModal` creía que la tarea seguía en seguimiento. Ahora filtra `resolved_at is null`.
+3. **Completar una tarea en seguimiento no cerraba el follow-up**: seguía generando push de "Seguimiento pendiente". `completeTask` ahora llama a `closeFollowUpForTask` (nuevo, `tasks/api.ts`), que pone `resolved_at` y descarta las notificaciones `follow_up` pendientes. `resolveFollowUp` usa el mismo helper. *Decisión del usuario: solo cliente, sin trigger de Postgres.* Limitación: completar una tarea por una vía que no pase por `completeTask` (p. ej. SQL directo) no cierra el follow-up.
+4. **Ícono de push roto**: `src/sw.ts` apuntaba a `/icons/icon-192.png` (borrado al cambiar el favicon). Ahora usa `web-app-manifest-192x192.png`.
+5. **"Registrar contacto ahora" en `TaskModal` esquivaba la bitácora** (solo pisaba `last_contacted_at`). Se quitó el botón; el único flujo es `LogContactModal`.
+
+### Código borrado (sin consumidores)
+`KanbanBoard.tsx`, `KanbanColumn.tsx`, `TaskCard.tsx` (solo lo usaba `KanbanColumn`; la "tabla de 4 estados" del Módulo 4 aplicada ahí ya no se veía en ningún lado), `kanban/hooks.ts`, `Logomark.tsx`, `utils/categoryIcon.tsx`, `scripts/generate-icons.mjs` + `icon-any.svg` + `icon-maskable.svg`; en `kanban/api.ts` el CRUD de columnas; `fetchBoardTasks`/`useBoardTasks`; `useCreateFollowUp`, `useUpdateFollowUp`, `useRegisterFollowUpContact`, `updateFollowUp`, `registerFollowUpContact`, `useSendTaskToFollowUp`. Dependencias quitadas: `zustand`, `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`, `web-push`.
+
+### Se conserva a propósito
+`kanban/api.ts` → `fetchKanbanColumns` y `fetchFirstColumnId` (las usan `completeTask`, `reopenTask` y `dispatchTriagedTask`). La tabla `kanban_columns` y sus triggers de seed siguen vivos: las columnas "Por hacer"/"En progreso"/"Hecho" ya no se ven en la UI, pero sostienen la lógica de `kanban_column_id` (una tarea está "triada" si tiene columna).
+
+---
+
+## 17. Fase 9 — Rediseño "Hyrule" (BotW/TotK), en curso desde 2026-10-13
+
+Pedido del usuario: tonos verdes inspirados en Breath of the Wild / Tears of the Kingdom. **La app se publicará: inspirarse, no copiar** — sin Trifuerza, Espada Maestra, "Sheikah", tipografía Hylian ni arte de Nintendo; nombres y símbolos propios. Pendientes del rediseño en `pendings.md` (assets verdes bloqueados hasta que el usuario pueda generar imágenes).
+
+**Decisiones acordadas**: dirección BotW/TotK; verde manda en la UI, **oro solo para recompensas/logros**; cian "rúnico" (`--rune`) para lo interactivo/HUD; modo claro "Día en el valle" diseñado junto con el oscuro; rojo reservado a enemigos (HP de jefes) y errores reales, nunca a avisos del usuario (se usa ámbar `--warn-*`).
+
+### Fase 1 — Fundación de tokens (hecha, sin verificar visualmente)
+- `src/index.css`: paleta nueva. Oscuro "Noche en el bosque" (`bg #0b1410`, `accent #7ccf6a`, `rune #4fd1c5`, `gold #d9a94a`), claro "Día en el valle" (`bg #f3f1e2`, `accent #2f6b3a`). Tokens nuevos: `rune`, `rune-deep`, `accent-deep`, `parchment`, `parchment-ink`, `bg-glow`, `warn-dot`, y canales `*-rgb` (`bg/surface/accent/gold/rune/glow/shade/glass`) para usar `rgb(var(--x-rgb) / alpha)` en el CSS de componentes en vez de `rgba` con hex fijos.
+- ~70 clases de componente del CSS migradas a tokens: aurora de fondo (verde/cian/oro), botón primario `.btn-prime` (verde, ya no oro), menú, armas (daga = hoja, espada = runa, mandoble = oro), mapa de calor (hoja→oro, sin rojo), barra de quests (verde), puntos de insistencia (ámbar), pergaminos. Rangos de líneas "recompensa" (logros, cofre, shimmer, xp-flash, sello) conservan oro.
+- `.tsx`: `sky-*`→`rune`, `emerald-*`→`accent`, `orange-*`→`gold`, `#0284c7`→`rune-deep`, `#2d241e`/`#f4e4bc`→`parchment-ink`/`parchment`. Follow-ups: rojo→`warn-*` (ámbar).
+- Contraste calculado (WCAG): todos los pares de texto ≥ 4.5:1 en ambos temas, incluido el botón primario. Excepción conocida: `--border` oscuro vs `--bg` = 1.9:1 (decorativo; bordes de inputs deberían usar `--border-glow`).
+- `tsc -b`, `oxlint` y `npm run build` limpios.
+
+### Fase 2 — Shell y fondo (hecha 2026-10-13, sin verificar visualmente por mí)
+- `AmbientBackground` reescrito: **noche** = aurora rúnica + luciérnagas; **día** = haces de luz + polen dorado. El tema lo decide el CSS (`prefers-color-scheme`), ya no se oculta en claro. 16 motas con vagabundeo + parpadeo (solo `transform`/`opacity`), congeladas con `prefers-reduced-motion`.
+- `BrandMark.tsx` (nuevo): brote dentro de un rombo, trazo `currentColor`; usado en header y sidebar. Reemplaza al `Logomark` borrado en la auditoría.
+- `Layout`: header con filo rúnico (`.app-header`), sidebar con borde cian, rombo luminoso en el ítem activo, textos mínimos subidos a 12px, sombras con tokens.
+- Foco visible global (`:focus-visible`, runa cian) — antes varios inputs tenían `outline: none` sin reemplazo global.
+- `.panel-rune` en menús flotantes (perfil, notificaciones, retirada táctica) y drawer del Grimorio.
+- `theme-color` de `index.html` y `theme_color`/`background_color` del manifest PWA alineados a la paleta nueva (`#f3f1e2` / `#0b1410`).
+- Borrado `components/ui/Modal.tsx`: nadie lo importaba (los modales reales usan sus propias clases).
+- `tsc -b`, `oxlint`, `npm run build` limpios.
+
+### Extra — "Descartar todas" en notificaciones (2026-10-13)
+`NotificationBell` muestra un contador y el botón **Descartar todas** cuando hay pendientes. `dismissAllNotifications` (`notifications/api.ts`) marca `dismissed_at` en todas las no descartadas; **no borra filas** a propósito: el sync usa `unique(task_id, type)` y un borrado haría reaparecer la misma alerta como nueva en la siguiente apertura.
+
+### Fase 3 — Pantallas estrella (hecha 2026-10-13, sin verificar visualmente por mí)
+- **Battle HUD**: marco rúnico de esquinas cian en tarjetas de combate, slots vacíos y cabecera (`.rune-frame`; las esquinas se agrandan y encienden al enfocar). Nuevo `StaminaRing.tsx`: la racha es un anillo que se llena hasta el próximo escudo (cada 7 días); solo se llena, nada "se vacía" (diseño sin culpa). "Integridad del Enemigo" en 0% ahora se resalta en oro (listo para el golpe final) en vez de rojo.
+- **Tokens `shade`/`glass`** en `@theme` (`bg-shade/40`, `border-glass/10`…): reemplazan los ~68 `bg-black/NN`/`bg-white/NN`/`border-white/NN` fijos de toda la app (21 archivos). En oscuro son idénticos; en claro ahora se adaptan al tema.
+- **Emojis → Lucide** en Inbox, Mesa de Estrategia, Sala del Jefe y modal de fase (`Castle`, `Trophy`, `Zap`, `ScrollText`, `Swords`, `Check`/`Circle`).
+- **Texto mínimo 12px** (`text-xs`) en battle-hud, inbox, triage y projects (era 8–11px). Botones de acción del HUD a `py-3`.
+- `tsc -b`, `oxlint`, `npm run build` limpios.
+- No hecho (decisión): HP del enemigo sigue como segmentos rojos — es el enemigo, no el jugador. Íconos de armas/jefes/menú siguen morados hasta la fase 5.
+
+### Fase 4 — Resto de pantallas (hecha 2026-10-13, sin verificar visualmente por mí)
+- **Cero emojis estructurales** en toda la app (verificado con barrido). Reemplazados por Lucide: pestañas de clase del Grimorio (`Brain/Axe/BookOpen/Gamepad2/Shield/Leaf`), secciones del acordeón, toggles de Kanban/Calendario, Follow-ups (`Phone`, `ScrollText`, `Bird`, `Check`), editor de misiones (`Star` de prioridad con `fill-gold`, `ChevronRight`), Salón de Héroes (`Sparkles`).
+- `Achievement.icon` ahora es un `LucideIcon` (antes un glifo de texto); el watcher usa `Swords` (rango) y `Gem` (loot).
+- **Texto mínimo 12px en toda la app** (`text-[8–11px]` → `text-xs`; cero restantes). Pestañas de clase del Grimorio ensanchadas (`w-24 md:w-28`) para que quepa. Si algún texto desborda en pantallas chicas, ajustar ahí.
+- **Sin rojo punitivo**: fatiga del Oráculo (medidor y aviso) ahora usa ámbar (`warn-*`, nuevo token `bg-warn-dot`). Rojo restante, intencional: indicador de grabación de voz, acciones de borrado, y UI de jefes/enemigos.
+- **Oro = recompensa**: estrella de prioridad, loot desbloqueado y destellos usan `--gold-rgb`; estados activos de UI (ventana de foco) usan `--accent-rgb`.
+- Login usa `BrandMark` (antes un SVG con hex `#d9a94a`).
+- `tsc -b`, `oxlint`, `npm run build` limpios.
+
+### Falta (fases siguientes)
+5. Assets verdes y 6. Verificación en navegador: **aplazadas por el usuario, viven en `pendings.md`** (la 5 bloqueada hasta que pueda generar imágenes).
+- Rojo restante a revisar en fase 4: fatiga alta del Oráculo (`CalendarTimelineView`) y banner de fatiga.
+
+---
+
+## 18. Evaluación de UX y plan de funcionalidad (2026-10-13)
+
+Auditoría de experiencia para el perfil TDAH (24 fricciones detectadas leyendo código y spec; no probada en vivo). Plan acordado en 4 rondas.
+
+### Ronda 1 — hecha (sin migraciones, sin verificar visualmente por mí)
+1. **Captura desde cualquier pantalla**: botón flotante `QuickCaptureFab` (se oculta en `/inbox`, que ya tiene su caja). Queda abierto tras guardar para soltar varias ideas; funciona offline (usa `useCaptureInboxTask`).
+2. **Inbox**: borrar ahora es visible siempre (antes solo con hover = imposible en celular) y con área táctil de 44px; tocar el título lo edita en línea (Enter guarda, Escape cancela).
+3. **Recompensa inmediata** al completar: `useCompleteTask` muestra "+N XP · Clase" (o "Misión completada") vía `Toaster` (`components/ui/toast-store.ts` + `Toaster.tsx`, store a nivel de módulo, sin librería). El XP real sigue calculándolo el trigger de Postgres; el aviso solo lo muestra.
+4. **Prioridad del día descubrible**: estrella ★ en cada tarjeta del Battle HUD (`useSetTodayPriority`/`useClearTodayPriority`). El recuadro "Prioridad" del Inbox ahora dice DEFINIDA / CUMPLIDA / ELEGIR EN COMBATE (antes siempre "VER GRIMORIO").
+5. **Enlace roto arreglado**: la alerta del Inbox "N vencidas · RESOLVER" mandaba un filtro que el Grimorio ignoraba desde el Paso 6. Ahora `KanbanPage` tiene chips **Todas / Vencidas (n) / Hoy (n)** que lee de `location.state.dateFilter`.
+6. **Reprogramar de un toque** (`RescheduleButtons`: Mañana / +1 semana, conserva la hora original) en tareas vencidas del Grimorio (modo Foco) y del Battle HUD. Tono de "reagendar", no de fracaso.
+7. **Follow-ups**: la palomita "resolver sin bitácora" ahora pide confirmación inline (se descarta sola a los 4 s).
+8. Voseo restante corregido ("Elige", "Ponle").
+- Nuevas utilidades en `utils/datetime.ts`: `rescheduleIso`, `isOverdue`.
+
+### Ronda 2 — hecha (sin migraciones, sin verificar visualmente por mí)
+1. **Mesa de Estrategia con menos decisiones**: clase y destino se recuerdan entre cartas (`localStorage` `questly_triage_last`, solo tras despachar con éxito); fecha y arma siguen siendo decisión por misión (el tamaño obligatorio es decisión de la sección 9/6.4, no se pre-selecciona). Fechas rápidas: Hoy / Mañana / Fin de semana / +1 semana, además del selector manual.
+2. **Validación visible**: ya no es un mensaje único al fondo. Tras un intento fallido se muestra bajo cada campo lo que falta y un resumen "Falta: clase, fecha, arma." (el botón sigue activo a propósito para que el clic revele qué falta).
+3. **Saltar por ahora** (manda la carta al final de la cola durante la sesión) y **Descartar** (borra la captura, con confirmación inline). Ambos faltaban respecto a la spec 4.2.
+4. **Elegir por mí** en cada slot vacío del Battle HUD: equipa la sugerida (`useSuggestedTask`: primero la prioridad del día si no está equipada, luego la de deadline más cercano) y muestra su título para no ser opaco. El cajón muestra la sugerida primero con etiqueta "Sugerida".
+5. **Barra inferior en móvil** (Combate, Inbox, Estrategia, Grimorio, Más → abre el menú completo) con íconos Lucide; el botón flotante de captura sube sobre ella. `main` tiene `pb-24` en móvil.
+6. **Insignia con el conteo de capturas pendientes** sobre "Estrategia" (menú lateral y barra inferior).
+- Limitación conocida: descartar la ÚLTIMA captura del inbox no dispara la quest diaria de triage (el trigger `tasks_after_triage` solo reacciona a un UPDATE de `kanban_column_id`, no a un DELETE). Candidato a la ronda 3 (migración).
+
+### Rondas pendientes
+- **Ronda 3** (requiere migración SQL o assets): quest de rescate de vencidas y lenguaje sin culpa ("Pendiente desde ayer"), escalones de notificación separados (hoy un descarte de "vence en 3 días" silencia el de "mañana" por compartir tipo), página de Proyectos, Modo Foco con temporizador dentro de la app, avatar de clase.
+- **Pulido**: quitar duplicados de racha/escudos, subtítulos funcionales en el menú, crear/reprogramar desde el calendario.

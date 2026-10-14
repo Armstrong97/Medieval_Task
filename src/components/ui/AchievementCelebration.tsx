@@ -1,3 +1,4 @@
+import type { LucideIcon } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 
 export interface Achievement {
@@ -5,7 +6,7 @@ export interface Achievement {
   kicker: string
   title: string
   description: string
-  icon: string
+  icon: LucideIcon
 }
 
 const AUTO_DISMISS_MS = 3400
@@ -61,7 +62,7 @@ export function AchievementCelebration({ achievement, onDone }: AchievementCeleb
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-shade/40 backdrop-blur-sm"
       onClick={onDone}
       role="status"
       aria-live="polite"
@@ -69,9 +70,9 @@ export function AchievementCelebration({ achievement, onDone }: AchievementCeleb
       <div ref={stageRef} className="relative flex h-72 w-full max-w-sm items-center justify-center">
         <div className="achievement-modal relative rounded-2xl border border-gold bg-surface px-10 py-8 text-center">
           <div className="mx-auto mb-3.5 flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[radial-gradient(circle_at_35%_30%,var(--gold-bright),var(--gold)_60%,#7a5a1e_100%)] text-3xl shadow-[inset_0_0_12px_rgba(0,0,0,0.35)]">
-            {achievement.icon}
+            <achievement.icon className="h-9 w-9 text-bg" aria-hidden="true" />
           </div>
-          <div className="mb-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-gold-bright">
+          <div className="mb-1.5 font-mono text-xs uppercase tracking-[0.12em] text-gold-bright">
             {achievement.kicker}
           </div>
           <div className="font-display text-2xl font-black tracking-wide text-fg">

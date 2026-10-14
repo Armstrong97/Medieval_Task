@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { format, formatDistanceToNow, isPast } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, Check, Phone, ScrollText } from 'lucide-react'
 import { useFollowUpLogs, useResolveFollowUp } from '@/features/followups/hooks'
 import { LogContactModal } from '@/features/followups/components/LogContactModal'
 import type { FollowUp, Task } from '@/types/database.types'
@@ -22,6 +22,14 @@ export function FollowUpCard({
 
   const [modalOpen, setModalOpen] = useState(false)
   const [bitacoraOpen, setBitacoraOpen] = useState(false)
+  const [confirmingResolve, setConfirmingResolve] = useState(false)
+
+  // La confirmación se descarta sola para no dejar un botón "armado".
+  useEffect(() => {
+    if (!confirmingResolve) return
+    const t = window.setTimeout(() => setConfirmingResolve(false), 4000)
+    return () => window.clearTimeout(t)
+  }, [confirmingResolve])
 
   const isOverdue = isPast(new Date(followUp.next_reminder_at))
   const contactCount = logs?.length ?? 0
@@ -36,13 +44,13 @@ export function FollowUpCard({
         <div className="flex items-start justify-between">
           <div className="min-w-0 pr-4">
             <h2 className="truncate font-display text-xl font-bold text-fg">{task.title}</h2>
-            <p className="mt-1 font-mono text-xs font-bold uppercase text-sky-400">
-              📜 Aliado: {followUp.stakeholder_name || 'Desconocido'}
+            <p className="mt-1 font-mono text-xs font-bold uppercase text-rune">
+              <ScrollText className="mr-1 inline h-4 w-4" aria-hidden="true" />Aliado: {followUp.stakeholder_name || 'Desconocido'}
             </p>
           </div>
           <span
-            className={`shrink-0 font-mono text-[10px] font-bold uppercase ${
-              isOverdue ? 'text-red-400' : 'text-fg-muted/60'
+            className={`shrink-0 font-mono text-xs font-bold uppercase ${
+              isOverdue ? 'text-warn-fg' : 'text-fg-muted/60'
             }`}
           >
             {formatDistanceToNow(new Date(followUp.next_reminder_at), { addSuffix: true, locale: es })}
@@ -50,8 +58,8 @@ export function FollowUpCard({
         </div>
 
         {/* Medidor de Insistencia */}
-        <div className="flex items-center gap-4 rounded-xl border border-white/5 bg-black/20 p-3">
-          <span className="font-mono text-[10px] uppercase tracking-tighter text-fg-muted/60">
+        <div className="flex items-center gap-4 rounded-xl border border-glass/5 bg-shade/20 p-3">
+          <span className="font-mono text-xs uppercase tracking-tighter text-fg-muted/60">
             Intentos:
           </span>
           <div className="flex gap-2">
@@ -71,7 +79,7 @@ export function FollowUpCard({
           <button
             type="button"
             onClick={() => setBitacoraOpen((v) => !v)}
-            className="flex items-center gap-1.5 text-left font-mono text-[10px] uppercase text-fg-muted/60 transition-all hover:text-fg"
+            className="flex items-center gap-1.5 text-left font-mono text-xs uppercase text-fg-muted/60 transition-all hover:text-fg"
           >
             <ChevronRight
               className={`h-3.5 w-3.5 transition-transform ${bitacoraOpen ? 'rotate-90' : ''}`}
@@ -85,10 +93,10 @@ export function FollowUpCard({
             }`}
           >
             {logs?.length === 0 ? (
-              <p className="font-mono text-[10px] italic text-fg-muted/40">Sin registros previos.</p>
+              <p className="font-mono text-xs italic text-fg-muted/40">Sin registros previos.</p>
             ) : (
               logs?.map((log) => (
-                <div key={log.id} className="text-[11px] italic text-fg-muted">
+                <div key={log.id} className="text-xs italic text-fg-muted">
                   <span className="mr-2 font-mono font-bold text-accent">
                     {format(new Date(log.created_at), 'd MMM').toUpperCase()}
                   </span>
@@ -104,24 +112,44 @@ export function FollowUpCard({
           <button
             type="button"
             onClick={() => setModalOpen(true)}
-            className="flex-1 rounded-lg bg-[#0284c7] py-3 font-display text-xs font-black uppercase tracking-widest text-white transition-all hover:brightness-110 active:scale-95"
+            className="flex-1 rounded-lg bg-rune-deep py-3 font-display text-xs font-black uppercase tracking-widest text-white transition-all hover:brightness-110 active:scale-95"
           >
-            📞 Registrar Contacto
+            <Phone className="mr-1.5 inline h-4 w-4" aria-hidden="true" />Registrar Contacto
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              onResolvedLocally(followUp.id)
-              setTimeout(
-                () => resolveFollowUp.mutate({ followUpId: followUp.id, taskId: followUp.task_id }),
-                600,
-              )
-            }}
-            className="rounded-lg border border-white/10 px-4 py-3 text-lg transition-all hover:bg-green-500/20"
-            title="Resolver Directamente"
-          >
-            ✅
-          </button>
+          {confirmingResolve ? (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmingResolve(false)
+                  onResolvedLocally(followUp.id)
+                  setTimeout(
+                    () => resolveFollowUp.mutate({ followUpId: followUp.id, taskId: followUp.task_id }),
+                    600,
+                  )
+                }}
+                className="rounded-lg bg-accent px-3 py-3 font-mono text-xs font-black uppercase text-accent-fg"
+              >
+                Resolver sin bitácora
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmingResolve(false)}
+                className="rounded-lg border border-border px-3 py-3 font-mono text-xs font-bold uppercase text-fg-muted"
+              >
+                Cancelar
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirmingResolve(true)}
+              className="rounded-lg border border-glass/10 px-4 py-3 text-lg transition-all hover:bg-accent/20"
+              title="Resolver sin dejar bitácora"
+            >
+              <Check className="h-5 w-5 text-accent" aria-label="Resolver sin dejar bitácora" />
+            </button>
+          )}
         </footer>
       </article>
 

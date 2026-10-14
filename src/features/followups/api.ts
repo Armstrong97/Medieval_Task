@@ -1,4 +1,4 @@
-import { reopenTask } from '@/features/tasks/api'
+import { closeFollowUpForTask, reopenTask } from '@/features/tasks/api'
 import { supabase } from '@/lib/supabase'
 import type { Database, FollowUp, FollowUpLog } from '@/types/database.types'
 
@@ -20,6 +20,7 @@ export async function fetchFollowUpForTask(taskId: string): Promise<FollowUp | n
     .from('follow_ups')
     .select('*')
     .eq('task_id', taskId)
+    .is('resolved_at', null)
     .maybeSingle()
   if (error) throw error
   return data
@@ -30,31 +31,16 @@ export type NewFollowUp = Pick<
   'task_id' | 'stakeholder_name' | 'interval_days' | 'notes'
 >
 
+// Upsert por task_id (unique): si la tarea ya tuvo un seguimiento resuelto, se
+// reactiva conservando su bitácora; last_contacted_at reinicia el reloj del
+// recordatorio (lo recalcula el trigger follow_ups_set_next_reminder).
 export async function createFollowUp(input: NewFollowUp): Promise<FollowUp> {
-  const { data, error } = await supabase.from('follow_ups').insert(input).select().single()
-  if (error) throw error
-  return data
-}
-
-export async function updateFollowUp(
-  id: string,
-  patch: Partial<Pick<Database['public']['Tables']['follow_ups']['Update'], 'stakeholder_name' | 'interval_days' | 'notes'>>,
-): Promise<FollowUp> {
   const { data, error } = await supabase
     .from('follow_ups')
-    .update(patch)
-    .eq('id', id)
-    .select()
-    .single()
-  if (error) throw error
-  return data
-}
-
-export async function registerFollowUpContact(id: string): Promise<FollowUp> {
-  const { data, error } = await supabase
-    .from('follow_ups')
-    .update({ last_contacted_at: new Date().toISOString() })
-    .eq('id', id)
+    .upsert(
+      { ...input, resolved_at: null, last_contacted_at: new Date().toISOString() },
+      { onConflict: 'task_id' },
+    )
     .select()
     .single()
   if (error) throw error
@@ -111,9 +97,5 @@ export async function resolveFollowUp(input: { followUpId: string; taskId: strin
 
   await reopenTask(task)
 
-  const { error } = await supabase
-    .from('follow_ups')
-    .update({ resolved_at: new Date().toISOString() })
-    .eq('id', input.followUpId)
-  if (error) throw error
+  await closeFollowUpForTask(input.taskId)
 }

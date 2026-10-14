@@ -1,6 +1,6 @@
 # Project Snapshot — Productividad RPG
 
-> Generado automáticamente con `node scripts/generate-project-snapshot.mjs` el 2026-07-27. Incluye código fuente + config; excluye node_modules/dist/.env/binarios/specs en Markdown. No editar a mano — se regenera.
+> Generado automáticamente con `node scripts/generate-project-snapshot.mjs` el 2026-10-14. Incluye código fuente + config; excluye node_modules/dist/.env/binarios/specs en Markdown. No editar a mano — se regenera.
 
 ## Estructura de carpetas (archivos incluidos en este snapshot)
 
@@ -10,7 +10,6 @@
 ├── netlify.toml
 ├── package.json
 ├── scripts
-│   ├── generate-icons.mjs
 │   ├── generate-project-snapshot.mjs
 │   └── optimize-rpg-assets.mjs
 ├── src
@@ -25,8 +24,9 @@
 │   │   └── ui
 │   │       ├── AchievementCelebration.tsx
 │   │       ├── AmbientBackground.tsx
-│   │       ├── Logomark.tsx
-│   │       └── Modal.tsx
+│   │       ├── BrandMark.tsx
+│   │       ├── toast-store.ts
+│   │       └── Toaster.tsx
 │   ├── features
 │   │   ├── auth
 │   │   │   ├── AuthProvider.tsx
@@ -39,7 +39,8 @@
 │   │   │   │   ├── BattleHudPage.tsx
 │   │   │   │   ├── CombatSlotCard.tsx
 │   │   │   │   ├── EmptySlotCard.tsx
-│   │   │   │   └── GrimorioDrawer.tsx
+│   │   │   │   ├── GrimorioDrawer.tsx
+│   │   │   │   └── StaminaRing.tsx
 │   │   │   └── hooks.ts
 │   │   ├── calendar
 │   │   │   └── components
@@ -49,7 +50,9 @@
 │   │   ├── followups
 │   │   │   ├── api.ts
 │   │   │   ├── components
-│   │   │   │   └── FollowUpsPage.tsx
+│   │   │   │   ├── FollowUpCard.tsx
+│   │   │   │   ├── FollowUpsPage.tsx
+│   │   │   │   └── LogContactModal.tsx
 │   │   │   └── hooks.ts
 │   │   ├── gamification
 │   │   │   ├── api.ts
@@ -62,16 +65,14 @@
 │   │   ├── inbox
 │   │   │   └── components
 │   │   │       ├── InboxDashboard.tsx
-│   │   │       └── InboxPage.tsx
+│   │   │       ├── InboxPage.tsx
+│   │   │       └── QuickCaptureFab.tsx
 │   │   ├── kanban
 │   │   │   ├── api.ts
-│   │   │   ├── components
-│   │   │   │   ├── GrimorioAccordionView.tsx
-│   │   │   │   ├── GrimorioTabsView.tsx
-│   │   │   │   ├── KanbanBoard.tsx
-│   │   │   │   ├── KanbanColumn.tsx
-│   │   │   │   └── KanbanPage.tsx
-│   │   │   └── hooks.ts
+│   │   │   └── components
+│   │   │       ├── GrimorioAccordionView.tsx
+│   │   │       ├── GrimorioTabsView.tsx
+│   │   │       └── KanbanPage.tsx
 │   │   ├── notifications
 │   │   │   ├── api.ts
 │   │   │   ├── components
@@ -91,7 +92,7 @@
 │   │   │   ├── api.ts
 │   │   │   ├── components
 │   │   │   │   ├── FocusFloat.tsx
-│   │   │   │   ├── TaskCard.tsx
+│   │   │   │   ├── RescheduleButtons.tsx
 │   │   │   │   └── TaskModal.tsx
 │   │   │   ├── FocusFloatContext.tsx
 │   │   │   └── hooks.ts
@@ -110,7 +111,6 @@
 │   ├── types
 │   │   └── database.types.ts
 │   ├── utils
-│   │   ├── categoryIcon.tsx
 │   │   ├── datetime.ts
 │   │   ├── rpgAssets.ts
 │   │   ├── useOnlineStatus.ts
@@ -129,7 +129,8 @@
 │       ├── 20260725010828_fase5_push_subscriptions.sql
 │       ├── 20260725230823_fase6_subtask_xp_and_followup_status.sql
 │       ├── 20260726000001_fase7_battle_hud_slots.sql
-│       └── 20260726000002_fase7_dungeon_bosses.sql
+│       ├── 20260726000002_fase7_dungeon_bosses.sql
+│       └── 20260727000001_fase8_followup_logs.sql
 ├── tsconfig.app.json
 ├── tsconfig.json
 ├── tsconfig.node.json
@@ -163,8 +164,8 @@
     <link rel="icon" type="image/png" sizes="96x96" href="/icons/favicon-96x96.png" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#faf9f6" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f3f1e2" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0b1410" media="(prefers-color-scheme: dark)" />
     <meta name="description" content="Questly — Sistema de productividad personal y RPG táctico amigable con TDAH." />
     <title>Questly | Maneja tus misiones</title>
   </head>
@@ -213,9 +214,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@dnd-kit/core": "^6.3.1",
-    "@dnd-kit/sortable": "^10.0.0",
-    "@dnd-kit/utilities": "^3.2.2",
     "@fontsource-variable/inter": "^5.3.0",
     "@fontsource-variable/jetbrains-mono": "^5.3.0",
     "@fontsource/cinzel": "^5.3.0",
@@ -230,9 +228,7 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-router-dom": "^7.18.1",
-    "tailwindcss": "^4.3.3",
-    "web-push": "^3.6.7",
-    "zustand": "^5.0.14"
+    "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
     "@types/node": "^24.13.2",
@@ -250,31 +246,6 @@
     "workbox-strategies": "^7.4.1"
   }
 }
-```
-
-### scripts/generate-icons.mjs
-
-```javascript
-import sharp from 'sharp'
-import { mkdirSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
-
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const publicDir = join(__dirname, '..', 'public', 'icons')
-mkdirSync(publicDir, { recursive: true })
-
-const anySvg = join(__dirname, 'icon-any.svg')
-const maskableSvg = join(__dirname, 'icon-maskable.svg')
-
-await Promise.all([
-  sharp(anySvg).resize(192, 192).png().toFile(join(publicDir, 'icon-192.png')),
-  sharp(anySvg).resize(512, 512).png().toFile(join(publicDir, 'icon-512.png')),
-  sharp(anySvg).resize(180, 180).png().toFile(join(publicDir, 'apple-touch-icon.png')),
-  sharp(maskableSvg).resize(512, 512).png().toFile(join(publicDir, 'icon-512-maskable.png')),
-])
-
-console.log('Iconos generados en public/icons/')
 ```
 
 ### scripts/generate-project-snapshot.mjs
@@ -479,13 +450,17 @@ export default App
 ```tsx
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { Flame, Shield, Swords } from 'lucide-react'
+import { Flame, Inbox, Menu, ScrollText, Shield, Swords, Wand2 } from 'lucide-react'
+import { useInboxTasks } from '@/features/tasks/hooks'
 import { useStreak } from '@/features/gamification/hooks'
 import { NotificationBell } from '@/features/notifications/components/NotificationBell'
 import { FocusFloatButton } from '@/features/tasks/components/FocusFloat'
 import { FocusFloatProvider } from '@/features/tasks/FocusFloatContext'
 import { ProfileMenu } from '@/features/auth/components/ProfileMenu'
 import { AmbientBackground } from '@/components/ui/AmbientBackground'
+import { BrandMark } from '@/components/ui/BrandMark'
+import { Toaster } from '@/components/ui/Toaster'
+import { QuickCaptureFab } from '@/features/inbox/components/QuickCaptureFab'
 import { AchievementWatcher } from '@/features/gamification/components/AchievementWatcher'
 import { NAV_ICONS, type NavIconKey } from '@/utils/rpgAssets'
 
@@ -520,8 +495,8 @@ function StreakIndicator() {
         {streak.current_streak_days} DÍAS
       </span>
       {streak.shields_available > 0 && (
-        <span className="flex items-center gap-1 text-sky-400">
-          <Shield className="h-3 w-3 fill-sky-400" />
+        <span className="flex items-center gap-1 text-rune">
+          <Shield className="h-3 w-3 fill-rune" />
           {streak.shields_available}
         </span>
       )}
@@ -529,8 +504,28 @@ function StreakIndicator() {
   )
 }
 
+// Barra inferior en móvil: 4 destinos de uso diario + "Más" (abre el menú
+// completo). La captura vive en el botón flotante.
+const bottomItems = [
+  { to: '/', label: 'Combate', icon: Swords, end: true },
+  { to: '/inbox', label: 'Inbox', icon: Inbox, end: false },
+  { to: '/triage', label: 'Estrategia', icon: Wand2, end: false },
+  { to: '/kanban', label: 'Grimorio', icon: ScrollText, end: false },
+] as const
+
+function CountBadge({ count }: { count: number }) {
+  if (count <= 0) return null
+  return (
+    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 font-mono text-xs font-bold text-accent-fg">
+      {count > 99 ? '99+' : count}
+    </span>
+  )
+}
+
 export function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { data: inboxItems } = useInboxTasks()
+  const pendingTriage = inboxItems?.length ?? 0
   const location = useLocation()
 
   useEffect(() => {
@@ -555,9 +550,11 @@ export function Layout() {
       <div className="min-h-dvh text-fg">
         <AmbientBackground />
         <AchievementWatcher />
+        <Toaster />
+        <QuickCaptureFab />
 
         {/* Top Header Minimalista */}
-        <header className="fixed top-0 left-0 z-30 flex h-16 w-full items-center justify-between border-b border-border bg-bg/85 px-4 backdrop-blur-md sm:px-6">
+        <header className="app-header fixed top-0 left-0 z-30 flex h-16 w-full items-center justify-between border-b border-border bg-bg/85 px-4 backdrop-blur-md sm:px-6">
           <div className="flex items-center gap-3">
             {/* Botón Hamburguesa Rúnico */}
             <button
@@ -571,7 +568,8 @@ export function Layout() {
 
             {/* Identidad en Header */}
             <div className="flex items-center gap-2">
-              <span className="font-display text-xl font-black tracking-tight text-accent drop-shadow-[0_0_8px_rgba(217,169,74,0.3)]">
+              <BrandMark className="h-6 w-6 text-accent" />
+              <span className="font-display text-xl font-black tracking-tight text-accent drop-shadow-[0_0_8px_rgb(var(--accent-rgb)/0.35)]">
                 QUESTLY
               </span>
               <span className="select-none font-light text-border">|</span>
@@ -604,8 +602,9 @@ export function Layout() {
             sidebarOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
-          <div className="mb-6 px-6">
-            <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent/60">
+          <div className="mb-6 flex items-center gap-3 px-6">
+            <BrandMark className="h-7 w-7 shrink-0 text-accent" />
+            <p className="font-display text-xs uppercase tracking-[0.25em] text-accent">
               Menú del Héroe
             </p>
           </div>
@@ -625,26 +624,63 @@ export function Layout() {
                 <img
                   src={NAV_ICONS[item.iconKey]}
                   alt=""
-                  className="h-6 w-6 object-contain drop-shadow-[0_0_4px_rgba(0,0,0,0.5)]"
+                  className="h-6 w-6 object-contain drop-shadow-[0_0_4px_rgb(var(--shade-rgb)/0.5)]"
                 />
                 <span className="nav-label font-display text-xs tracking-wider uppercase">
                   {item.label}
                 </span>
+                {item.to === '/triage' && <CountBadge count={pendingTriage} />}
               </NavLink>
             ))}
           </nav>
 
           <div className="mt-auto border-t border-border/40 px-6 pt-4">
-            <p className="font-mono text-[9px] tracking-tight uppercase text-fg-muted/50">
+            <p className="font-mono text-xs tracking-tight uppercase text-fg-muted">
               QUESTLY v4.0.1 · MISIONES ACTIVAS
             </p>
           </div>
         </aside>
 
         {/* Contenido Principal con Offset para el Header */}
-        <main className="pt-16">
+        <main className="pb-24 pt-16 md:pb-0">
           <Outlet />
         </main>
+
+        {/* Barra inferior (solo móvil) */}
+        <nav
+          aria-label="Navegación principal"
+          className="fixed inset-x-0 bottom-0 z-30 flex border-t border-border bg-bg/95 backdrop-blur-md md:hidden"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+        >
+          {bottomItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              className={({ isActive }) =>
+                `relative flex min-h-16 flex-1 flex-col items-center justify-center gap-1 font-mono text-xs ${
+                  isActive ? 'text-accent' : 'text-fg-muted'
+                }`
+              }
+            >
+              <item.icon className="h-6 w-6" aria-hidden="true" />
+              {item.label}
+              {item.to === '/triage' && pendingTriage > 0 && (
+                <span className="absolute right-[22%] top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1 font-mono text-xs font-bold text-accent-fg">
+                  {pendingTriage > 99 ? '99+' : pendingTriage}
+                </span>
+              )}
+            </NavLink>
+          ))}
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(true)}
+            className="flex min-h-16 flex-1 flex-col items-center justify-center gap-1 font-mono text-xs text-fg-muted"
+          >
+            <Menu className="h-6 w-6" aria-hidden="true" />
+            Más
+          </button>
+        </nav>
       </div>
     </FocusFloatProvider>
   )
@@ -811,6 +847,7 @@ export const router = createBrowserRouter([
 ### src/components/ui/AchievementCelebration.tsx
 
 ```tsx
+import type { LucideIcon } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 
 export interface Achievement {
@@ -818,7 +855,7 @@ export interface Achievement {
   kicker: string
   title: string
   description: string
-  icon: string
+  icon: LucideIcon
 }
 
 const AUTO_DISMISS_MS = 3400
@@ -874,7 +911,7 @@ export function AchievementCelebration({ achievement, onDone }: AchievementCeleb
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-shade/40 backdrop-blur-sm"
       onClick={onDone}
       role="status"
       aria-live="polite"
@@ -882,9 +919,9 @@ export function AchievementCelebration({ achievement, onDone }: AchievementCeleb
       <div ref={stageRef} className="relative flex h-72 w-full max-w-sm items-center justify-center">
         <div className="achievement-modal relative rounded-2xl border border-gold bg-surface px-10 py-8 text-center">
           <div className="mx-auto mb-3.5 flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[radial-gradient(circle_at_35%_30%,var(--gold-bright),var(--gold)_60%,#7a5a1e_100%)] text-3xl shadow-[inset_0_0_12px_rgba(0,0,0,0.35)]">
-            {achievement.icon}
+            <achievement.icon className="h-9 w-9 text-bg" aria-hidden="true" />
           </div>
-          <div className="mb-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-gold-bright">
+          <div className="mb-1.5 font-mono text-xs uppercase tracking-[0.12em] text-gold-bright">
             {achievement.kicker}
           </div>
           <div className="font-display text-2xl font-black tracking-wide text-fg">
@@ -905,49 +942,63 @@ import { useMemo } from 'react'
 
 interface Mote {
   left: number
+  top: number
   size: number
-  drift: number
+  dx: number
+  dy: number
   duration: number
   delay: number
+  tone: 'a' | 'b'
 }
 
 function useMotes(count: number): Mote[] {
   return useMemo(
     () =>
-      Array.from({ length: count }, () => ({
+      Array.from({ length: count }, (_, i) => ({
         left: Math.random() * 100,
-        size: 2 + Math.random() * 4,
-        drift: Math.random() * 80 - 40,
-        duration: 10 + Math.random() * 14,
-        delay: Math.random() * 14,
+        top: 10 + Math.random() * 85,
+        size: 3 + Math.random() * 5,
+        dx: Math.random() * 120 - 60,
+        dy: Math.random() * 90 - 60,
+        duration: 14 + Math.random() * 16,
+        delay: -Math.random() * 20,
+        tone: i % 2 === 0 ? 'a' : 'b',
       })),
     [count],
   )
 }
 
 /**
- * Fondo ambiental global: aurora rotando muy lento + motas doradas ascendiendo.
- * Solo visible en modo oscuro (identidad principal); en claro queda inerte para no
- * competir con la legibilidad. Se apaga con prefers-reduced-motion.
+ * Fondo ambiental global "bosque vivo". De noche: aurora rúnica + luciérnagas.
+ * De día: haces de luz entre el follaje + polen dorado. El tema lo resuelve el
+ * CSS (prefers-color-scheme), no este componente. Se congela con
+ * prefers-reduced-motion.
  */
 export function AmbientBackground() {
-  const motes = useMotes(18)
+  const motes = useMotes(16)
 
   return (
-    <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden dark:opacity-100 opacity-0">
+    <div
+      aria-hidden="true"
+      className="ambient-root pointer-events-none fixed inset-0 -z-10 overflow-hidden"
+    >
       <div className="ambient-aurora absolute -inset-1/5" />
+      <div className="ambient-rays" />
       {motes.map((mote, i) => (
         <div
           key={i}
-          className="ambient-mote absolute bottom-[-5%] rounded-full"
+          className="ambient-mote"
           style={
             {
               left: `${mote.left}%`,
+              top: `${mote.top}%`,
               width: mote.size,
               height: mote.size,
-              '--drift': `${mote.drift}px`,
-              animationDuration: `${mote.duration}s`,
-              animationDelay: `${mote.delay}s`,
+              '--dx': `${mote.dx}px`,
+              '--dy': `${mote.dy}px`,
+              '--dur': `${mote.duration}s`,
+              '--delay': `${mote.delay}s`,
+              '--mote-c': `var(--mote-${mote.tone})`,
             } as React.CSSProperties
           }
         />
@@ -957,49 +1008,109 @@ export function AmbientBackground() {
 }
 ```
 
-### src/components/ui/Logomark.tsx
+### src/components/ui/BrandMark.tsx
 
 ```tsx
-export function Logomark({ className }: { className?: string }) {
+// Marca de Questly: brote dentro de un rombo rúnico. Trazo con currentColor
+// para heredar el color del contexto (acento en header, apagado en footers).
+export function BrandMark({ className = 'h-6 w-6' }: { className?: string }) {
   return (
-    <svg viewBox="0 0 512 512" fill="none" className={className} aria-hidden="true">
-      <rect width="512" height="512" rx="96" className="fill-surface-2" />
-      <rect x="120" y="280" width="64" height="132" rx="14" fill="#7c3aed" />
-      <rect x="224" y="210" width="64" height="202" rx="14" fill="#2563eb" />
-      <rect x="328" y="120" width="64" height="292" rx="14" fill="#059669" />
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <path d="M12 2 22 12 12 22 2 12Z" />
+      <path d="M12 18v-6" />
+      <path d="M12 13.5C8.5 13.5 7.5 11 7.5 8.5 10.5 8.5 12 10 12 13.5Z" />
+      <path d="M12 11.5C12 8.5 13.5 7 16.5 7 16.5 9.5 15 11.5 12 11.5Z" />
     </svg>
   )
 }
 ```
 
-### src/components/ui/Modal.tsx
+### src/components/ui/toast-store.ts
+
+```typescript
+// Avisos efímeros globales. Store mínimo a nivel de módulo (sin Context ni
+// librería): showToast() se puede llamar desde hooks de mutación fuera de React.
+export type ToastTone = 'reward' | 'info'
+
+export interface Toast {
+  id: number
+  title: string
+  detail?: string
+  tone: ToastTone
+}
+
+const DISMISS_MS = 3500
+const MAX_VISIBLE = 3
+
+let toasts: Toast[] = []
+
+export function getToasts(): Toast[] {
+  return toasts
+}
+let nextId = 1
+const listeners = new Set<() => void>()
+
+function emit() {
+  listeners.forEach((l) => l())
+}
+
+export function showToast(input: { title: string; detail?: string; tone?: ToastTone }) {
+  const toast: Toast = { id: nextId++, tone: 'info', ...input }
+  toasts = [...toasts, toast].slice(-MAX_VISIBLE)
+  emit()
+  window.setTimeout(() => {
+    toasts = toasts.filter((t) => t.id !== toast.id)
+    emit()
+  }, DISMISS_MS)
+}
+
+export function subscribe(listener: () => void) {
+  listeners.add(listener)
+  return () => listeners.delete(listener)
+}
+```
+
+### src/components/ui/Toaster.tsx
 
 ```tsx
-import { useEffect, type PropsWithChildren } from 'react'
+import { useSyncExternalStore } from 'react'
+import { getToasts, subscribe } from '@/components/ui/toast-store'
 
-export function Modal({
-  onClose,
-  children,
-}: PropsWithChildren<{ onClose: () => void }>) {
-  useEffect(() => {
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', handleKey)
-    return () => window.removeEventListener('keydown', handleKey)
-  }, [onClose])
+export function Toaster() {
+  const items = useSyncExternalStore(subscribe, getToasts)
 
   return (
     <div
-      className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
-      onClick={onClose}
+      role="status"
+      aria-live="polite"
+      className="pointer-events-none fixed inset-x-0 bottom-24 z-[60] flex flex-col items-center gap-2 px-4"
     >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="modal-panel max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-surface p-5 shadow-xl"
-      >
-        {children}
-      </div>
+      {items.map((toast) => (
+        <div
+          key={toast.id}
+          className={`toast-pop rounded-xl border bg-surface px-5 py-3 text-center shadow-2xl ${
+            toast.tone === 'reward' ? 'border-gold' : 'border-border-glow'
+          }`}
+        >
+          <p
+            className={`font-display text-base font-black ${
+              toast.tone === 'reward' ? 'text-gold-bright' : 'text-fg'
+            }`}
+          >
+            {toast.title}
+          </p>
+          {toast.detail && <p className="font-mono text-xs text-fg-muted">{toast.detail}</p>}
+        </div>
+      ))}
     </div>
   )
 }
@@ -1073,6 +1184,7 @@ import { useState, type FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/features/auth/AuthProvider'
+import { BrandMark } from '@/components/ui/BrandMark'
 import { AmbientBackground } from '@/components/ui/AmbientBackground'
 
 type Mode = 'magic' | 'password' | 'signup'
@@ -1137,14 +1249,10 @@ export function LoginPage() {
         <header className="mb-8 text-center">
           <div className="mb-3 flex justify-center">
             <div className="h-16 w-16">
-              <svg className="glyph-glow h-full w-full" viewBox="0 0 100 100" fill="none">
-                <path d="M50 5L90 30V70L50 95L10 70V30L50 5Z" stroke="#d9a94a" strokeWidth="2" />
-                <path d="M50 20V80M30 40H70M40 70L60 70" stroke="#d9a94a" strokeWidth="4" strokeLinecap="round" />
-                <circle cx="50" cy="50" r="5" fill="#d9a94a" />
-              </svg>
+              <BrandMark className="glyph-glow h-full w-full text-accent" />
             </div>
           </div>
-          <h1 className="font-display text-4xl font-black tracking-tight text-accent drop-shadow-[0_0_10px_rgba(217,169,74,0.3)] sm:text-5xl">
+          <h1 className="font-display text-4xl font-black tracking-tight text-accent drop-shadow-[0_0_10px_rgb(var(--accent-rgb)/0.35)] sm:text-5xl">
             QUESTLY
           </h1>
           <p className="mt-1 font-display text-xs font-semibold uppercase tracking-[0.2em] text-fg-muted">
@@ -1170,7 +1278,7 @@ export function LoginPage() {
                   setMode(tab.key)
                   setMessage(null)
                 }}
-                className={`flex-1 py-3.5 font-mono text-[11px] uppercase tracking-widest transition-all ${
+                className={`flex-1 py-3.5 font-mono text-xs uppercase tracking-widest transition-all ${
                   mode === tab.key
                     ? 'tab-active font-semibold'
                     : 'text-fg-muted/60 hover:text-fg'
@@ -1186,7 +1294,7 @@ export function LoginPage() {
             <form onSubmit={handleSubmit} className="flex flex-col gap-5">
               {mode === 'signup' && (
                 <div className="flex flex-col gap-1.5">
-                  <label className="font-mono text-[10px] font-bold uppercase tracking-widest text-accent/90">
+                  <label className="font-mono text-xs font-bold uppercase tracking-widest text-accent/90">
                     Nombre de Héroe
                   </label>
                   <input
@@ -1201,7 +1309,7 @@ export function LoginPage() {
               )}
 
               <div className="flex flex-col gap-1.5">
-                <label className="font-mono text-[10px] font-bold uppercase tracking-widest text-accent/90">
+                <label className="font-mono text-xs font-bold uppercase tracking-widest text-accent/90">
                   {mode === 'password' ? 'Correo Electrónico' : 'Dirección de Correo'}
                 </label>
                 <input
@@ -1216,7 +1324,7 @@ export function LoginPage() {
 
               {mode !== 'magic' && (
                 <div className="flex flex-col gap-1.5">
-                  <label className="font-mono text-[10px] font-bold uppercase tracking-widest text-accent/90">
+                  <label className="font-mono text-xs font-bold uppercase tracking-widest text-accent/90">
                     Palabra Secreta
                   </label>
                   <input
@@ -1246,7 +1354,7 @@ export function LoginPage() {
               </button>
 
               {mode === 'magic' && (
-                <p className="text-center font-mono text-[10px] uppercase tracking-wider text-fg-muted/50">
+                <p className="text-center font-mono text-xs uppercase tracking-wider text-fg-muted/50">
                   Sin contraseñas, solo magia.
                 </p>
               )}
@@ -1268,7 +1376,7 @@ export function LoginPage() {
 
         {/* Footer info */}
         <footer className="mt-8 text-center opacity-40 transition-opacity hover:opacity-100">
-          <p className="font-mono text-[10px] tracking-tighter text-fg-muted">
+          <p className="font-mono text-xs tracking-tighter text-fg-muted">
             QUESTLY v4.0.1 — SOFTWARE DE GESTIÓN ÉPICA
           </p>
         </footer>
@@ -1304,7 +1412,7 @@ export function ProfileMenu() {
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="modal-panel absolute right-0 z-50 mt-2 w-64 rounded-lg border border-border bg-surface p-2 shadow-xl">
+          <div className="modal-panel panel-rune absolute right-0 z-50 mt-2 w-64 rounded-lg border border-border bg-surface p-2 shadow-xl">
             <div className="border-b border-border px-2 pb-2">
               <p className="text-sm font-medium text-fg">Mi Perfil</p>
               {session?.user.email && (
@@ -1383,12 +1491,13 @@ export async function unequipTaskFromSlot(taskId: string): Promise<Task> {
 ```tsx
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Flame, ScrollText, Shield, Zap } from 'lucide-react'
-import { useHudTasks } from '@/features/battle-hud/hooks'
+import { ScrollText, Shield, Zap } from 'lucide-react'
+import { useEquipHudSlot, useHudTasks, useSuggestedTask } from '@/features/battle-hud/hooks'
 import { useCategories } from '@/features/projects/hooks'
 import { useCategoryXp, useClassRanks, useStreak } from '@/features/gamification/hooks'
 import { CombatSlotCard } from '@/features/battle-hud/components/CombatSlotCard'
 import { EmptySlotCard } from '@/features/battle-hud/components/EmptySlotCard'
+import { StaminaRing } from '@/features/battle-hud/components/StaminaRing'
 import { GrimorioDrawer } from '@/features/battle-hud/components/GrimorioDrawer'
 import { TaskModal } from '@/features/tasks/components/TaskModal'
 import { bossAvatarSrc } from '@/utils/rpgAssets'
@@ -1415,23 +1524,23 @@ function PlayerSummaryHeader() {
     classRanks?.find((r) => r.category_id === dominant?.category_id && r.rank_order === 1)
 
   return (
-    <header className="mb-10 flex flex-col items-center justify-between gap-6 rounded-2xl border border-border bg-surface/40 p-6 backdrop-blur-md md:flex-row">
+    <header className="rune-frame mb-10 flex flex-col items-center justify-between gap-6 rounded-2xl border border-border bg-surface/40 p-6 backdrop-blur-md md:flex-row">
       <div className="flex items-center gap-5">
         <div className="relative">
-          <div className="h-16 w-16 rounded-full border-2 border-accent bg-surface-2 p-1 shadow-[0_0_12px_rgba(217,169,74,0.3)]">
+          <div className="h-16 w-16 rounded-full border-2 border-accent bg-surface-2 p-1 shadow-[0_0_12px_rgb(var(--accent-rgb)/0.35)]">
             <img
               src={bossAvatarSrc('dragon_default')}
               className="h-full w-full rounded-full object-cover"
               alt="Avatar del Héroe"
             />
           </div>
-          <div className="absolute -bottom-1 -right-1 rounded border border-bg bg-accent px-1.5 font-mono text-[10px] font-black text-accent-fg">
+          <div className="absolute -bottom-1 -right-1 rounded border border-bg bg-accent px-1.5 font-mono text-xs font-black text-accent-fg">
             NV. {dominant?.current_level ?? 1}
           </div>
         </div>
 
         <div>
-          <h1 className="font-display text-2xl font-black uppercase tracking-tight text-accent drop-shadow-[0_0_10px_rgba(217,169,74,0.4)]">
+          <h1 className="font-display text-2xl font-black uppercase tracking-tight text-accent drop-shadow-[0_0_10px_rgb(var(--accent-rgb)/0.4)]">
             {dominantRank?.rank_name ?? dominantCategory?.class_name ?? 'Héroe de Questly'}
           </h1>
           <div className="mt-1 flex items-center gap-3">
@@ -1439,26 +1548,22 @@ function PlayerSummaryHeader() {
               Clase: {dominantCategory?.name ?? 'Aventurero'}
             </span>
             <span className="h-1 w-1 rounded-full bg-border" />
-            <span className="flex items-center gap-1 font-mono text-xs font-bold text-sky-400">
-              <Shield className="h-3.5 w-3.5 fill-sky-400" />
+            <span className="flex items-center gap-1 font-mono text-xs font-bold text-rune">
+              <Shield className="h-3.5 w-3.5 fill-rune" />
               {streak?.shields_available ?? 0} ESCUDOS
             </span>
           </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-6">
-        <div className="text-center">
-          <p className="mb-1 font-mono text-[10px] uppercase text-fg-muted/60">
-            Racha Actual
+      <div className="flex items-center gap-4">
+        <div className="text-right">
+          <p className="font-mono text-xs uppercase text-fg-muted">Racha Actual</p>
+          <p className="font-mono text-xs text-fg-muted/80">
+            Escudo cada 7 días
           </p>
-          <div className="flex items-center gap-2 rounded-xl border border-accent/20 bg-accent/10 px-4 py-2">
-            <Flame className="h-5 w-5 text-accent animate-bounce" />
-            <span className="font-display text-lg font-bold text-accent">
-              {streak?.current_streak_days ?? 0} DÍAS
-            </span>
-          </div>
         </div>
+        <StaminaRing days={streak?.current_streak_days ?? 0} />
       </div>
     </header>
   )
@@ -1466,6 +1571,8 @@ function PlayerSummaryHeader() {
 
 export function BattleHudPage() {
   const { data: hudTasks, isLoading } = useHudTasks()
+  const suggestion = useSuggestedTask()
+  const equip = useEquipHudSlot()
   const [drawerSlot, setDrawerSlot] = useState<number | null>(null)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
 
@@ -1492,6 +1599,8 @@ export function BattleHudPage() {
                 key={slot}
                 slot={slot}
                 onEquip={() => setDrawerSlot(slot)}
+                suggestion={suggestion}
+                onEquipSuggestion={() => suggestion && equip.mutate({ taskId: suggestion.id, slot })}
               />
             )
           })}
@@ -1544,11 +1653,14 @@ export function BattleHudPage() {
 
 ```tsx
 import { useState } from 'react'
-import { MoreVertical, PictureInPicture2, Swords } from 'lucide-react'
+import { MoreVertical, PictureInPicture2, Star, Swords } from 'lucide-react'
 import { useCategories } from '@/features/projects/hooks'
 import { useCompleteTask, useSubtasks } from '@/features/tasks/hooks'
 import { useFocusFloat } from '@/features/tasks/FocusFloatContext'
 import { useSendToFollowUp } from '@/features/followups/hooks'
+import { useClearTodayPriority, useSetTodayPriority, useTodayQuests } from '@/features/gamification/hooks'
+import { RescheduleButtons } from '@/features/tasks/components/RescheduleButtons'
+import { isOverdue } from '@/utils/datetime'
 import { useUnequipHudSlot } from '@/features/battle-hud/hooks'
 import { WEAPON_ICONS } from '@/utils/rpgAssets'
 import type { Task, TaskSize } from '@/types/database.types'
@@ -1574,6 +1686,10 @@ export function CombatSlotCard({
   const unequip = useUnequipHudSlot()
   const sendToFollowUp = useSendToFollowUp()
   const { open: openFocusFloat } = useFocusFloat()
+  const { data: todayQuests } = useTodayQuests()
+  const setPriority = useSetTodayPriority()
+  const clearPriority = useClearTodayPriority()
+  const isPriority = todayQuests?.find((q) => q.type === 'daily_priority')?.task_id === task.id
 
   const [menuOpen, setMenuOpen] = useState(false)
   const [animatingKill, setAnimatingKill] = useState(false)
@@ -1599,7 +1715,7 @@ export function CombatSlotCard({
     }, 280)
   }
 
-  const categoryColor = category?.color_hex ?? '#d9a94a'
+  const categoryColor = category?.color_hex ?? '#7ccf6a'
 
   return (
     <article
@@ -1616,7 +1732,7 @@ export function CombatSlotCard({
       {/* Header de Categoria e Insignia de Arma */}
       <div className="mb-4 flex items-start justify-between">
         <span
-          className="rounded border px-2.5 py-1 font-mono text-[9px] font-black uppercase tracking-widest"
+          className="rounded border px-2.5 py-1 font-mono text-xs font-black uppercase tracking-widest"
           style={{
             backgroundColor: `${categoryColor}20`,
             color: categoryColor,
@@ -1625,15 +1741,25 @@ export function CombatSlotCard({
         >
           {category?.name ?? 'Misión'}
         </span>
+        <button
+          type="button"
+          onClick={() => (isPriority ? clearPriority.mutate() : setPriority.mutate(task.id))}
+          aria-pressed={isPriority}
+          aria-label={isPriority ? 'Quitar prioridad de hoy' : 'Marcar como prioridad de hoy'}
+          title="Prioridad de hoy (+20 XP al terminarla)"
+          className="flex h-11 w-11 items-center justify-center rounded-lg transition-transform hover:scale-110 active:scale-95"
+        >
+          <Star className={`h-6 w-6 ${isPriority ? 'fill-gold text-gold' : 'text-fg-muted'}`} aria-hidden="true" />
+        </button>
         {task.size && (
           <div
-            className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-black/40 shadow-inner"
+            className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-shade/40 shadow-inner"
             title={`${difficulty?.label} (${difficulty?.xp} XP)`}
           >
             <img
               src={WEAPON_ICONS[task.size]}
               alt={difficulty?.label}
-              className="h-6 w-6 object-contain drop-shadow-[0_0_4px_rgba(217,169,74,0.4)]"
+              className="h-6 w-6 object-contain drop-shadow-[0_0_4px_rgb(var(--accent-rgb)/0.4)]"
             />
           </div>
         )}
@@ -1650,6 +1776,11 @@ export function CombatSlotCard({
             {task.title}
           </h2>
         </button>
+        {isOverdue(task) && (
+          <div className="mb-3">
+            <RescheduleButtons task={task} />
+          </div>
+        )}
         <p className="mb-6 font-mono text-xs text-fg-muted/70">
           {hasSubtasks
             ? `Submisiones: ${hpTotal - hpCurrent} / ${hpTotal}`
@@ -1658,9 +1789,9 @@ export function CombatSlotCard({
 
         {/* Barra de HP Segmentada */}
         <div className="mb-6 space-y-2">
-          <div className="flex justify-between font-mono text-[10px] uppercase text-fg-muted">
+          <div className="flex justify-between font-mono text-xs uppercase text-fg-muted">
             <span>Integridad del Enemigo</span>
-            <span className={hpCurrent === 0 ? 'text-red-500 font-bold' : ''}>
+            <span className={hpCurrent === 0 ? 'font-bold text-gold' : ''}>
               {hpPercent}%
             </span>
           </div>
@@ -1686,14 +1817,14 @@ export function CombatSlotCard({
           <button
             type="button"
             onClick={() => void openFocusFloat()}
-            className="flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 py-2.5 font-mono text-[10px] font-black uppercase tracking-widest text-fg-muted transition-all hover:bg-white/10 hover:text-fg active:scale-95"
+            className="flex items-center justify-center gap-1.5 rounded-lg border border-glass/10 bg-glass/5 py-3 font-mono text-xs font-black uppercase tracking-widest text-fg-muted transition-all hover:bg-glass/10 hover:text-fg active:scale-95"
           >
             <PictureInPicture2 className="h-3.5 w-3.5" /> Atacar
           </button>
           <button
             type="button"
             onClick={handleGolpeFinal}
-            className="btn-prime flex items-center justify-center gap-1.5 rounded-lg py-2.5 font-mono text-[10px] font-black uppercase tracking-widest"
+            className="btn-prime flex items-center justify-center gap-1.5 rounded-lg py-3 font-mono text-xs font-black uppercase tracking-widest"
           >
             <Swords className="h-3.5 w-3.5" /> Golpe Final
           </button>
@@ -1703,7 +1834,7 @@ export function CombatSlotCard({
           <button
             type="button"
             onClick={() => setMenuOpen((v) => !v)}
-            className="w-full py-1.5 font-mono text-[10px] font-bold uppercase tracking-widest text-fg-muted/50 transition-opacity hover:text-fg"
+            className="w-full py-1.5 font-mono text-xs font-bold uppercase tracking-widest text-fg-muted/50 transition-opacity hover:text-fg"
           >
             <MoreVertical className="mr-1 inline h-3 w-3" /> Retirada Táctica
           </button>
@@ -1713,7 +1844,7 @@ export function CombatSlotCard({
                 className="fixed inset-0 z-40"
                 onClick={() => setMenuOpen(false)}
               />
-              <div className="modal-panel absolute bottom-full right-0 z-50 mb-2 w-52 rounded-xl border border-border bg-surface p-1.5 shadow-2xl">
+              <div className="modal-panel panel-rune absolute bottom-full right-0 z-50 mb-2 w-52 rounded-xl border border-border bg-surface p-1.5 shadow-2xl">
                 <button
                   type="button"
                   onClick={() => {
@@ -1724,7 +1855,7 @@ export function CombatSlotCard({
                       stakeholderName: null,
                     })
                   }}
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left font-mono text-xs text-fg-muted transition-colors hover:bg-surface-2 hover:text-sky-400"
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left font-mono text-xs text-fg-muted transition-colors hover:bg-surface-2 hover:text-rune"
                 >
                   Mover a Follow-up
                 </button>
@@ -1751,16 +1882,21 @@ export function CombatSlotCard({
 ### src/features/battle-hud/components/EmptySlotCard.tsx
 
 ```tsx
-import { Plus } from 'lucide-react'
+import { Plus, Sparkles } from 'lucide-react'
+import type { Task } from '@/types/database.types'
 
 const SLOT_ROMAN = ['I', 'II', 'III']
 
 export function EmptySlotCard({
   slot,
   onEquip,
+  suggestion,
+  onEquipSuggestion,
 }: {
   slot: number
   onEquip: () => void
+  suggestion: Task | null
+  onEquipSuggestion: () => void
 }) {
   return (
     <article className="empty-slot-card group flex h-[420px] flex-col items-center justify-center rounded-2xl p-6 text-center">
@@ -1773,13 +1909,29 @@ export function EmptySlotCard({
       <p className="mb-8 max-w-[200px] font-mono text-xs text-fg-muted/40">
         No hay misiones equipadas en este flanco táctico.
       </p>
-      <button
-        type="button"
-        onClick={onEquip}
-        className="rounded-full border border-accent px-6 py-2.5 font-display text-xs font-bold uppercase tracking-wider text-accent transition-all hover:bg-accent hover:text-accent-fg active:scale-95"
-      >
-        Equipar Misión
-      </button>
+      <div className="flex w-full max-w-[240px] flex-col gap-2.5">
+        {suggestion && (
+          <button
+            type="button"
+            onClick={onEquipSuggestion}
+            className="btn-prime flex items-center justify-center gap-2 rounded-full px-6 py-3 font-display text-xs font-bold uppercase tracking-wider"
+          >
+            <Sparkles className="h-4 w-4" aria-hidden="true" /> Elegir por mí
+          </button>
+        )}
+        {suggestion && (
+          <p className="truncate font-mono text-xs text-fg-muted" title={suggestion.title}>
+            Sugerida: {suggestion.title}
+          </p>
+        )}
+        <button
+          type="button"
+          onClick={onEquip}
+          className="rounded-full border border-accent px-6 py-3 font-display text-xs font-bold uppercase tracking-wider text-accent transition-all hover:bg-accent hover:text-accent-fg active:scale-95"
+        >
+          {suggestion ? 'Elegir yo' : 'Equipar Misión'}
+        </button>
+      </div>
     </article>
   )
 }
@@ -1792,15 +1944,18 @@ import { useState } from 'react'
 import { format } from 'date-fns'
 import { X } from 'lucide-react'
 import { useCategories } from '@/features/projects/hooks'
-import { useEquipHudSlot, useEquippableTasks } from '@/features/battle-hud/hooks'
+import { useEquipHudSlot, useEquippableTasks, useSuggestedTask } from '@/features/battle-hud/hooks'
 
 export function GrimorioDrawer({ slot, onClose }: { slot: number; onClose: () => void }) {
   const { data: tasks, isLoading } = useEquippableTasks()
   const { data: categories } = useCategories()
   const equip = useEquipHudSlot()
+  const suggested = useSuggestedTask()
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null)
 
-  const filtered = tasks?.filter((t) => !activeCategoryId || t.category_id === activeCategoryId)
+  const filtered = tasks
+    ?.filter((t) => !activeCategoryId || t.category_id === activeCategoryId)
+    .sort((a, b) => Number(b.id === suggested?.id) - Number(a.id === suggested?.id))
 
   function handleEquip(taskId: string) {
     equip.mutate({ taskId, slot }, { onSuccess: onClose })
@@ -1808,12 +1963,12 @@ export function GrimorioDrawer({ slot, onClose }: { slot: number; onClose: () =>
 
   return (
     <div
-      className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex justify-end bg-shade/40 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="modal-panel flex h-full w-full max-w-sm flex-col border-l border-border bg-surface p-4"
+        className="modal-panel panel-rune flex h-full w-full max-w-sm flex-col border-l border-border bg-surface p-4"
       >
         <div className="flex items-center justify-between">
           <h2 className="font-display text-base font-semibold tracking-tight text-fg">
@@ -1828,7 +1983,7 @@ export function GrimorioDrawer({ slot, onClose }: { slot: number; onClose: () =>
             <X className="h-4 w-4" />
           </button>
         </div>
-        <p className="mt-1 text-sm text-fg-muted">Elegí una misión del backlog para equipar.</p>
+        <p className="mt-1 text-sm text-fg-muted">Elige una misión del backlog para equipar.</p>
 
         <div className="mt-3 flex flex-wrap gap-1.5">
           <button
@@ -1873,6 +2028,11 @@ export function GrimorioDrawer({ slot, onClose }: { slot: number; onClose: () =>
                       style={category ? { borderLeftWidth: '3px', borderLeftColor: category.color_hex } : undefined}
                     >
                       <span className="min-w-0 flex-1 truncate text-fg">{task.title}</span>
+                      {task.id === suggested?.id && (
+                        <span className="shrink-0 rounded-full bg-accent/20 px-2 py-0.5 font-mono text-xs font-bold uppercase text-accent">
+                          Sugerida
+                        </span>
+                      )}
                       {task.deadline && (
                         <span className="shrink-0 font-mono text-xs text-fg-muted">
                           {format(new Date(task.deadline), 'd MMM')}
@@ -1891,10 +2051,54 @@ export function GrimorioDrawer({ slot, onClose }: { slot: number; onClose: () =>
 }
 ```
 
+### src/features/battle-hud/components/StaminaRing.tsx
+
+```tsx
+// Anillo de estamina: progreso de la racha hacia el próximo escudo (cada 7 días).
+// Solo se llena; romper la racha no "vacía" nada visible aquí (diseño sin culpa).
+const SHIELD_EVERY_DAYS = 7
+const RADIUS = 26
+const CIRCUMFERENCE = 2 * Math.PI * RADIUS
+
+export function StaminaRing({ days }: { days: number }) {
+  const inCycle = days > 0 && days % SHIELD_EVERY_DAYS === 0 ? SHIELD_EVERY_DAYS : days % SHIELD_EVERY_DAYS
+  const offset = CIRCUMFERENCE * (1 - inCycle / SHIELD_EVERY_DAYS)
+
+  return (
+    <div
+      className="relative h-20 w-20 shrink-0"
+      role="img"
+      aria-label={`Racha de ${days} días, ${inCycle} de ${SHIELD_EVERY_DAYS} para el próximo escudo`}
+    >
+      <svg viewBox="0 0 64 64" className="h-full w-full -rotate-90">
+        <circle cx="32" cy="32" r={RADIUS} fill="none" stroke="var(--border)" strokeWidth="5" />
+        <circle
+          cx="32"
+          cy="32"
+          r={RADIUS}
+          fill="none"
+          stroke="var(--accent)"
+          strokeWidth="5"
+          strokeLinecap="round"
+          strokeDasharray={CIRCUMFERENCE}
+          strokeDashoffset={offset}
+          style={{ transition: 'stroke-dashoffset 0.8s cubic-bezier(0.16, 1, 0.3, 1)', filter: 'drop-shadow(0 0 4px rgb(var(--accent-rgb) / 0.6))' }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="font-display text-xl font-black leading-none text-accent">{days}</span>
+        <span className="font-mono text-xs uppercase text-fg-muted">días</span>
+      </div>
+    </div>
+  )
+}
+```
+
 ### src/features/battle-hud/hooks.ts
 
 ```typescript
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTodayQuests } from '@/features/gamification/hooks'
 import { equipTaskToSlot, fetchEquippableTasks, fetchHudTasks, unequipTaskFromSlot } from '@/features/battle-hud/api'
 
 export function useHudTasks() {
@@ -1929,11 +2133,23 @@ export function useUnequipHudSlot() {
     onSuccess: invalidate,
   })
 }
+
+// Misión sugerida para un slot libre: primero la prioridad del día (si el
+// usuario la marcó y no está equipada); si no, la de deadline más cercano.
+// El backlog ya viene ordenado por deadline ascendente (fetchEquippableTasks).
+export function useSuggestedTask() {
+  const { data: tasks } = useEquippableTasks()
+  const { data: todayQuests } = useTodayQuests()
+  const priorityId = todayQuests?.find((q) => q.type === 'daily_priority')?.task_id
+  const list = tasks ?? []
+  return list.find((t) => t.id === priorityId) ?? list[0] ?? null
+}
 ```
 
 ### src/features/calendar/components/CalendarHeatmapView.tsx
 
 ```tsx
+import { Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { addDays, format, isSameDay } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -1963,13 +2179,13 @@ export function CalendarHeatmapView({
       {/* Cuadrícula Astral Principal */}
       <div className="lg:col-span-2 space-y-6">
         <header className="mb-2">
-          <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-fg-muted/60">
+          <p className="font-mono text-xs uppercase tracking-[0.25em] text-fg-muted/60">
             Predicción de Carga y Misiones
           </p>
         </header>
 
         {/* Encabezados Día de la Semana */}
-        <div className="grid grid-cols-7 text-center font-mono text-[9px] uppercase tracking-widest text-fg-muted/50">
+        <div className="grid grid-cols-7 text-center font-mono text-xs uppercase tracking-widest text-fg-muted/50">
           <div>Lun</div>
           <div>Mar</div>
           <div>Mié</div>
@@ -2012,7 +2228,7 @@ export function CalendarHeatmapView({
                   )
                 })}
 
-                <span className="absolute bottom-1.5 right-2 font-mono text-[9px] text-fg-muted/40 font-bold">
+                <span className="absolute bottom-1.5 right-2 font-mono text-xs text-fg-muted/40 font-bold">
                   {format(dayDate, 'd')}
                 </span>
               </div>
@@ -2028,7 +2244,7 @@ export function CalendarHeatmapView({
                 className="h-2 w-2 rounded-full"
                 style={{ backgroundColor: cat.color_hex }}
               />
-              <span className="font-mono text-[9px] uppercase font-bold text-fg-muted/60">
+              <span className="font-mono text-xs uppercase font-bold text-fg-muted/60">
                 {cat.name}
               </span>
             </div>
@@ -2042,7 +2258,7 @@ export function CalendarHeatmapView({
           <h2 className="font-display text-lg font-bold text-accent uppercase tracking-wide">
             Jornada Escogida
           </h2>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-fg-muted/60 mt-0.5">
+          <p className="font-mono text-xs uppercase tracking-widest text-fg-muted/60 mt-0.5">
             {format(selectedDate, "EEEE d 'de' MMMM", { locale: es })}
           </p>
         </div>
@@ -2050,7 +2266,7 @@ export function CalendarHeatmapView({
         <div className="flex-1 overflow-y-auto space-y-3 pr-1">
           {selectedTasks.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center text-center opacity-40">
-              <span className="text-5xl mb-3">🔮</span>
+              <Sparkles className="mb-3 h-12 w-12" aria-hidden="true" />
               <p className="font-display text-xs uppercase tracking-widest">
                 Escudriña el tablero para ver el destino
               </p>
@@ -2062,9 +2278,9 @@ export function CalendarHeatmapView({
                 <div
                   key={task.id}
                   onClick={() => onOpenTask(task)}
-                  className="cursor-pointer rounded-2xl border border-border bg-black/30 p-3.5 transition-all hover:border-accent"
+                  className="cursor-pointer rounded-2xl border border-border bg-shade/30 p-3.5 transition-all hover:border-accent"
                 >
-                  <p className="font-mono text-[9px] uppercase text-fg-muted/50 mb-1">
+                  <p className="font-mono text-xs uppercase text-fg-muted/50 mb-1">
                     {format(new Date(task.deadline!), 'HH:mm')} HS
                   </p>
                   <h4 className="font-display text-sm font-bold text-fg">
@@ -2072,7 +2288,7 @@ export function CalendarHeatmapView({
                   </h4>
                   {category && (
                     <span
-                      className="mt-2 inline-block rounded px-2 py-0.5 font-mono text-[8px] font-black uppercase"
+                      className="mt-2 inline-block rounded px-2 py-0.5 font-mono text-xs font-black uppercase"
                       style={{
                         backgroundColor: `${category.color_hex}25`,
                         color: category.color_hex,
@@ -2095,6 +2311,7 @@ export function CalendarHeatmapView({
 ### src/features/calendar/components/CalendarPage.tsx
 
 ```tsx
+import { Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { addDays, endOfDay, startOfDay, subDays } from 'date-fns'
 import { useTasksInRange } from '@/features/tasks/hooks'
@@ -2155,7 +2372,7 @@ export function CalendarPage() {
             onClick={() => handleModeChange('heatmap')}
             className={`view-mode-btn ${mode === 'heatmap' ? 'active' : ''}`}
           >
-            🔮 Mapa Astral
+            <Sparkles className="mr-1.5 inline h-4 w-4" aria-hidden="true" /> Mapa Astral
           </button>
         </div>
       </header>
@@ -2226,18 +2443,18 @@ export function CalendarTimelineView({
         <button
           type="button"
           onClick={scrollToToday}
-          className="rounded-full border border-accent/40 bg-accent/10 px-4 py-1.5 font-mono text-[10px] font-black uppercase text-accent transition-all hover:bg-accent hover:text-accent-fg"
+          className="rounded-full border border-accent/40 bg-accent/10 px-4 py-1.5 font-mono text-xs font-black uppercase text-accent transition-all hover:bg-accent hover:text-accent-fg"
         >
           Ir a Hoy
         </button>
 
-        <div className="flex items-center gap-1 rounded-xl border border-border bg-black/40 p-1">
+        <div className="flex items-center gap-1 rounded-xl border border-border bg-shade/40 p-1">
           {([3, 7, 14] as const).map((count) => (
             <button
               key={count}
               type="button"
               onClick={() => setDaysCount(count)}
-              className={`rounded-lg px-3 py-1 font-mono text-[10px] font-bold uppercase transition-all ${
+              className={`rounded-lg px-3 py-1 font-mono text-xs font-bold uppercase transition-all ${
                 daysCount === count
                   ? 'bg-accent text-accent-fg shadow'
                   : 'text-fg-muted hover:text-fg'
@@ -2283,16 +2500,16 @@ export function CalendarTimelineView({
                       ? 'Hoy'
                       : format(dayDate, 'EEEE', { locale: es })}
                   </h3>
-                  <p className="font-mono text-[10px] uppercase tracking-widest text-fg-muted/50">
+                  <p className="font-mono text-xs uppercase tracking-widest text-fg-muted/50">
                     {format(dayDate, 'd MMMM', { locale: es })}
                   </p>
                 </div>
 
                 {/* Medidor de Energía */}
                 <div className="w-28 text-right">
-                  <div className="mb-1 flex justify-between font-mono text-[8px] font-bold uppercase text-fg-muted/60">
+                  <div className="mb-1 flex justify-between font-mono text-xs font-bold uppercase text-fg-muted/60">
                     <span>Energía</span>
-                    <span className={isFatigueHigh ? 'text-red-400 font-black' : ''}>
+                    <span className={isFatigueHigh ? 'font-black text-warn-fg' : ''}>
                       {energyUsage}%
                     </span>
                   </div>
@@ -2300,10 +2517,10 @@ export function CalendarTimelineView({
                     <div
                       className={`h-full transition-all duration-700 ${
                         isFatigueHigh
-                          ? 'bg-red-500'
+                          ? 'bg-warn-dot'
                           : energyUsage > 40
                             ? 'bg-amber-500'
-                            : 'bg-emerald-500'
+                            : 'bg-accent'
                       }`}
                       style={{ width: `${energyUsage}%` }}
                     />
@@ -2313,9 +2530,9 @@ export function CalendarTimelineView({
 
               {/* Aviso de Fatiga */}
               {isFatigueHigh && (
-                <div className="mb-3 flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-2 text-red-400">
+                <div className="mb-3 flex items-center gap-2 rounded-lg border border-warn-border bg-warn-bg p-2 text-warn-fg">
                   <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                  <p className="font-mono text-[9px] font-bold uppercase tracking-tight">
+                  <p className="font-mono text-xs font-bold uppercase tracking-tight">
                     Aviso de Fatiga: Carga de misiones elevada
                   </p>
                 </div>
@@ -2324,7 +2541,7 @@ export function CalendarTimelineView({
               {/* Lista de Misiones del Día */}
               <div className="space-y-2.5">
                 {dayTasks.length === 0 ? (
-                  <p className="font-mono text-[11px] italic text-fg-muted/40">
+                  <p className="font-mono text-xs italic text-fg-muted/40">
                     Sin misiones agendadas para esta fecha.
                   </p>
                 ) : (
@@ -2342,7 +2559,7 @@ export function CalendarTimelineView({
                         }
                       >
                         <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                          <span className="font-mono text-[10px] text-fg-muted/60">
+                          <span className="font-mono text-xs text-fg-muted/60">
                             {format(new Date(task.deadline!), 'HH:mm')}
                           </span>
                           <div className="min-w-0 flex-1">
@@ -2351,7 +2568,7 @@ export function CalendarTimelineView({
                             </h4>
                             {category && (
                               <span
-                                className="inline-block rounded px-1.5 py-0.5 font-mono text-[8px] font-black uppercase"
+                                className="inline-block rounded px-1.5 py-0.5 font-mono text-xs font-black uppercase"
                                 style={{
                                   backgroundColor: `${category.color_hex}25`,
                                   color: category.color_hex,
@@ -2380,13 +2597,18 @@ export function CalendarTimelineView({
 ### src/features/followups/api.ts
 
 ```typescript
+import { closeFollowUpForTask, reopenTask } from '@/features/tasks/api'
 import { supabase } from '@/lib/supabase'
-import type { Database, FollowUp } from '@/types/database.types'
+import type { Database, FollowUp, FollowUpLog } from '@/types/database.types'
 
+// Solo follow-ups sin resolver — usada tanto por la página de Follow-ups
+// como por el sync de notificaciones (no tiene sentido alertar sobre un
+// seguimiento ya resuelto, ver migración 20260727000001).
 export async function fetchFollowUps(): Promise<FollowUp[]> {
   const { data, error } = await supabase
     .from('follow_ups')
     .select('*')
+    .is('resolved_at', null)
     .order('next_reminder_at', { ascending: true })
   if (error) throw error
   return data
@@ -2397,6 +2619,7 @@ export async function fetchFollowUpForTask(taskId: string): Promise<FollowUp | n
     .from('follow_ups')
     .select('*')
     .eq('task_id', taskId)
+    .is('resolved_at', null)
     .maybeSingle()
   if (error) throw error
   return data
@@ -2407,31 +2630,16 @@ export type NewFollowUp = Pick<
   'task_id' | 'stakeholder_name' | 'interval_days' | 'notes'
 >
 
+// Upsert por task_id (unique): si la tarea ya tuvo un seguimiento resuelto, se
+// reactiva conservando su bitácora; last_contacted_at reinicia el reloj del
+// recordatorio (lo recalcula el trigger follow_ups_set_next_reminder).
 export async function createFollowUp(input: NewFollowUp): Promise<FollowUp> {
-  const { data, error } = await supabase.from('follow_ups').insert(input).select().single()
-  if (error) throw error
-  return data
-}
-
-export async function updateFollowUp(
-  id: string,
-  patch: Partial<Pick<Database['public']['Tables']['follow_ups']['Update'], 'stakeholder_name' | 'interval_days' | 'notes'>>,
-): Promise<FollowUp> {
   const { data, error } = await supabase
     .from('follow_ups')
-    .update(patch)
-    .eq('id', id)
-    .select()
-    .single()
-  if (error) throw error
-  return data
-}
-
-export async function registerFollowUpContact(id: string): Promise<FollowUp> {
-  const { data, error } = await supabase
-    .from('follow_ups')
-    .update({ last_contacted_at: new Date().toISOString() })
-    .eq('id', id)
+    .upsert(
+      { ...input, resolved_at: null, last_contacted_at: new Date().toISOString() },
+      { onConflict: 'task_id' },
+    )
     .select()
     .single()
   if (error) throw error
@@ -2442,111 +2650,448 @@ export async function deleteFollowUp(id: string): Promise<void> {
   const { error } = await supabase.from('follow_ups').delete().eq('id', id)
   if (error) throw error
 }
+
+export async function fetchFollowUpLogs(followUpId: string): Promise<FollowUpLog[]> {
+  const { data, error } = await supabase
+    .from('follow_up_logs')
+    .select('*')
+    .eq('follow_up_id', followUpId)
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data
+}
+
+// "Registrar Contacto" (Bitácora de Custodia): deja una entrada en la
+// bitácora y define el próximo aviso corto (+1/+2/+3 días) reutilizando
+// interval_days — el trigger follow_ups_set_next_reminder ya recalcula
+// next_reminder_at a partir de last_contacted_at + interval_days, así que
+// no hace falta tocar ese trigger ni escribir next_reminder_at a mano.
+export async function logFollowUpContact(input: {
+  followUpId: string
+  notes: string
+  nextFollowUpDays: number
+}): Promise<void> {
+  const { error: logError } = await supabase
+    .from('follow_up_logs')
+    .insert({ follow_up_id: input.followUpId, notes: input.notes })
+  if (logError) throw logError
+
+  const { error: updateError } = await supabase
+    .from('follow_ups')
+    .update({ last_contacted_at: new Date().toISOString(), interval_days: input.nextFollowUpDays })
+    .eq('id', input.followUpId)
+  if (updateError) throw updateError
+}
+
+// "Resolver Éxito": libera la misión de vuelta al Grimorio (mismo mecanismo
+// que reopenTask) y marca el follow-up como resuelto (resolved_at) en vez
+// de borrarlo, para conservar su bitácora.
+export async function resolveFollowUp(input: { followUpId: string; taskId: string }): Promise<void> {
+  const { data: task, error: taskError } = await supabase
+    .from('tasks')
+    .select('id, project_id')
+    .eq('id', input.taskId)
+    .single()
+  if (taskError) throw taskError
+
+  await reopenTask(task)
+
+  await closeFollowUpForTask(input.taskId)
+}
+```
+
+### src/features/followups/components/FollowUpCard.tsx
+
+```tsx
+import { useEffect, useState } from 'react'
+import { format, formatDistanceToNow, isPast } from 'date-fns'
+import { es } from 'date-fns/locale'
+import { ChevronRight, Check, Phone, ScrollText } from 'lucide-react'
+import { useFollowUpLogs, useResolveFollowUp } from '@/features/followups/hooks'
+import { LogContactModal } from '@/features/followups/components/LogContactModal'
+import type { FollowUp, Task } from '@/types/database.types'
+
+export function FollowUpCard({
+  followUp,
+  task,
+  onResolvedLocally,
+  isResolvingLocally,
+}: {
+  followUp: FollowUp
+  task: Task
+  onResolvedLocally: (id: string) => void
+  isResolvingLocally: boolean
+}) {
+  const { data: logs } = useFollowUpLogs(followUp.id)
+  const resolveFollowUp = useResolveFollowUp()
+
+  const [modalOpen, setModalOpen] = useState(false)
+  const [bitacoraOpen, setBitacoraOpen] = useState(false)
+  const [confirmingResolve, setConfirmingResolve] = useState(false)
+
+  // La confirmación se descarta sola para no dejar un botón "armado".
+  useEffect(() => {
+    if (!confirmingResolve) return
+    const t = window.setTimeout(() => setConfirmingResolve(false), 4000)
+    return () => window.clearTimeout(t)
+  }, [confirmingResolve])
+
+  const isOverdue = isPast(new Date(followUp.next_reminder_at))
+  const contactCount = logs?.length ?? 0
+
+  return (
+    <>
+      <article
+        className={`follow-up-card flex flex-col gap-5 rounded-2xl p-6 ${
+          isResolvingLocally ? 'animate-success-glow' : ''
+        }`}
+      >
+        <div className="flex items-start justify-between">
+          <div className="min-w-0 pr-4">
+            <h2 className="truncate font-display text-xl font-bold text-fg">{task.title}</h2>
+            <p className="mt-1 font-mono text-xs font-bold uppercase text-rune">
+              <ScrollText className="mr-1 inline h-4 w-4" aria-hidden="true" />Aliado: {followUp.stakeholder_name || 'Desconocido'}
+            </p>
+          </div>
+          <span
+            className={`shrink-0 font-mono text-xs font-bold uppercase ${
+              isOverdue ? 'text-warn-fg' : 'text-fg-muted/60'
+            }`}
+          >
+            {formatDistanceToNow(new Date(followUp.next_reminder_at), { addSuffix: true, locale: es })}
+          </span>
+        </div>
+
+        {/* Medidor de Insistencia */}
+        <div className="flex items-center gap-4 rounded-xl border border-glass/5 bg-shade/20 p-3">
+          <span className="font-mono text-xs uppercase tracking-tighter text-fg-muted/60">
+            Intentos:
+          </span>
+          <div className="flex gap-2">
+            {[1, 2, 3, 4, 5].map((dot) => (
+              <div
+                key={dot}
+                className={`insistence-dot ${
+                  dot <= contactCount ? (dot >= 4 ? 'warning' : 'active') : ''
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Acordeón de Bitácora Histórica */}
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={() => setBitacoraOpen((v) => !v)}
+            className="flex items-center gap-1.5 text-left font-mono text-xs uppercase text-fg-muted/60 transition-all hover:text-fg"
+          >
+            <ChevronRight
+              className={`h-3.5 w-3.5 transition-transform ${bitacoraOpen ? 'rotate-90' : ''}`}
+            />
+            Ver Bitácora Histórica ({logs?.length ?? 0} Entradas)
+          </button>
+
+          <div
+            className={`bitacora-accordion ml-1 mt-1 space-y-2 border-l border-border pl-4 ${
+              bitacoraOpen ? 'open' : ''
+            }`}
+          >
+            {logs?.length === 0 ? (
+              <p className="font-mono text-xs italic text-fg-muted/40">Sin registros previos.</p>
+            ) : (
+              logs?.map((log) => (
+                <div key={log.id} className="text-xs italic text-fg-muted">
+                  <span className="mr-2 font-mono font-bold text-accent">
+                    {format(new Date(log.created_at), 'd MMM').toUpperCase()}
+                  </span>
+                  {log.notes}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Acciones Rápidas */}
+        <footer className="mt-2 flex gap-3">
+          <button
+            type="button"
+            onClick={() => setModalOpen(true)}
+            className="flex-1 rounded-lg bg-rune-deep py-3 font-display text-xs font-black uppercase tracking-widest text-white transition-all hover:brightness-110 active:scale-95"
+          >
+            <Phone className="mr-1.5 inline h-4 w-4" aria-hidden="true" />Registrar Contacto
+          </button>
+          {confirmingResolve ? (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmingResolve(false)
+                  onResolvedLocally(followUp.id)
+                  setTimeout(
+                    () => resolveFollowUp.mutate({ followUpId: followUp.id, taskId: followUp.task_id }),
+                    600,
+                  )
+                }}
+                className="rounded-lg bg-accent px-3 py-3 font-mono text-xs font-black uppercase text-accent-fg"
+              >
+                Resolver sin bitácora
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmingResolve(false)}
+                className="rounded-lg border border-border px-3 py-3 font-mono text-xs font-bold uppercase text-fg-muted"
+              >
+                Cancelar
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirmingResolve(true)}
+              className="rounded-lg border border-glass/10 px-4 py-3 text-lg transition-all hover:bg-accent/20"
+              title="Resolver sin dejar bitácora"
+            >
+              <Check className="h-5 w-5 text-accent" aria-label="Resolver sin dejar bitácora" />
+            </button>
+          )}
+        </footer>
+      </article>
+
+      {modalOpen && (
+        <LogContactModal
+          followUp={followUp}
+          onClose={() => setModalOpen(false)}
+          onResolvedLocally={onResolvedLocally}
+        />
+      )}
+    </>
+  )
+}
 ```
 
 ### src/features/followups/components/FollowUpsPage.tsx
 
 ```tsx
 import { useState } from 'react'
-import { format, isPast } from 'date-fns'
-import { Check } from 'lucide-react'
-import { useFollowUps, useRegisterFollowUpContact } from '@/features/followups/hooks'
-import { useCategories } from '@/features/projects/hooks'
-import { useCompleteTask, useTasksByIds } from '@/features/tasks/hooks'
-import { TaskModal } from '@/features/tasks/components/TaskModal'
-import type { Task } from '@/types/database.types'
+import { isPast } from 'date-fns'
+import { Flame, Shield, Bird } from 'lucide-react'
+import { useActiveFollowUps } from '@/features/followups/hooks'
+import { useTasksByIds } from '@/features/tasks/hooks'
+import { FollowUpCard } from '@/features/followups/components/FollowUpCard'
 
 export function FollowUpsPage() {
-  const { data: followUps, isLoading } = useFollowUps()
-  const { data: categories } = useCategories()
+  const { data: followUps, isLoading } = useActiveFollowUps()
   const { data: tasks } = useTasksByIds(followUps?.map((f) => f.task_id) ?? [])
-  const registerContact = useRegisterFollowUpContact()
-  const completeTask = useCompleteTask()
-  const [editingTask, setEditingTask] = useState<Task | null>(null)
+
+  // Estado local para manejar las animaciones de desaparición: el follow-up
+  // sigue en la lista (para que se vea el destello) hasta que la mutation
+  // real invalida la query y desaparece solo en el próximo fetch.
+  const [resolvingIds, setResolvingIds] = useState<Set<string>>(new Set())
 
   const rows = (followUps ?? [])
     .map((followUp) => ({ followUp, task: tasks?.find((t) => t.id === followUp.task_id) }))
     .filter((row) => row.task && row.task.status !== 'done')
 
+  const overdueCount = rows.filter((r) => isPast(new Date(r.followUp.next_reminder_at))).length
+  const waitingCount = rows.length - overdueCount
+
+  function handleResolvedLocally(id: string) {
+    setResolvingIds((prev) => {
+      const next = new Set(prev)
+      next.add(id)
+      return next
+    })
+  }
+
   return (
-    <div className="mx-auto max-w-2xl p-6">
-      <h1 className="font-display text-lg font-semibold tracking-tight text-fg">
-        Follow-ups activos
-      </h1>
-      <p className="mt-1 text-sm text-fg-muted">Ordenados por próximo recordatorio.</p>
-
-      {isLoading && <p className="mt-4 text-sm text-fg-muted">Cargando…</p>}
-
-      {!isLoading && rows.length === 0 && (
-        <p className="mt-4 text-sm text-fg-muted">
-          No hay follow-ups activos. Enviá una tarea a Follow-up desde su tarjeta en el Kanban o
-          desde su modal.
+    <div className="mx-auto max-w-5xl px-4 py-8 md:px-8">
+      {/* Header Titular y Badges */}
+      <header className="mb-10">
+        <h1 className="mb-2 font-display text-3xl font-black uppercase tracking-widest text-accent md:text-4xl">
+          PACTO DE CUSTODIA — SEGUIMIENTOS
+        </h1>
+        <p className="mb-6 font-mono text-xs italic text-fg-muted/60">
+          Misiones delegadas o dependientes de aliados y emisarios.
         </p>
-      )}
 
-      <ul className="mt-4 flex flex-col gap-2">
-        {rows.map(({ followUp, task }) => {
-          const category = categories?.find((c) => c.id === task!.category_id)
-          const due = isPast(new Date(followUp.next_reminder_at))
-          return (
-            <li
+        <div className="flex flex-wrap gap-4">
+          <div className="flex items-center gap-3 rounded-lg border border-warn-border bg-warn-bg px-4 py-2">
+            <Flame className="h-5 w-5 text-warn-fg" />
+            <span className="font-mono text-xs font-bold uppercase text-warn-fg">
+              {overdueCount} Necesitan Contacto Hoy
+            </span>
+          </div>
+          <div className="flex items-center gap-3 rounded-lg border border-rune/30 bg-rune/10 px-4 py-2">
+            <Shield className="h-5 w-5 text-rune" />
+            <span className="font-mono text-xs font-bold uppercase text-rune">
+              {waitingCount} En Espera Paciente
+            </span>
+          </div>
+        </div>
+      </header>
+
+      {/* Renderizado de Tarjetas (Grid 2 Columnas) */}
+      <main className="grid grid-cols-1 gap-8 md:grid-cols-2">
+        {isLoading ? (
+          <p className="col-span-full py-12 text-center font-mono text-xs text-fg-muted">
+            Desenrollando pergaminos de custodia...
+          </p>
+        ) : rows.length === 0 ? (
+          <div className="col-span-full py-16 text-center opacity-40">
+            <Bird className="mx-auto mb-4 h-14 w-14" aria-hidden="true" />
+            <p className="font-display text-lg uppercase tracking-widest">
+              No hay pactos pendientes de respuesta.
+            </p>
+          </div>
+        ) : (
+          rows.map(({ followUp, task }) => (
+            <FollowUpCard
               key={followUp.id}
-              className={`flex items-center gap-3 rounded-lg border p-3 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md ${
-                due ? 'border-warn-border bg-warn-bg' : 'border-dashed border-fg-muted/40 bg-surface'
-              }`}
-            >
-              <button
-                type="button"
-                onClick={() => setEditingTask(task!)}
-                className="flex-1 text-left"
-              >
-                <p className="flex items-center gap-1.5 text-sm font-medium text-fg">
-                  <span title="En seguimiento">👁️</span> {task!.title}
-                </p>
-                <p className="mt-0.5 flex items-center gap-2 font-mono text-xs text-fg-muted">
-                  {category && (
-                    <span className="inline-flex items-center gap-1">
-                      <span
-                        className="h-1.5 w-1.5 rounded-full"
-                        style={{ backgroundColor: category.color_hex }}
-                      />
-                      {category.name}
-                    </span>
-                  )}
-                  {followUp.stakeholder_name && <span>· {followUp.stakeholder_name}</span>}
-                  <span>· próximo: {format(new Date(followUp.next_reminder_at), 'd MMM')}</span>
-                </p>
-              </button>
-              <button
-                type="button"
-                onClick={() => registerContact.mutate(followUp.id)}
-                className="shrink-0 rounded-md border border-border px-2 py-1 text-xs text-fg-muted transition-all duration-150 hover:border-accent/40 hover:bg-surface-2 hover:text-accent active:scale-95"
-              >
-                Registrar contacto
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  completeTask.mutate({ id: task!.id, project_id: task!.project_id })
-                }
-                title="Completar tarea"
-                className="flex shrink-0 items-center gap-1 rounded-md bg-accent px-2 py-1 text-xs font-medium text-accent-fg transition-all duration-150 hover:shadow-[0_0_14px_rgba(217,169,74,0.45)] active:scale-95"
-              >
-                <Check className="h-3.5 w-3.5" />
-              </button>
-            </li>
-          )
-        })}
-      </ul>
+              followUp={followUp}
+              task={task!}
+              onResolvedLocally={handleResolvedLocally}
+              isResolvingLocally={resolvingIds.has(followUp.id)}
+            />
+          ))
+        )}
+      </main>
+    </div>
+  )
+}
+```
 
-      {editingTask && (
-        <TaskModal
-          task={editingTask}
-          defaultProjectId={editingTask.project_id}
-          defaultKanbanColumnId=""
-          onClose={() => setEditingTask(null)}
-        />
-      )}
+### src/features/followups/components/LogContactModal.tsx
+
+```tsx
+import { useState } from 'react'
+import { X, PartyPopper } from 'lucide-react'
+import { useLogFollowUpContact, useResolveFollowUp } from '@/features/followups/hooks'
+import type { FollowUp } from '@/types/database.types'
+
+export function LogContactModal({
+  followUp,
+  onClose,
+  onResolvedLocally,
+}: {
+  followUp: FollowUp
+  onClose: () => void
+  onResolvedLocally: (id: string) => void
+}) {
+  const logContact = useLogFollowUpContact()
+  const resolve = useResolveFollowUp()
+
+  const [note, setNote] = useState('')
+  const [days, setDays] = useState(2)
+
+  async function handleSaveWait() {
+    if (!note.trim()) return
+    await logContact.mutateAsync({
+      followUpId: followUp.id,
+      notes: note.trim(),
+      nextFollowUpDays: days,
+    })
+    onClose()
+  }
+
+  async function handleResolveSuccess() {
+    if (!note.trim()) return
+    // Guardar la nota final
+    await logContact.mutateAsync({
+      followUpId: followUp.id,
+      notes: `[RESUELTO] ${note.trim()}`,
+      nextFollowUpDays: days,
+    })
+    // Ejecutar animación de tarjeta antes de disparar la mutation real
+    onResolvedLocally(followUp.id)
+    onClose()
+
+    // Llamada real al backend tras la animación
+    setTimeout(() => {
+      resolve.mutate({ followUpId: followUp.id, taskId: followUp.task_id })
+    }, 600)
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-bg/80 p-4 backdrop-blur-md"
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="modal-parchment-log w-full max-w-lg rounded flex flex-col"
+      >
+        <header className="flex items-center justify-between border-b border-parchment-ink/20 p-6">
+          <h3 className="font-display text-2xl uppercase tracking-tighter text-parchment-ink">
+            Bitácora de Encuentro
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-xl text-parchment-ink/60 transition-transform hover:scale-110 hover:text-parchment-ink"
+          >
+            <X className="h-6 w-6" />
+          </button>
+        </header>
+
+        <div className="p-8 space-y-6">
+          <div className="space-y-2">
+            <label className="font-mono text-xs font-bold uppercase text-parchment-ink/60">
+              Resumen del contacto
+            </label>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="¿Qué respuesta recibiste del aliado/cliente?"
+              className="h-32 w-full resize-none rounded border border-parchment-ink/20 bg-shade/5 p-4 text-sm text-parchment-ink outline-none focus:border-parchment-ink/50"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="font-mono text-xs font-bold uppercase text-parchment-ink/60">
+              Próximo aviso (Foco Corto)
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {[1, 2, 3].map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setDays(d)}
+                  className={`rounded border py-4 font-mono text-xs font-bold uppercase transition-all ${
+                    days === d
+                      ? 'border-rune-deep bg-rune-deep text-white shadow-md'
+                      : 'border-parchment-ink/20 bg-shade/5 text-parchment-ink/70 hover:bg-shade/10'
+                  }`}
+                >
+                  +{d} DÍA{d > 1 ? 'S' : ''}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 font-mono text-xs italic text-parchment-ink/50">
+              * El tiempo corto evita que la misión caiga en el olvido.
+            </p>
+          </div>
+        </div>
+
+        <footer className="flex flex-col gap-4 bg-shade/5 p-6 sm:flex-row">
+          <button
+            type="button"
+            disabled={!note.trim() || logContact.isPending}
+            onClick={handleSaveWait}
+            className="flex-1 bg-parchment-ink py-4 font-display text-sm font-black uppercase tracking-widest text-parchment transition-all hover:brightness-125 disabled:opacity-50"
+          >
+            Sigue en Espera ⏳
+          </button>
+          <button
+            type="button"
+            disabled={!note.trim() || resolve.isPending}
+            onClick={handleResolveSuccess}
+            className="flex-1 border-2 border-parchment-ink py-4 font-display text-sm font-black uppercase tracking-widest text-parchment-ink transition-all hover:bg-shade/5 disabled:opacity-50"
+          >
+            Resolver Éxito <PartyPopper className="ml-1.5 inline h-4 w-4" aria-hidden="true" />
+          </button>
+        </footer>
+      </div>
     </div>
   )
 }
@@ -2560,14 +3105,22 @@ import {
   createFollowUp,
   deleteFollowUp,
   fetchFollowUpForTask,
+  fetchFollowUpLogs,
   fetchFollowUps,
-  registerFollowUpContact,
-  updateFollowUp,
+  logFollowUpContact,
+  resolveFollowUp,
 } from '@/features/followups/api'
 import { sendTaskToFollowUp } from '@/features/tasks/api'
 
-export function useFollowUps() {
+export function useActiveFollowUps() {
   return useQuery({ queryKey: ['follow-ups'], queryFn: fetchFollowUps })
+}
+
+export function useFollowUpLogs(followUpId: string) {
+  return useQuery({
+    queryKey: ['follow-ups', 'logs', followUpId],
+    queryFn: () => fetchFollowUpLogs(followUpId),
+  })
 }
 
 export function useFollowUpForTask(taskId: string | null) {
@@ -2581,25 +3134,6 @@ export function useFollowUpForTask(taskId: string | null) {
 function useInvalidateFollowUps() {
   const queryClient = useQueryClient()
   return () => queryClient.invalidateQueries({ queryKey: ['follow-ups'] })
-}
-
-export function useCreateFollowUp() {
-  const invalidate = useInvalidateFollowUps()
-  return useMutation({ mutationFn: createFollowUp, onSuccess: invalidate })
-}
-
-export function useUpdateFollowUp() {
-  const invalidate = useInvalidateFollowUps()
-  return useMutation({
-    mutationFn: ({ id, patch }: { id: string; patch: Parameters<typeof updateFollowUp>[1] }) =>
-      updateFollowUp(id, patch),
-    onSuccess: invalidate,
-  })
-}
-
-export function useRegisterFollowUpContact() {
-  const invalidate = useInvalidateFollowUps()
-  return useMutation({ mutationFn: registerFollowUpContact, onSuccess: invalidate })
 }
 
 export function useDeleteFollowUp() {
@@ -2625,6 +3159,31 @@ export function useSendToFollowUp() {
       })
       await sendTaskToFollowUp(input.taskId)
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['follow-ups'] })
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+    },
+  })
+}
+
+// "Registrar Contacto" — Pacto de Custodia (Fase 8, Paso 10).
+export function useLogFollowUpContact() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: logFollowUpContact,
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['follow-ups'] })
+      queryClient.invalidateQueries({ queryKey: ['follow-ups', 'logs', variables.followUpId] })
+    },
+  })
+}
+
+// "Resolver Éxito" — libera la tarea al Grimorio y marca el follow-up
+// como resuelto (no lo borra, conserva su bitácora).
+export function useResolveFollowUp() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: resolveFollowUp,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['follow-ups'] })
       queryClient.invalidateQueries({ queryKey: ['tasks'] })
@@ -2718,6 +3277,7 @@ export async function fetchUnlockedLoot(): Promise<Loot[]> {
 ### src/features/gamification/components/AchievementWatcher.tsx
 
 ```tsx
+import { Gem, Swords } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import {
   useCategoryXp,
@@ -2778,7 +3338,7 @@ export function AchievementWatcher() {
               kicker: `Nuevo rango — ${category.name}`,
               title: rank.rank_name,
               description: `Tu clase ${category.class_name} evolucionó en ${category.name}.`,
-              icon: '⚔',
+              icon: Swords,
             })
           }
         }
@@ -2796,7 +3356,7 @@ export function AchievementWatcher() {
               kicker: 'Loot desbloqueado',
               title: def.name,
               description: def.description,
-              icon: '🜂',
+              icon: Gem,
             })
           }
         }
@@ -2828,7 +3388,7 @@ export function AchievementWatcher() {
 
 ```tsx
 import { useState } from 'react'
-import { X, Check } from 'lucide-react'
+import { X, Check, ScrollText, Sparkles } from 'lucide-react'
 import { useTasksByCategory, useCompleteTask } from '@/features/tasks/hooks'
 import type { Category, ClassRank, UserCategoryXp } from '@/types/database.types'
 
@@ -2873,30 +3433,30 @@ export function ClassDetailModal({
         className="modal-parchment-scroll relative w-full max-w-lg rounded-xl"
       >
         {/* Encabezado del Pergamino */}
-        <div className="border-b border-[#2d241e]/20 p-6 text-center">
+        <div className="border-b border-parchment-ink/20 p-6 text-center">
           <button
             type="button"
             onClick={onClose}
-            className="absolute right-4 top-4 text-xl text-[#2d241e]/60 transition-opacity hover:opacity-100"
+            className="absolute right-4 top-4 text-xl text-parchment-ink/60 transition-opacity hover:opacity-100"
           >
             <X className="h-6 w-6" />
           </button>
-          <div className="mb-2 text-5xl">🔮</div>
-          <h2 className="font-display text-3xl font-black uppercase tracking-tight text-[#2d241e]">
+          <Sparkles className="mx-auto mb-2 h-12 w-12 text-parchment-ink" aria-hidden="true" />
+          <h2 className="font-display text-3xl font-black uppercase tracking-tight text-parchment-ink">
             {rank?.rank_name ?? category.class_name}
           </h2>
-          <p className="font-mono text-xs font-bold uppercase tracking-widest text-[#2d241e]/60">
+          <p className="font-mono text-xs font-bold uppercase tracking-widest text-parchment-ink/60">
             Clase: {category.name} · Nivel {level}
           </p>
         </div>
 
         {/* Pestañas Internas */}
-        <div className="flex border-b border-[#2d241e]/20 font-mono text-[10px] font-black uppercase tracking-widest">
+        <div className="flex border-b border-parchment-ink/20 font-mono text-xs font-black uppercase tracking-widest">
           <button
             type="button"
             onClick={() => setActiveTab('active')}
             className={`flex-1 py-3 transition-colors ${
-              activeTab === 'active' ? 'bg-[#2d241e]/10 text-[#2d241e]' : 'text-[#2d241e]/40'
+              activeTab === 'active' ? 'bg-parchment-ink/10 text-parchment-ink' : 'text-parchment-ink/40'
             }`}
           >
             Misiones Activas ({activeTasks.length})
@@ -2905,7 +3465,7 @@ export function ClassDetailModal({
             type="button"
             onClick={() => setActiveTab('history')}
             className={`flex-1 py-3 transition-colors ${
-              activeTab === 'history' ? 'bg-[#2d241e]/10 text-[#2d241e]' : 'text-[#2d241e]/40'
+              activeTab === 'history' ? 'bg-parchment-ink/10 text-parchment-ink' : 'text-parchment-ink/40'
             }`}
           >
             Victorias ({historyTasks.length})
@@ -2916,15 +3476,15 @@ export function ClassDetailModal({
         <div className="p-6 space-y-6">
           {/* Sección de XP */}
           <div className="space-y-1.5">
-            <div className="flex justify-between font-mono text-[10px] font-bold uppercase text-[#2d241e]">
+            <div className="flex justify-between font-mono text-xs font-bold uppercase text-parchment-ink">
               <span>Experiencia de Clase</span>
               <span>
                 {xpCurrent} / {xpMax} XP
               </span>
             </div>
-            <div className="h-3.5 w-full overflow-hidden rounded-full border border-[#2d241e]/20 bg-[#2d241e]/10">
+            <div className="h-3.5 w-full overflow-hidden rounded-full border border-parchment-ink/20 bg-parchment-ink/10">
               <div
-                className={`h-full bg-[#2d241e] transition-all ${flashing ? 'xp-flash-anim' : ''}`}
+                className={`h-full bg-parchment-ink transition-all ${flashing ? 'xp-flash-anim' : ''}`}
                 style={{ width: `${xpPercent}%` }}
               />
             </div>
@@ -2934,23 +3494,23 @@ export function ClassDetailModal({
           <div className="max-h-60 overflow-y-auto space-y-2.5 pr-1">
             {activeTab === 'active' ? (
               activeTasks.length === 0 ? (
-                <p className="font-mono text-xs text-[#2d241e]/50 italic">Sin misiones pendientes.</p>
+                <p className="font-mono text-xs text-parchment-ink/50 italic">Sin misiones pendientes.</p>
               ) : (
                 activeTasks.map((t) => (
                   <div
                     key={t.id}
-                    className="flex items-center justify-between rounded-lg border border-[#2d241e]/10 bg-white/50 p-3.5"
+                    className="flex items-center justify-between rounded-lg border border-parchment-ink/10 bg-glass/50 p-3.5"
                   >
                     <div>
-                      <p className="font-display text-sm font-bold text-[#2d241e]">{t.title}</p>
-                      <p className="font-mono text-[9px] uppercase text-[#2d241e]/60">
+                      <p className="font-display text-sm font-bold text-parchment-ink">{t.title}</p>
+                      <p className="font-mono text-xs uppercase text-parchment-ink/60">
                         RECOMPENSA: +{t.xp_reward || 10} XP
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={() => handleComplete(t.id, t.project_id)}
-                      className="rounded bg-[#2d241e] p-2 text-xs font-black text-[#f4e4bc] transition-transform active:scale-95"
+                      className="rounded bg-parchment-ink p-2 text-xs font-black text-parchment transition-transform active:scale-95"
                     >
                       <Check className="h-4 w-4" />
                     </button>
@@ -2958,20 +3518,20 @@ export function ClassDetailModal({
                 ))
               )
             ) : historyTasks.length === 0 ? (
-              <p className="font-mono text-xs text-[#2d241e]/50 italic">Ninguna victoria aún.</p>
+              <p className="font-mono text-xs text-parchment-ink/50 italic">Ninguna victoria aún.</p>
             ) : (
               historyTasks.map((t) => (
                 <div
                   key={t.id}
-                  className="flex items-center justify-between rounded-lg border border-[#2d241e]/10 bg-white/30 p-3.5 opacity-70"
+                  className="flex items-center justify-between rounded-lg border border-parchment-ink/10 bg-glass/30 p-3.5 opacity-70"
                 >
                   <div>
-                    <p className="font-display text-sm font-bold text-[#2d241e] line-through">{t.title}</p>
-                    <p className="font-mono text-[9px] uppercase text-[#2d241e]/60">
+                    <p className="font-display text-sm font-bold text-parchment-ink line-through">{t.title}</p>
+                    <p className="font-mono text-xs uppercase text-parchment-ink/60">
                       RECIBIDO +{t.xp_reward || 10} XP
                     </p>
                   </div>
-                  <span className="font-mono text-xs">📜</span>
+                  <ScrollText className="h-4 w-4" aria-hidden="true" />
                 </div>
               ))
             )}
@@ -3016,13 +3576,13 @@ export function LootShowcase() {
             key={loot.id}
             className={`flex flex-col items-center gap-1 rounded-lg border p-3 text-center transition-all duration-200 ${
               unlock
-                ? 'border-accent/40 bg-accent/5 shadow-[0_0_16px_rgba(217,169,74,0.25)] hover:-translate-y-0.5 hover:shadow-[0_0_24px_rgba(217,169,74,0.4)]'
+                ? 'border-accent/40 bg-accent/5 shadow-[0_0_16px_rgb(var(--gold-rgb)/0.25)] hover:-translate-y-0.5 hover:shadow-[0_0_24px_rgb(var(--accent-rgb)/0.4)]'
                 : 'border-dashed border-border opacity-50'
             }`}
           >
-            <Icon className={`h-6 w-6 ${unlock ? 'text-accent drop-shadow-[0_0_4px_rgba(217,169,74,0.5)]' : 'text-fg-muted/60'}`} />
+            <Icon className={`h-6 w-6 ${unlock ? 'text-gold drop-shadow-[0_0_4px_rgb(var(--gold-rgb)/0.5)]' : 'text-fg-muted/60'}`} />
             <p className="text-xs font-medium text-fg">{loot.name}</p>
-            <p className="text-[11px] text-fg-muted">{loot.description}</p>
+            <p className="text-xs text-fg-muted">{loot.description}</p>
           </div>
         )
       })}
@@ -3035,7 +3595,7 @@ export function LootShowcase() {
 
 ```tsx
 import { useState } from 'react'
-import { Flame, Shield } from 'lucide-react'
+import { Flame, Shield, Check, Sparkles } from 'lucide-react'
 import { useCategories, useProjects } from '@/features/projects/hooks'
 import {
   useCategoryXp,
@@ -3074,7 +3634,7 @@ export function ProgressPage() {
       {/* Header Titular */}
       <header className="mb-10 flex items-end justify-between border-b border-border pb-6">
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent/70">
+          <p className="font-mono text-xs uppercase tracking-[0.3em] text-accent/70">
             Estadísticas de Héroe
           </p>
           <h1 className="font-display text-3xl font-black uppercase tracking-widest text-fg md:text-4xl">
@@ -3082,7 +3642,7 @@ export function ProgressPage() {
           </h1>
         </div>
         <div className="text-right">
-          <span className="block font-mono text-[10px] uppercase text-fg-muted">Nivel Global</span>
+          <span className="block font-mono text-xs uppercase text-fg-muted">Nivel Global</span>
           <span className="font-display text-3xl font-black text-accent">{globalLevel}</span>
         </div>
       </header>
@@ -3100,17 +3660,17 @@ export function ProgressPage() {
                   <h2 className="font-display text-2xl font-bold text-accent">
                     {streak?.current_streak_days ?? 0} DÍAS
                   </h2>
-                  <p className="font-mono text-[10px] uppercase text-fg-muted">
+                  <p className="font-mono text-xs uppercase text-fg-muted">
                     Racha de Fuego Activa
                   </p>
                 </div>
               </div>
-              <div className="rounded-xl border border-border bg-black/40 px-4 py-2 text-center">
-                <span className="flex items-center gap-1 font-mono text-base font-bold text-sky-400">
-                  <Shield className="h-4 w-4 fill-sky-400" />
+              <div className="rounded-xl border border-border bg-shade/40 px-4 py-2 text-center">
+                <span className="flex items-center gap-1 font-mono text-base font-bold text-rune">
+                  <Shield className="h-4 w-4 fill-rune" />
                   {streak?.shields_available ?? 0}
                 </span>
-                <p className="font-mono text-[8px] uppercase text-fg-muted/60">Escudos</p>
+                <p className="font-mono text-xs uppercase text-fg-muted/60">Escudos</p>
               </div>
             </div>
           </section>
@@ -3125,15 +3685,19 @@ export function ProgressPage() {
               {todayQuests?.map((q) => (
                 <div
                   key={q.id}
-                  className="flex items-center justify-between rounded-xl border border-border bg-black/30 p-3"
+                  className="flex items-center justify-between rounded-xl border border-border bg-shade/30 p-3"
                 >
                   <span className="font-display text-xs text-fg">{QUEST_TITLES[q.type]}</span>
                   <span
-                    className={`font-mono text-[10px] font-bold ${
-                      q.completed ? 'text-emerald-400' : 'text-accent animate-pulse'
+                    className={`font-mono text-xs font-bold ${
+                      q.completed ? 'text-accent' : 'text-accent animate-pulse'
                     }`}
                   >
-                    {q.completed ? '✓ COMPLETO' : 'PENDIENTE'}
+                    {q.completed ? (
+                      <span className="inline-flex items-center gap-1"><Check className="h-3.5 w-3.5" aria-hidden="true" /> COMPLETO</span>
+                    ) : (
+                      'PENDIENTE'
+                    )}
                   </span>
                 </div>
               ))}
@@ -3173,14 +3737,14 @@ export function ProgressPage() {
                   onClick={() => setSelectedCategory(cat)}
                   className="card-stone-bg card-rune-interactive cursor-pointer rounded-2xl p-4 transition-all"
                 >
-                  <span className="mb-2 block text-2xl">🔮</span>
+                  <Sparkles className="mb-2 h-6 w-6" aria-hidden="true" />
                   <h4 className="truncate font-display text-xs font-bold uppercase tracking-widest text-fg">
                     {rank?.rank_name ?? cat.class_name}
                   </h4>
-                  <p className="font-mono text-[9px] uppercase text-fg-muted/60 mb-3">
+                  <p className="font-mono text-xs uppercase text-fg-muted/60 mb-3">
                     Nv. {level} · {cat.name}
                   </p>
-                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-black/40">
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-shade/40">
                     <div
                       className="h-full transition-all duration-500"
                       style={{ width: `${percent}%`, backgroundColor: cat.color_hex }}
@@ -3324,7 +3888,7 @@ export function useClearTodayPriority() {
 import { formatDistanceToNow, isPast, isToday } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useNavigate } from 'react-router-dom'
-import { AlertTriangle, Flame, Sparkles, Star } from 'lucide-react'
+import { AlertTriangle, Castle, Check, Circle, Flame, Sparkles, Star, Trophy, Zap } from 'lucide-react'
 import {
   useStreak,
   useTodayQuests,
@@ -3357,7 +3921,7 @@ export function InboxTopBar({ onOpenTask }: { onOpenTask: (task: Task) => void }
     <div className="mb-8 flex flex-col gap-3">
       {/* Grid de Métricas Tácticas */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <div className="flex items-center justify-between rounded-xl border border-border bg-black/30 p-3">
+        <div className="flex items-center justify-between rounded-xl border border-border bg-shade/30 p-3">
           <span className="font-mono text-xs font-semibold uppercase tracking-tight text-fg-muted/60">Racha</span>
           <span className="flex items-center gap-1 font-display text-sm font-bold text-accent">
             <Flame className="h-4 w-4 animate-bounce text-accent" />
@@ -3365,30 +3929,36 @@ export function InboxTopBar({ onOpenTask }: { onOpenTask: (task: Task) => void }
           </span>
         </div>
 
-        <div className="flex items-center justify-between rounded-xl border border-border bg-black/30 p-3">
+        <div className="flex items-center justify-between rounded-xl border border-border bg-shade/30 p-3">
           <span className="font-mono text-xs font-semibold uppercase tracking-tight text-fg-muted/60">Progreso</span>
-          <span className="flex items-center gap-1 font-mono text-xs font-bold text-sky-400">
+          <span className="flex items-center gap-1 font-mono text-xs font-bold text-rune">
             <Sparkles className="h-3.5 w-3.5" />
             +{xpToday ?? 0} XP
           </span>
         </div>
 
-        <div className="flex items-center justify-between rounded-xl border border-border bg-black/30 p-3">
+        <div className="flex items-center justify-between rounded-xl border border-border bg-shade/30 p-3">
           <span className="font-mono text-xs font-semibold uppercase tracking-tight text-fg-muted/60">Triage</span>
-          <span className={`font-mono text-xs font-bold ${triageDone ? 'text-emerald-400' : 'text-fg-muted/50'}`}>
-            {triageDone ? '✓ COMPLETO' : '○ PENDIENTE'}
+          <span className={`font-mono text-xs font-bold ${triageDone ? 'text-accent' : 'text-fg-muted/50'}`}>
+            {triageDone ? (
+              <span className="inline-flex items-center gap-1"><Check className="h-3.5 w-3.5" aria-hidden="true" /> COMPLETO</span>
+            ) : (
+              <span className="inline-flex items-center gap-1"><Circle className="h-3.5 w-3.5" aria-hidden="true" /> PENDIENTE</span>
+            )}
           </span>
         </div>
 
         <button
           type="button"
-          onClick={() => navigate('/kanban')}
-          className="flex items-center justify-between rounded-xl border border-orange-500/30 bg-orange-500/10 p-3 transition-colors hover:bg-orange-500/20"
+          onClick={() => navigate(priorityTask && priorityTask.status !== 'done' ? '/kanban' : '/')}
+          className="flex items-center justify-between rounded-xl border border-gold/30 bg-gold/10 p-3 transition-colors hover:bg-gold/20"
         >
-          <span className="flex items-center gap-1 font-mono text-xs font-bold uppercase text-orange-400">
-            <Star className="h-3.5 w-3.5 fill-orange-400" /> Prioridad
+          <span className="flex items-center gap-1 font-mono text-xs font-bold uppercase text-gold">
+            <Star className="h-3.5 w-3.5 fill-gold" /> Prioridad
           </span>
-          <span className="font-mono text-[10px] font-bold underline text-fg-muted/80">VER GRIMORIO</span>
+          <span className="font-mono text-xs font-bold text-fg-muted/80">
+            {priorityTask && priorityTask.status !== 'done' ? 'DEFINIDA' : priorityTask ? 'CUMPLIDA' : 'ELEGIR EN COMBATE'}
+          </span>
         </button>
       </div>
 
@@ -3405,7 +3975,7 @@ export function InboxTopBar({ onOpenTask }: { onOpenTask: (task: Task) => void }
             {overdueCount > 0 && dueTodayCount > 0 && <span>·</span>}
             {dueTodayCount > 0 && <span>{dueTodayCount} vencen hoy</span>}
           </span>
-          <span className="font-mono text-[10px] font-bold underline">RESOLVER EN GRIMORIO →</span>
+          <span className="font-mono text-xs font-bold underline">RESOLVER EN GRIMORIO →</span>
         </button>
       )}
 
@@ -3432,7 +4002,7 @@ export function InboxEmptyState({ onOpenTask }: { onOpenTask: (task: Task) => vo
 
   return (
     <section className="rounded-3xl border-2 border-dashed border-border p-8 text-center bg-surface/20">
-      <div className="mb-4 text-5xl">🏰</div>
+      <Castle className="mx-auto mb-4 h-14 w-14 text-accent" aria-hidden="true" />
       <h2 className="mb-1 font-display text-xl font-bold uppercase tracking-wide text-accent">
         ¡Inbox limpio y maza lista para la batalla!
       </h2>
@@ -3444,13 +4014,14 @@ export function InboxEmptyState({ onOpenTask }: { onOpenTask: (task: Task) => vo
         {/* Última Victoria */}
         {lastTask && lastTask.completed_at && (
           <div className="rounded-2xl border border-border bg-surface p-4">
-            <span className="mb-2 block font-mono text-[10px] uppercase text-fg-muted/60">
-              Última Victoria 🏆
+            <span className="mb-2 block font-mono text-xs uppercase text-fg-muted/60">
+              <Trophy className="mr-1 inline h-3.5 w-3.5 text-gold" aria-hidden="true" />
+              Última Victoria
             </span>
             <p className="mb-1 truncate font-display text-sm font-bold text-fg">
               {lastTask.title}
             </p>
-            <p className="font-mono text-[10px] text-emerald-400">
+            <p className="font-mono text-xs text-accent">
               COMPLETADO {formatDistanceToNow(new Date(lastTask.completed_at), { addSuffix: true, locale: es }).toUpperCase()}
             </p>
           </div>
@@ -3461,15 +4032,16 @@ export function InboxEmptyState({ onOpenTask }: { onOpenTask: (task: Task) => vo
           <button
             type="button"
             onClick={() => onOpenTask(quickWin)}
-            className="group rounded-2xl border border-border bg-surface p-4 text-left transition-all hover:border-sky-400"
+            className="group rounded-2xl border border-border bg-surface p-4 text-left transition-all hover:border-rune"
           >
-            <span className="mb-2 block font-mono text-[10px] uppercase text-sky-400">
-              Quick Win ⚡
+            <span className="mb-2 block font-mono text-xs uppercase text-rune">
+              <Zap className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />
+              Quick Win
             </span>
-            <p className="mb-1 truncate font-display text-sm font-bold text-fg group-hover:text-sky-300">
+            <p className="mb-1 truncate font-display text-sm font-bold text-fg group-hover:text-rune">
               {quickWin.title}
             </p>
-            <p className="font-mono text-[10px] text-fg-muted/60">
+            <p className="font-mono text-xs text-fg-muted/60">
               GANA +10 XP RÁPIDO
             </p>
           </button>
@@ -3485,8 +4057,8 @@ export function InboxEmptyState({ onOpenTask }: { onOpenTask: (task: Task) => vo
 ```tsx
 import { useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { Mic, Square, Trash2, WifiOff } from 'lucide-react'
-import { useCaptureInboxTask, useDeleteTask, useInboxTasks } from '@/features/tasks/hooks'
+import { Mic, ScrollText, Square, Trash2, WifiOff } from 'lucide-react'
+import { useCaptureInboxTask, useDeleteTask, useInboxTasks, useUpdateTask } from '@/features/tasks/hooks'
 import { useOnlineStatus } from '@/utils/useOnlineStatus'
 import { useSpeechDictation } from '@/utils/useSpeechDictation'
 import { InboxEmptyState, InboxTopBar } from '@/features/inbox/components/InboxDashboard'
@@ -3499,6 +4071,9 @@ export function InboxPage() {
   const { data: items, isLoading } = useInboxTasks()
   const captureTask = useCaptureInboxTask()
   const deleteTask = useDeleteTask()
+  const updateTask = useUpdateTask()
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [draft, setDraft] = useState('')
   const online = useOnlineStatus()
   const [editingTask, setEditingTask] = useState<Task | null>(null)
 
@@ -3517,6 +4092,18 @@ export function InboxPage() {
         inputRef.current?.focus()
       },
     })
+  }
+
+  function startEdit(item: Task) {
+    if (item.id.startsWith('optimistic-')) return
+    setEditingId(item.id)
+    setDraft(item.title)
+  }
+
+  function saveEdit(item: Task) {
+    const next = draft.trim()
+    setEditingId(null)
+    if (next && next !== item.title) updateTask.mutate({ id: item.id, patch: { title: next } })
   }
 
   return (
@@ -3559,7 +4146,7 @@ export function InboxPage() {
                 className={`flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-90 ${
                   dictation.listening
                     ? 'pulse-recording bg-red-500/20 text-red-400'
-                    : 'bg-white/5 text-fg-muted hover:bg-white/10 hover:text-fg'
+                    : 'bg-glass/5 text-fg-muted hover:bg-glass/10 hover:text-fg'
                 }`}
               >
                 {dictation.listening ? <Square className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
@@ -3577,12 +4164,12 @@ export function InboxPage() {
         </form>
 
         <div className="mt-2.5 flex justify-between px-3">
-          <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-fg-muted/50">
-            <span className={`h-1.5 w-1.5 rounded-full ${online ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+          <span className="flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-fg-muted/50">
+            <span className={`h-1.5 w-1.5 rounded-full ${online ? 'bg-accent' : 'bg-amber-500'}`} />
             {online ? 'Conexión Estable' : 'Modo Offline Resiliente'}
           </span>
           {!online && (
-            <span className="font-mono text-[10px] uppercase tracking-widest text-amber-400">
+            <span className="font-mono text-xs uppercase tracking-widest text-amber-400">
               <WifiOff className="mr-1 inline h-3 w-3" /> Guarda localmente
             </span>
           )}
@@ -3605,12 +4192,32 @@ export function InboxPage() {
                 className="inbox-item-card group flex items-center justify-between rounded-xl p-4 transition-all hover:border-accent"
               >
                 <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                  <span className="text-lg opacity-40 transition-opacity group-hover:opacity-100 group-hover:text-accent">
-                    📜
-                  </span>
-                  <p className="truncate font-medium text-fg">{item.title}</p>
+                  <ScrollText className="h-5 w-5 shrink-0 opacity-40 transition-opacity group-hover:text-accent group-hover:opacity-100" aria-hidden="true" />
+                  {editingId === item.id ? (
+                    <input
+                      autoFocus
+                      value={draft}
+                      onChange={(e) => setDraft(e.target.value)}
+                      onBlur={() => saveEdit(item)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') saveEdit(item)
+                        if (e.key === 'Escape') setEditingId(null)
+                      }}
+                      aria-label="Editar captura"
+                      className="input-parchment min-w-0 flex-1 rounded-lg px-3 py-2 text-fg"
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => startEdit(item)}
+                      title="Tocar para corregir"
+                      className="min-w-0 flex-1 truncate text-left font-medium text-fg"
+                    >
+                      {item.title}
+                    </button>
+                  )}
                   {item.id.startsWith('optimistic-') && (
-                    <span className="font-mono text-[10px] text-fg-muted/50">
+                    <span className="font-mono text-xs text-fg-muted/50">
                       (sincronizando...)
                     </span>
                   )}
@@ -3620,7 +4227,7 @@ export function InboxPage() {
                   type="button"
                   onClick={() => deleteTask.mutate(item.id)}
                   aria-label="Descartar captura"
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-fg-muted/40 transition-all hover:bg-red-500/20 hover:text-red-400 opacity-0 group-hover:opacity-100"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-fg-muted transition-all hover:bg-red-500/20 hover:text-red-400"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -3642,6 +4249,103 @@ export function InboxPage() {
           onClose={() => setEditingTask(null)}
         />
       )}
+    </div>
+  )
+}
+```
+
+### src/features/inbox/components/QuickCaptureFab.tsx
+
+```tsx
+import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useLocation } from 'react-router-dom'
+import { Plus, X } from 'lucide-react'
+import { useCaptureInboxTask } from '@/features/tasks/hooks'
+
+// Captura de fricción cero desde cualquier pantalla (spec 4.1 / sección 6).
+// Queda abierto tras capturar para soltar varias ideas seguidas.
+export function QuickCaptureFab() {
+  const { pathname } = useLocation()
+  const [open, setOpen] = useState(false)
+  const [title, setTitle] = useState('')
+  const [captured, setCaptured] = useState(0)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const capture = useCaptureInboxTask()
+
+  useEffect(() => {
+    if (open) inputRef.current?.focus()
+    else setCaptured(0)
+  }, [open])
+
+  useEffect(() => {
+    if (!open) return
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open])
+
+  // En el Inbox ya hay una caja de captura permanente.
+  if (pathname === '/inbox') return null
+
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    const trimmed = title.trim()
+    if (!trimmed) return
+    capture.mutate(trimmed)
+    setTitle('')
+    setCaptured((n) => n + 1)
+    inputRef.current?.focus()
+  }
+
+  return (
+    <div
+      className="fixed right-4 z-40 flex flex-col items-end gap-3 bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] md:bottom-4"
+    >
+      {open && (
+        <form
+          onSubmit={handleSubmit}
+          className="modal-panel panel-rune w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-border bg-surface p-3"
+        >
+          <label htmlFor="quick-capture" className="mb-2 block font-mono text-xs uppercase tracking-widest text-fg-muted">
+            Captura rápida
+          </label>
+          <div className="flex gap-2">
+            <input
+              id="quick-capture"
+              ref={inputRef}
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="¿Qué se te ocurrió?"
+              className="input-parchment min-w-0 flex-1 rounded-xl px-3 py-3 text-base text-fg"
+            />
+            <button
+              type="submit"
+              disabled={!title.trim()}
+              className="btn-prime rounded-xl px-4 font-mono text-xs font-black uppercase tracking-widest disabled:opacity-50"
+            >
+              Guardar
+            </button>
+          </div>
+          <p className="mt-2 font-mono text-xs text-fg-muted">
+            {captured > 0
+              ? `${captured} capturada${captured > 1 ? 's' : ''} · se ordenan luego en Estrategia`
+              : 'Solo escribe. Categoría y fecha se definen después.'}
+          </p>
+        </form>
+      )}
+
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-label={open ? 'Cerrar captura rápida' : 'Captura rápida'}
+        aria-expanded={open}
+        className="btn-prime flex h-14 w-14 items-center justify-center rounded-full shadow-2xl"
+      >
+        {open ? <X className="h-6 w-6" /> : <Plus className="h-7 w-7" />}
+      </button>
     </div>
   )
 }
@@ -3670,52 +4374,19 @@ export async function fetchFirstColumnId(projectId: string | null): Promise<stri
   }
   return first.id
 }
-
-export async function createColumn(input: {
-  projectId: string | null
-  name: string
-  position: number
-}): Promise<KanbanColumn> {
-  const { data, error } = await supabase
-    .from('kanban_columns')
-    .insert({ project_id: input.projectId, name: input.name, position: input.position })
-    .select()
-    .single()
-  if (error) throw error
-  return data
-}
-
-export async function renameColumn(id: string, name: string): Promise<KanbanColumn> {
-  const { data, error } = await supabase
-    .from('kanban_columns')
-    .update({ name })
-    .eq('id', id)
-    .select()
-    .single()
-  if (error) throw error
-  return data
-}
-
-export async function updateColumnPosition(id: string, position: number): Promise<void> {
-  const { error } = await supabase.from('kanban_columns').update({ position }).eq('id', id)
-  if (error) throw error
-}
-
-export async function deleteColumn(id: string): Promise<void> {
-  const { error } = await supabase.from('kanban_columns').delete().eq('id', id)
-  if (error) throw error
-}
 ```
 
 ### src/features/kanban/components/GrimorioAccordionView.tsx
 
 ```tsx
 import { useState } from 'react'
-import { ChevronDown, Search } from 'lucide-react'
+import { ChevronDown, Search, Check, Landmark, ScrollText, Swords } from 'lucide-react'
 import { format, differenceInDays } from 'date-fns'
 import { useCategories } from '@/features/projects/hooks'
 import { useCompleteTask } from '@/features/tasks/hooks'
 import { WEAPON_ICONS } from '@/utils/rpgAssets'
+import { RescheduleButtons } from '@/features/tasks/components/RescheduleButtons'
+import { isOverdue } from '@/utils/datetime'
 import type { Category, Task } from '@/types/database.types'
 
 export function GrimorioAccordionView({
@@ -3771,7 +4442,7 @@ export function GrimorioAccordionView({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar misiones o pergaminos..."
-            className="w-full rounded-2xl border border-border bg-black/40 py-3.5 pl-11 pr-4 text-sm text-fg outline-none transition-all focus:border-accent"
+            className="w-full rounded-2xl border border-border bg-shade/40 py-3.5 pl-11 pr-4 text-sm text-fg outline-none transition-all focus:border-accent"
           />
           <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 opacity-40 text-fg" />
         </div>
@@ -3780,7 +4451,7 @@ export function GrimorioAccordionView({
           <button
             type="button"
             onClick={() => setSelectedCategory(null)}
-            className={`rounded-full px-3.5 py-1 font-mono text-[10px] font-bold uppercase tracking-widest transition-all ${
+            className={`rounded-full px-3.5 py-1 font-mono text-xs font-bold uppercase tracking-widest transition-all ${
               !selectedCategory
                 ? 'bg-accent text-accent-fg'
                 : 'border border-border text-fg-muted hover:text-fg'
@@ -3793,7 +4464,7 @@ export function GrimorioAccordionView({
               key={cat.id}
               type="button"
               onClick={() => setSelectedCategory(cat.id)}
-              className={`rounded-full border px-3.5 py-1 font-mono text-[10px] font-bold uppercase tracking-widest transition-all ${
+              className={`rounded-full border px-3.5 py-1 font-mono text-xs font-bold uppercase tracking-widest transition-all ${
                 selectedCategory === cat.id
                   ? 'border-transparent text-fg'
                   : 'border-border text-fg-muted/60 hover:text-fg'
@@ -3820,11 +4491,11 @@ export function GrimorioAccordionView({
             className="flex w-full items-center justify-between border-b border-accent/40 bg-surface/80 p-4"
           >
             <div className="flex items-center gap-3">
-              <span className="text-xl">⚔️</span>
+              <Swords className="h-5 w-5 text-accent" aria-hidden="true" />
               <h2 className="font-display text-sm font-bold uppercase tracking-widest text-accent">
                 Enfrentamiento Activo (HUD)
               </h2>
-              <span className="rounded-full bg-accent px-2 font-mono text-[10px] font-bold text-accent-fg">
+              <span className="rounded-full bg-accent px-2 font-mono text-xs font-bold text-accent-fg">
                 {activeTasks.length}
               </span>
             </div>
@@ -3855,11 +4526,11 @@ export function GrimorioAccordionView({
             className="flex w-full items-center justify-between border-b border-border bg-surface/80 p-4"
           >
             <div className="flex items-center gap-3">
-              <span className="text-xl">📜</span>
+              <ScrollText className="h-5 w-5" aria-hidden="true" />
               <h2 className="font-display text-sm font-bold uppercase tracking-widest text-fg">
                 Estrategia Próxima (Hoy - 3 Días)
               </h2>
-              <span className="rounded-full bg-border px-2 font-mono text-[10px] font-bold text-fg">
+              <span className="rounded-full bg-border px-2 font-mono text-xs font-bold text-fg">
                 {upcomingTasks.length}
               </span>
             </div>
@@ -3890,11 +4561,11 @@ export function GrimorioAccordionView({
             className="flex w-full items-center justify-between border-b border-border bg-surface/80 p-4"
           >
             <div className="flex items-center gap-3 opacity-60">
-              <span className="text-xl">🏛️</span>
+              <Landmark className="h-5 w-5" aria-hidden="true" />
               <h2 className="font-display text-sm font-bold uppercase tracking-widest text-fg">
                 Archivos de la Orden (Backlog Futuro)
               </h2>
-              <span className="rounded-full bg-border px-2 font-mono text-[10px] font-bold text-fg">
+              <span className="rounded-full bg-border px-2 font-mono text-xs font-bold text-fg">
                 {archiveTasks.length}
               </span>
             </div>
@@ -3935,7 +4606,8 @@ function RenderMissionCard({
   const category = categories?.find((c) => c.id === task.category_id)
 
   return (
-    <div className="mission-scroll-card flex items-center justify-between rounded-xl p-3.5 transition-all">
+    <div className="mission-scroll-card rounded-xl p-3.5 transition-all">
+      <div className="flex items-center justify-between">
       <button
         type="button"
         onClick={() => onOpenTask(task)}
@@ -3951,7 +4623,7 @@ function RenderMissionCard({
           )}
           <h3 className="truncate font-display text-sm font-bold text-fg">{task.title}</h3>
         </div>
-        <div className="mt-1 flex items-center gap-2 font-mono text-[10px]">
+        <div className="mt-1 flex items-center gap-2 font-mono text-xs">
           {category && (
             <span
               className="rounded px-1.5 py-0.5 font-black uppercase"
@@ -3973,7 +4645,7 @@ function RenderMissionCard({
 
       <div className="flex items-center gap-3">
         {task.hud_slot !== null && (
-          <span className="animate-pulse font-mono text-[10px] font-black text-accent">
+          <span className="animate-pulse font-mono text-xs font-black text-accent">
             SLOT {task.hud_slot}
           </span>
         )}
@@ -3982,9 +4654,15 @@ function RenderMissionCard({
           onClick={onComplete}
           className="flex h-7 w-7 items-center justify-center rounded border border-border text-xs transition-colors hover:border-accent hover:text-accent"
         >
-          ✓
+          <Check className="h-4 w-4" aria-label="Completar" />
         </button>
       </div>
+      </div>
+      {isOverdue(task) && (
+        <div className="mt-2.5 border-t border-border pt-2.5">
+          <RescheduleButtons task={task} />
+        </div>
+      )}
     </div>
   )
 }
@@ -3993,18 +4671,19 @@ function RenderMissionCard({
 ### src/features/kanban/components/GrimorioTabsView.tsx
 
 ```tsx
+import { Axe, BookOpen, Brain, Check, Gamepad2, Landmark, Leaf, Shield, Trophy, type LucideIcon } from 'lucide-react'
 import { useState } from 'react'
 import { useCategories } from '@/features/projects/hooks'
 import { useCompleteTask } from '@/features/tasks/hooks'
 import type { Category, Task } from '@/types/database.types'
 
-const CLASS_ICONS: Record<string, string> = {
-  Concentrix: '🔮',
-  Delorean: '🪓',
-  Estudios: '📜',
-  Hobbies: '🎮',
-  Personal: '🛡️',
-  Hogar: '🌿',
+const CLASS_ICONS: Record<string, LucideIcon> = {
+  Concentrix: Brain,
+  Delorean: Axe,
+  Estudios: BookOpen,
+  Hobbies: Gamepad2,
+  Personal: Shield,
+  Hogar: Leaf,
 }
 
 export function GrimorioTabsView({
@@ -4032,22 +4711,22 @@ export function GrimorioTabsView({
         <button
           type="button"
           onClick={() => setActiveCategoryId(null)}
-          className={`wax-seal-btn flex w-20 flex-col items-center rounded-xl border-2 border-border bg-surface p-3 text-center md:w-24 ${
+          className={`wax-seal-btn flex w-24 flex-col items-center rounded-xl border-2 border-border bg-surface p-3 text-center md:w-28 ${
             !activeCategoryId ? 'active' : ''
           }`}
         >
-          <span className="mb-1 text-2xl">🏺</span>
-          <span className="font-mono text-[9px] font-bold uppercase tracking-tighter text-fg">
+          <Landmark className="mb-1 h-6 w-6" aria-hidden="true" />
+          <span className="font-mono text-xs font-bold uppercase tracking-tighter text-fg">
             Todas
           </span>
-          <span className="mt-1 font-mono text-[10px] text-fg-muted/60">
+          <span className="mt-1 font-mono text-xs text-fg-muted/60">
             {tasks.filter((t) => t.status !== 'done').length}
           </span>
         </button>
 
         {categories?.map((cat) => {
           const catCount = tasks.filter((t) => t.category_id === cat.id && t.status !== 'done').length
-          const icon = CLASS_ICONS[cat.name] ?? '🛡️'
+          const CatIcon = CLASS_ICONS[cat.name] ?? Shield
           const isActive = activeCategoryId === cat.id
 
           return (
@@ -4055,15 +4734,15 @@ export function GrimorioTabsView({
               key={cat.id}
               type="button"
               onClick={() => setActiveCategoryId(cat.id)}
-              className={`wax-seal-btn flex w-20 flex-col items-center rounded-xl border-2 border-border bg-surface p-3 text-center md:w-24 ${
+              className={`wax-seal-btn flex w-24 flex-col items-center rounded-xl border-2 border-border bg-surface p-3 text-center md:w-28 ${
                 isActive ? 'active' : ''
               }`}
             >
-              <span className="mb-1 text-2xl">{icon}</span>
-              <span className="truncate font-mono text-[9px] font-bold uppercase tracking-tighter text-fg">
+              <CatIcon className="mb-1 h-6 w-6" aria-hidden="true" />
+              <span className="truncate font-mono text-xs font-bold uppercase tracking-tighter text-fg">
                 {cat.class_name}
               </span>
-              <span className="mt-1 font-mono text-[10px] text-fg-muted/60">{catCount}</span>
+              <span className="mt-1 font-mono text-xs text-fg-muted/60">{catCount}</span>
             </button>
           )
         })}
@@ -4101,7 +4780,7 @@ export function GrimorioTabsView({
         {/* Completadas Recientemente */}
         <section className="space-y-4 opacity-75">
           <div className="flex items-center gap-2.5 border-b border-border pb-2.5">
-            <span className="text-xl">🏆</span>
+            <Trophy className="h-5 w-5 text-gold" aria-hidden="true" />
             <h2 className="font-display text-base font-bold uppercase tracking-widest text-fg-muted">
               Completadas Recientemente
             </h2>
@@ -4157,7 +4836,7 @@ function RenderTabCard({
         className="min-w-0 flex-1 text-left"
       >
         <h3 className="truncate font-display text-sm font-bold text-fg">{task.title}</h3>
-        <div className="mt-1 flex items-center gap-3 font-mono text-[10px]">
+        <div className="mt-1 flex items-center gap-3 font-mono text-xs">
           {category && (
             <span
               className="rounded px-2 py-0.5 uppercase"
@@ -4180,378 +4859,9 @@ function RenderTabCard({
           onClick={onComplete}
           className="flex h-8 w-8 items-center justify-center rounded border border-border text-xs transition-colors hover:border-accent hover:text-accent"
         >
-          ✓
+          <Check className="h-4 w-4" aria-label="Completar" />
         </button>
       )}
-    </div>
-  )
-}
-```
-
-### src/features/kanban/components/KanbanBoard.tsx
-
-```tsx
-import { useMemo, useState } from 'react'
-import { useLocation } from 'react-router-dom'
-import {
-  DndContext,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from '@dnd-kit/core'
-import {
-  addDays,
-  endOfMonth,
-  endOfWeek,
-  isPast,
-  isToday,
-  isTomorrow,
-  isWithinInterval,
-  startOfMonth,
-  startOfWeek,
-} from 'date-fns'
-import { useCreateColumn, useKanbanColumns, useUpdateColumnPosition } from '@/features/kanban/hooks'
-import { useBoardTasks, useUpdateTask } from '@/features/tasks/hooks'
-import { useCategories } from '@/features/projects/hooks'
-import { TaskModal } from '@/features/tasks/components/TaskModal'
-import { KanbanColumn } from '@/features/kanban/components/KanbanColumn'
-import type { Task } from '@/types/database.types'
-
-const COLUMN_NAME_TO_STATUS: Record<string, 'pending' | 'in_progress' | 'done'> = {
-  'Por hacer': 'pending',
-  'En progreso': 'in_progress',
-  Hecho: 'done',
-}
-
-export type DateFilter = 'all' | 'overdue' | 'today' | 'tomorrow' | 'weekend' | 'week' | 'month'
-
-const DATE_FILTERS: { key: DateFilter; label: string }[] = [
-  { key: 'all', label: 'Todas' },
-  { key: 'overdue', label: 'Vencidas' },
-  { key: 'today', label: 'Hoy' },
-  { key: 'tomorrow', label: 'Mañana' },
-  { key: 'weekend', label: 'Fin de semana' },
-  { key: 'week', label: 'Esta semana' },
-  { key: 'month', label: 'Este mes' },
-]
-
-function matchesDateFilter(task: Task, filter: DateFilter, now: Date): boolean {
-  if (filter === 'all') return true
-  if (!task.deadline) return false
-  const deadline = new Date(task.deadline)
-
-  switch (filter) {
-    case 'overdue':
-      return task.status !== 'done' && isPast(deadline)
-    case 'today':
-      return isToday(deadline)
-    case 'tomorrow':
-      return isTomorrow(deadline)
-    case 'weekend': {
-      const monday = startOfWeek(now, { weekStartsOn: 1 })
-      return isWithinInterval(deadline, { start: addDays(monday, 5), end: addDays(monday, 7) })
-    }
-    case 'week':
-      return isWithinInterval(deadline, {
-        start: startOfWeek(now, { weekStartsOn: 1 }),
-        end: endOfWeek(now, { weekStartsOn: 1 }),
-      })
-    case 'month':
-      return isWithinInterval(deadline, { start: startOfMonth(now), end: endOfMonth(now) })
-    default:
-      return true
-  }
-}
-
-export function KanbanBoard({
-  projectId,
-}: {
-  projectId: string | null
-}) {
-  const { data: columns, isLoading: columnsLoading } = useKanbanColumns(projectId)
-  const { data: tasks, isLoading: tasksLoading } = useBoardTasks(projectId)
-  const { data: categories } = useCategories()
-  const updateTask = useUpdateTask()
-  const updateColumnPosition = useUpdateColumnPosition()
-  const createColumn = useCreateColumn()
-
-  const location = useLocation()
-  const initialDateFilter = (location.state as { dateFilter?: DateFilter } | null)?.dateFilter
-
-  const [modal, setModal] = useState<
-    { mode: 'create'; columnId: string } | { mode: 'edit'; task: Task } | null
-  >(null)
-  const [dateFilter, setDateFilter] = useState<DateFilter>(initialDateFilter ?? 'all')
-  const [hiddenCategoryIds, setHiddenCategoryIds] = useState<Set<string>>(new Set())
-
-  function toggleCategory(id: string) {
-    setHiddenCategoryIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
-
-  const visibleTasks = useMemo(() => {
-    const now = new Date()
-    return tasks?.filter(
-      (t) =>
-        !hiddenCategoryIds.has(t.category_id ?? '') && matchesDateFilter(t, dateFilter, now),
-    )
-  }, [tasks, hiddenCategoryIds, dateFilter])
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-  )
-
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event
-    if (!over) return
-    const targetColumnId = over.id as string
-    const task = tasks?.find((t) => t.id === active.id)
-    if (!task || task.kanban_column_id === targetColumnId) return
-
-    const targetColumn = columns?.find((c) => c.id === targetColumnId)
-    const status = targetColumn ? COLUMN_NAME_TO_STATUS[targetColumn.name] : undefined
-
-    updateTask.mutate({
-      id: task.id,
-      patch: { kanban_column_id: targetColumnId, ...(status ? { status } : {}) },
-    })
-  }
-
-  function handleMoveColumn(index: number, direction: -1 | 1) {
-    if (!columns) return
-    const neighbor = columns[index + direction]
-    const current = columns[index]
-    if (!neighbor) return
-    updateColumnPosition.mutate({ id: current.id, position: neighbor.position })
-    updateColumnPosition.mutate({ id: neighbor.id, position: current.position })
-  }
-
-  function handleAddColumn() {
-    const maxPosition = columns?.reduce((max, c) => Math.max(max, c.position), 0) ?? 0
-    createColumn.mutate({ projectId, name: 'Nueva columna', position: maxPosition + 1 })
-  }
-
-  if (columnsLoading || tasksLoading) {
-    return <p className="p-6 text-sm text-fg-muted">Cargando…</p>
-  }
-
-  return (
-    <>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-3">
-        <div className="flex flex-wrap gap-1 rounded-md bg-surface-2 p-1">
-          {DATE_FILTERS.map((f) => (
-            <button
-              key={f.key}
-              type="button"
-              onClick={() => setDateFilter(f.key)}
-              className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
-                dateFilter === f.key ? 'bg-surface text-fg shadow-sm' : 'text-fg-muted hover:text-fg'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          {categories?.map((cat) => {
-            const active = !hiddenCategoryIds.has(cat.id)
-            return (
-              <button
-                key={cat.id}
-                type="button"
-                onClick={() => toggleCategory(cat.id)}
-                className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors ${
-                  active ? 'border-transparent text-fg' : 'border-border text-fg-muted/50'
-                }`}
-                style={active ? { backgroundColor: `${cat.color_hex}1a` } : undefined}
-              >
-                <span
-                  className="h-1.5 w-1.5 rounded-full"
-                  style={{ backgroundColor: active ? cat.color_hex : undefined }}
-                />
-                {cat.name}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-        <div className="flex gap-3 overflow-x-auto p-6">
-          {columns?.map((column, index) => (
-            <KanbanColumn
-              key={column.id}
-              column={column}
-              tasks={visibleTasks?.filter((t) => t.kanban_column_id === column.id) ?? []}
-              canMoveLeft={index > 0}
-              canMoveRight={index < columns.length - 1}
-              onOpenTask={(task) => setModal({ mode: 'edit', task })}
-              onAddTask={(columnId) => setModal({ mode: 'create', columnId })}
-              onMoveLeft={() => handleMoveColumn(index, -1)}
-              onMoveRight={() => handleMoveColumn(index, 1)}
-            />
-          ))}
-          <button
-            type="button"
-            onClick={handleAddColumn}
-            className="h-fit shrink-0 rounded-lg border border-dashed border-border px-4 py-2 text-sm text-fg-muted transition-all duration-150 hover:border-accent/50 hover:text-accent active:scale-95"
-          >
-            + Columna
-          </button>
-        </div>
-      </DndContext>
-
-      {modal && (
-        <TaskModal
-          task={modal.mode === 'edit' ? modal.task : null}
-          defaultProjectId={projectId}
-          defaultKanbanColumnId={modal.mode === 'create' ? modal.columnId : ''}
-          onClose={() => setModal(null)}
-        />
-      )}
-    </>
-  )
-}
-```
-
-### src/features/kanban/components/KanbanColumn.tsx
-
-```tsx
-import { useState } from 'react'
-import { useDroppable } from '@dnd-kit/core'
-import { TaskCard } from '@/features/tasks/components/TaskCard'
-import { useDeleteColumn, useRenameColumn } from '@/features/kanban/hooks'
-import type { KanbanColumn as KanbanColumnType, Task } from '@/types/database.types'
-
-export function KanbanColumn({
-  column,
-  tasks,
-  canMoveLeft,
-  canMoveRight,
-  onOpenTask,
-  onAddTask,
-  onMoveLeft,
-  onMoveRight,
-}: {
-  column: KanbanColumnType
-  tasks: Task[]
-  canMoveLeft: boolean
-  canMoveRight: boolean
-  onOpenTask: (task: Task) => void
-  onAddTask: (columnId: string) => void
-  onMoveLeft: () => void
-  onMoveRight: () => void
-}) {
-  const { setNodeRef, isOver } = useDroppable({ id: column.id })
-  const renameColumn = useRenameColumn()
-  const deleteColumn = useDeleteColumn()
-  const [editing, setEditing] = useState(false)
-  const [name, setName] = useState(column.name)
-
-  function handleRenameSubmit() {
-    setEditing(false)
-    const trimmed = name.trim()
-    if (trimmed && trimmed !== column.name) {
-      renameColumn.mutate({ id: column.id, name: trimmed })
-    } else {
-      setName(column.name)
-    }
-  }
-
-  function handleDelete() {
-    const warning =
-      tasks.length > 0
-        ? `Esta columna tiene ${tasks.length} tarjeta(s). Al eliminarla vuelven al inbox para re-triarlas. ¿Continuar?`
-        : '¿Eliminar esta columna?'
-    if (window.confirm(warning)) {
-      deleteColumn.mutate(column.id)
-    }
-  }
-
-  return (
-    <div
-      ref={setNodeRef}
-      className={`flex w-72 shrink-0 flex-col rounded-lg border p-2 transition-all duration-200 ${
-        isOver
-          ? 'border-accent/50 bg-accent/5 shadow-[0_0_24px_rgba(217,169,74,0.25)]'
-          : 'border-border bg-surface/40'
-      }`}
-    >
-      <div className="flex items-center justify-between gap-1 px-1 py-1">
-        <div className="flex min-w-0 items-center gap-1">
-          <button
-            type="button"
-            onClick={onMoveLeft}
-            disabled={!canMoveLeft}
-            className="text-fg-muted/50 transition-colors hover:text-fg disabled:opacity-0"
-            aria-label="Mover columna a la izquierda"
-          >
-            ‹
-          </button>
-          {editing ? (
-            <input
-              autoFocus
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onBlur={handleRenameSubmit}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleRenameSubmit()
-                if (e.key === 'Escape') {
-                  setName(column.name)
-                  setEditing(false)
-                }
-              }}
-              className="w-28 rounded border border-border bg-surface px-1 text-sm text-fg"
-            />
-          ) : (
-            <h3
-              onClick={() => setEditing(true)}
-              className="truncate text-sm font-medium text-fg"
-              title="Click para renombrar"
-            >
-              {column.name} <span className="font-mono text-fg-muted">{tasks.length}</span>
-            </h3>
-          )}
-          <button
-            type="button"
-            onClick={onMoveRight}
-            disabled={!canMoveRight}
-            className="text-fg-muted/50 transition-colors hover:text-fg disabled:opacity-0"
-            aria-label="Mover columna a la derecha"
-          >
-            ›
-          </button>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <button
-            type="button"
-            onClick={() => onAddTask(column.id)}
-            className="text-fg-muted transition-colors hover:text-accent"
-            aria-label="Nueva tarea"
-          >
-            +
-          </button>
-          <button
-            type="button"
-            onClick={handleDelete}
-            className="text-fg-muted/60 transition-colors hover:text-warn-fg"
-            aria-label="Eliminar columna"
-          >
-            ×
-          </button>
-        </div>
-      </div>
-      <div className="mt-1 flex flex-col gap-2">
-        {tasks.map((task) => (
-          <TaskCard key={task.id} task={task} onOpen={onOpenTask} />
-        ))}
-      </div>
     </div>
   )
 }
@@ -4560,7 +4870,10 @@ export function KanbanColumn({
 ### src/features/kanban/components/KanbanPage.tsx
 
 ```tsx
+import { ScrollText, Shield } from 'lucide-react'
 import { useState } from 'react'
+import { useLocation } from 'react-router-dom'
+import { isPast, isToday } from 'date-fns'
 import { useAllBoardTasks } from '@/features/tasks/hooks'
 import { GrimorioAccordionView } from '@/features/kanban/components/GrimorioAccordionView'
 import { GrimorioTabsView } from '@/features/kanban/components/GrimorioTabsView'
@@ -4568,14 +4881,28 @@ import { TaskModal } from '@/features/tasks/components/TaskModal'
 import type { Task } from '@/types/database.types'
 
 type GrimorioMode = 'foco' | 'ambitos'
+type DueFilter = 'all' | 'overdue' | 'today'
 
 export function KanbanPage() {
   const [mode, setMode] = useState<GrimorioMode>(() => {
     return (localStorage.getItem('questly_grimorio_mode') as GrimorioMode) || 'foco'
   })
   const [editingTask, setEditingTask] = useState<Task | null>(null)
+  const location = useLocation()
+  const [dueFilter, setDueFilter] = useState<DueFilter>(
+    () => ((location.state as { dateFilter?: DueFilter } | null)?.dateFilter ?? 'all'),
+  )
 
   const { data: tasks, isLoading } = useAllBoardTasks()
+
+  const open = (tasks ?? []).filter((t) => t.status !== 'done' && t.deadline)
+  const overdueCount = open.filter((t) => isPast(new Date(t.deadline!))).length
+  const todayCount = open.filter((t) => isToday(new Date(t.deadline!))).length
+  const visibleTasks = (tasks ?? []).filter((t) => {
+    if (dueFilter === 'all') return true
+    if (!t.deadline || t.status === 'done') return false
+    return dueFilter === 'overdue' ? isPast(new Date(t.deadline)) : isToday(new Date(t.deadline))
+  })
 
   function handleModeChange(nextMode: GrimorioMode) {
     setMode(nextMode)
@@ -4602,17 +4929,38 @@ export function KanbanPage() {
             onClick={() => handleModeChange('foco')}
             className={`view-mode-btn ${mode === 'foco' ? 'active' : ''}`}
           >
-            📜 Foco Gradual
+            <ScrollText className="mr-1.5 inline h-4 w-4" aria-hidden="true" /> Foco Gradual
           </button>
           <button
             type="button"
             onClick={() => handleModeChange('ambitos')}
             className={`view-mode-btn ${mode === 'ambitos' ? 'active' : ''}`}
           >
-            🛡️ Ámbitos por Clase
+            <Shield className="mr-1.5 inline h-4 w-4" aria-hidden="true" /> Ámbitos por Clase
           </button>
         </div>
       </header>
+
+      {/* Filtro rápido por vencimiento */}
+      <div className="mb-6 flex flex-wrap justify-center gap-2" role="group" aria-label="Filtrar por vencimiento">
+        {([
+          ['all', 'Todas'],
+          ['overdue', `Vencidas (${overdueCount})`],
+          ['today', `Hoy (${todayCount})`],
+        ] as const).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setDueFilter(key)}
+            aria-pressed={dueFilter === key}
+            className={`rounded-full px-4 py-2 font-mono text-xs font-bold uppercase tracking-widest transition-all ${
+              dueFilter === key ? 'bg-accent text-accent-fg' : 'border border-border text-fg-muted hover:text-fg'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
       {/* Renderizado de la Vista Seleccionada */}
       <main>
@@ -4622,12 +4970,12 @@ export function KanbanPage() {
           </p>
         ) : mode === 'foco' ? (
           <GrimorioAccordionView
-            tasks={tasks ?? []}
+            tasks={visibleTasks}
             onOpenTask={setEditingTask}
           />
         ) : (
           <GrimorioTabsView
-            tasks={tasks ?? []}
+            tasks={visibleTasks}
             onOpenTask={setEditingTask}
           />
         )}
@@ -4643,58 +4991,6 @@ export function KanbanPage() {
       )}
     </div>
   )
-}
-```
-
-### src/features/kanban/hooks.ts
-
-```typescript
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-  createColumn,
-  deleteColumn,
-  fetchKanbanColumns,
-  renameColumn,
-  updateColumnPosition,
-} from '@/features/kanban/api'
-
-export function useKanbanColumns(projectId: string | null) {
-  return useQuery({
-    queryKey: ['kanban-columns', projectId],
-    queryFn: () => fetchKanbanColumns(projectId),
-  })
-}
-
-function useInvalidateColumns() {
-  const queryClient = useQueryClient()
-  return () => queryClient.invalidateQueries({ queryKey: ['kanban-columns'] })
-}
-
-export function useCreateColumn() {
-  const invalidate = useInvalidateColumns()
-  return useMutation({ mutationFn: createColumn, onSuccess: invalidate })
-}
-
-export function useRenameColumn() {
-  const invalidate = useInvalidateColumns()
-  return useMutation({
-    mutationFn: ({ id, name }: { id: string; name: string }) => renameColumn(id, name),
-    onSuccess: invalidate,
-  })
-}
-
-export function useUpdateColumnPosition() {
-  const invalidate = useInvalidateColumns()
-  return useMutation({
-    mutationFn: ({ id, position }: { id: string; position: number }) =>
-      updateColumnPosition(id, position),
-    onSuccess: invalidate,
-  })
-}
-
-export function useDeleteColumn() {
-  const invalidate = useInvalidateColumns()
-  return useMutation({ mutationFn: deleteColumn, onSuccess: invalidate })
 }
 ```
 
@@ -4721,6 +5017,17 @@ export async function dismissNotification(id: string): Promise<void> {
     .from('notifications')
     .update({ dismissed_at: new Date().toISOString() })
     .eq('id', id)
+  if (error) throw error
+}
+
+// "Descartar todas": marca como descartadas todas las pendientes. No borra las
+// filas a propósito: el sync usa unique(task_id, type) y un borrado haría que
+// la misma alerta reapareciera como nueva en la siguiente apertura.
+export async function dismissAllNotifications(): Promise<void> {
+  const { error } = await supabase
+    .from('notifications')
+    .update({ dismissed_at: new Date().toISOString() })
+    .is('dismissed_at', null)
   if (error) throw error
 }
 
@@ -4780,6 +5087,7 @@ export async function syncNotifications(): Promise<void> {
 import { useEffect, useState } from 'react'
 import { AlertTriangle, Bell, Calendar, Clock, Link2 } from 'lucide-react'
 import {
+  useDismissAllNotifications,
   useDismissNotification,
   useNotifications,
   useSyncNotifications,
@@ -4802,6 +5110,7 @@ export function NotificationBell() {
   const sync = useSyncNotifications()
   const { data: notifications } = useNotifications()
   const dismiss = useDismissNotification()
+  const dismissAll = useDismissAllNotifications()
 
   useEffect(() => {
     sync.mutate()
@@ -4821,7 +5130,7 @@ export function NotificationBell() {
       >
         <Bell className="h-5 w-5" />
         {unread.length > 0 && (
-          <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 font-mono text-[10px] font-medium text-accent-fg">
+          <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 font-mono text-xs font-medium text-accent-fg">
             {unread.length}
           </span>
         )}
@@ -4830,10 +5139,22 @@ export function NotificationBell() {
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="modal-panel absolute right-0 z-50 mt-2 w-80 rounded-lg border border-border bg-surface p-2 shadow-xl">
+          <div className="modal-panel panel-rune absolute right-0 z-50 mt-2 w-80 rounded-lg border border-border bg-surface p-2 shadow-xl">
             {unread.length === 0 ? (
               <p className="p-3 text-sm text-fg-muted">Sin notificaciones pendientes.</p>
             ) : (
+              <>
+              <div className="flex items-center justify-between px-2 pb-1 pt-0.5">
+                <span className="font-mono text-xs text-fg-muted">{unread.length} pendientes</span>
+                <button
+                  type="button"
+                  onClick={() => dismissAll.mutate()}
+                  disabled={dismissAll.isPending}
+                  className="rounded-md px-2 py-1 font-mono text-xs font-bold uppercase tracking-wider text-accent transition-colors hover:bg-surface-2 disabled:opacity-50"
+                >
+                  Descartar todas
+                </button>
+              </div>
               <ul className="flex flex-col gap-1">
                 {unread.map((notification) => {
                   const Icon = TYPE_ICON[notification.type]
@@ -4870,6 +5191,7 @@ export function NotificationBell() {
                   )
                 })}
               </ul>
+              </>
             )}
             <PushToggle />
           </div>
@@ -4952,7 +5274,7 @@ export function PushToggle() {
 
 ```typescript
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { dismissNotification, fetchNotifications, syncNotifications } from '@/features/notifications/api'
+import { dismissAllNotifications, dismissNotification, fetchNotifications, syncNotifications } from '@/features/notifications/api'
 
 export function useNotifications() {
   return useQuery({ queryKey: ['notifications'], queryFn: fetchNotifications })
@@ -4970,6 +5292,14 @@ export function useDismissNotification() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: dismissNotification,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+  })
+}
+
+export function useDismissAllNotifications() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: dismissAllNotifications,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
   })
 }
@@ -5144,7 +5474,7 @@ export async function claimBossPhase(projectId: string, phase: number): Promise<
 ```tsx
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Swords } from 'lucide-react'
 import { useBossStats, useCategories, useClaimBossPhase, useProjectById } from '@/features/projects/hooks'
 import { useCompleteTask, useTasksByProject } from '@/features/tasks/hooks'
 import { useEquipHudSlot, useHudTasks } from '@/features/battle-hud/hooks'
@@ -5214,12 +5544,12 @@ export function BossEncounterPage() {
             <img
               src={bossAvatarSrc(project.boss_avatar)}
               alt={project.boss_title}
-              className="h-full w-full rounded-full object-cover bg-black/40"
+              className="h-full w-full rounded-full object-cover bg-shade/40"
             />
           </div>
           <div
-            className="absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border-2 border-bg px-4 py-0.5 font-mono text-[10px] font-black uppercase tracking-tighter text-fg shadow-lg"
-            style={{ backgroundColor: category?.color_hex ?? '#7c3aed' }}
+            className="absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border-2 border-bg px-4 py-0.5 font-mono text-xs font-black uppercase tracking-tighter text-fg shadow-lg"
+            style={{ backgroundColor: category?.color_hex ?? '#4a8f5a' }}
           >
             {category?.name ?? 'Proyecto'} / {category?.class_name ?? 'Clase'}
           </div>
@@ -5268,7 +5598,7 @@ export function BossEncounterPage() {
                   <h3 className="truncate font-display text-base font-bold text-fg">
                     {task.title}
                   </h3>
-                  <p className="font-mono text-[10px] uppercase text-fg-muted/60">
+                  <p className="font-mono text-xs uppercase text-fg-muted/60">
                     Recompensa: +{task.xp_reward || 10} XP
                   </p>
                 </button>
@@ -5280,19 +5610,23 @@ export function BossEncounterPage() {
                     onClick={() =>
                       firstFreeSlot && equipToHud.mutate({ taskId: task.id, slot: firstFreeSlot })
                     }
-                    className={`rounded px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-widest transition-all ${
+                    className={`rounded px-3 py-2 font-mono text-xs font-bold uppercase tracking-widest transition-all ${
                       task.hud_slot !== null
                         ? 'border border-accent/40 bg-accent/20 text-accent'
-                        : 'border border-white/10 bg-white/5 text-fg-muted hover:bg-white/10 hover:text-fg disabled:opacity-40'
+                        : 'border border-glass/10 bg-glass/5 text-fg-muted hover:bg-glass/10 hover:text-fg disabled:opacity-40'
                     }`}
                   >
-                    {task.hud_slot !== null ? 'En HUD' : '⚔️ Equipar'}
+                    {task.hud_slot !== null ? (
+                      'En HUD'
+                    ) : (
+                      <span className="inline-flex items-center gap-1"><Swords className="h-3.5 w-3.5" aria-hidden="true" /> Equipar</span>
+                    )}
                   </button>
 
                   <button
                     type="button"
                     onClick={() => completeTask.mutate({ id: task.id, project_id: task.project_id })}
-                    className="rounded border border-red-600/40 bg-red-600/20 px-4 py-2 font-mono text-[10px] font-black uppercase tracking-widest text-red-400 transition-all hover:bg-red-600 hover:text-white"
+                    className="rounded border border-red-600/40 bg-red-600/20 px-4 py-2 font-mono text-xs font-black uppercase tracking-widest text-red-400 transition-all hover:bg-red-600 hover:text-white"
                   >
                     Golpear
                   </button>
@@ -5354,7 +5688,7 @@ export function BossHealthBar({
       </div>
 
       {/* Barra de Salud Masiva */}
-      <div className="boss-hp-container relative h-10 w-full overflow-hidden rounded-xl bg-black/60">
+      <div className="boss-hp-container relative h-10 w-full overflow-hidden rounded-xl bg-shade/60">
         <div
           className="boss-hp-fill h-full"
           style={{ width: `${Math.max(0, Math.min(100, percentRemaining))}%` }}
@@ -5388,7 +5722,7 @@ export function BossHealthBar({
                 alt={phase === 0 ? 'Victoria final' : `Fase ${phase}%`}
                 className="h-8 w-8 object-contain"
               />
-              <span className="font-mono text-[9px] uppercase tracking-widest text-fg-muted/70">
+              <span className="font-mono text-xs uppercase tracking-widest text-fg-muted/70">
                 {phase === 0 ? 'Victoria' : `${phase}% Loot`}
               </span>
             </div>
@@ -5403,6 +5737,7 @@ export function BossHealthBar({
 ### src/features/projects/components/PhaseRewardModal.tsx
 
 ```tsx
+import { Trophy } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { LOOT_ICONS } from '@/utils/rpgAssets'
 
@@ -5434,18 +5769,18 @@ export function PhaseRewardModal({
       <div
         ref={stageRef}
         onClick={(e) => e.stopPropagation()}
-        className="modal-panel relative w-full max-w-sm rounded-3xl border-2 border-accent bg-surface p-8 text-center shadow-[0_0_100px_rgba(217,169,74,0.3)]"
+        className="modal-panel relative w-full max-w-sm rounded-3xl border-2 border-accent bg-surface p-8 text-center shadow-[0_0_100px_rgb(var(--accent-rgb)/0.35)]"
       >
         <div className="gold-shimmer-bg pointer-events-none absolute inset-0 rounded-3xl opacity-30" />
 
         <div className="mb-4 flex justify-center">
           {isDefeat ? (
-            <span className="animate-bounce text-6xl">🏆</span>
+            <Trophy className="h-16 w-16 animate-bounce text-gold" aria-hidden="true" />
           ) : (
             <img
               src={LOOT_ICONS.chest_phase}
               alt="Cofre de fase"
-              className="h-16 w-16 animate-bounce object-contain drop-shadow-[0_0_12px_rgba(217,169,74,0.6)]"
+              className="h-16 w-16 animate-bounce object-contain drop-shadow-[0_0_12px_rgb(var(--gold-rgb)/0.6)]"
             />
           )}
         </div>
@@ -5457,11 +5792,11 @@ export function PhaseRewardModal({
           {isDefeat ? 'PROYECTO CONQUISTADO' : `FASE ${phase}% ROTA`}
         </p>
 
-        <div className="mb-6 rounded-2xl border border-border bg-black/40 p-4">
-          <p className="mb-1 font-mono text-[10px] uppercase text-fg-muted/60">
+        <div className="mb-6 rounded-2xl border border-border bg-shade/40 p-4">
+          <p className="mb-1 font-mono text-xs uppercase text-fg-muted/60">
             Tesoro Desbloqueado
           </p>
-          <p className="font-mono text-xl font-black text-sky-400">+{xp} XP EXTRA</p>
+          <p className="font-mono text-xl font-black text-rune">+{xp} XP EXTRA</p>
         </div>
 
         <button
@@ -5480,6 +5815,7 @@ export function PhaseRewardModal({
 ### src/features/projects/components/ProjectBossCard.tsx
 
 ```tsx
+import { Trophy } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useBossStats } from '@/features/projects/hooks'
 import { bossAvatarSrc } from '@/utils/rpgAssets'
@@ -5517,7 +5853,7 @@ export function ProjectBossCard({ project, category }: { project: Project; categ
       </div>
       {stats && (
         <span className="shrink-0 font-mono text-xs text-fg-muted">
-          {defeated ? '🏆' : `${stats.currentHp}/${stats.totalHp}`}
+          {defeated ? <Trophy className="h-4 w-4 text-gold" aria-label="Derrotado" /> : `${stats.currentHp}/${stats.totalHp}`}
         </span>
       )}
     </Link>
@@ -5699,22 +6035,7 @@ export async function fetchInboxTasks(): Promise<Task[]> {
   return data
 }
 
-export async function fetchBoardTasks(projectId: string | null): Promise<Task[]> {
-  const query = supabase
-    .from('tasks')
-    .select('*')
-    .is('parent_task_id', null)
-    .not('kanban_column_id', 'is', null)
-    .neq('status', 'follow_up')
-  const { data, error } = await (projectId
-    ? query.eq('project_id', projectId)
-    : query.is('project_id', null))
-  if (error) throw error
-  return data
-}
-
-// A diferencia de fetchBoardTasks(null) (que trae solo tareas sueltas), esta
-// trae TODAS las misiones trianas sin importar proyecto — la usa El Grimorio
+// Trae TODAS las misiones trianas sin importar proyecto — la usa El Grimorio
 // (Fase 7, Módulo 6), que unifica proyectos y tareas sueltas en una sola vista.
 export async function fetchAllBoardTasks(): Promise<Task[]> {
   const { data, error } = await supabase
@@ -5776,11 +6097,32 @@ export async function deleteTask(id: string): Promise<void> {
 export async function completeTask(task: Pick<Task, 'id' | 'project_id'>): Promise<Task> {
   const columns = await fetchKanbanColumns(task.project_id)
   const doneColumn = columns.find((c) => c.name === 'Hecho')
+  await closeFollowUpForTask(task.id)
   return updateTask(task.id, {
     status: 'done',
     hud_slot: null,
     ...(doneColumn ? { kanban_column_id: doneColumn.id } : {}),
   })
+}
+
+// Cierra el seguimiento activo de la tarea (si existe) y descarta sus
+// notificaciones pendientes, para que no sigan llegando avisos de algo ya
+// resuelto. Idempotente: sin follow-up activo no toca nada.
+export async function closeFollowUpForTask(taskId: string): Promise<void> {
+  const now = new Date().toISOString()
+  const { error } = await supabase
+    .from('follow_ups')
+    .update({ resolved_at: now })
+    .eq('task_id', taskId)
+    .is('resolved_at', null)
+  if (error) throw error
+  const { error: notifError } = await supabase
+    .from('notifications')
+    .update({ dismissed_at: now })
+    .eq('task_id', taskId)
+    .eq('type', 'follow_up')
+    .is('dismissed_at', null)
+  if (notifError) throw notifError
 }
 
 // Revierte una tarea "Hecha" de vuelta a activa, moviéndola a "Por hacer".
@@ -5893,7 +6235,7 @@ function FocusFloatContent() {
                   }
                   title="Completar"
                   aria-label={`Completar ${task.title}`}
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-accent-fg transition-all duration-150 hover:shadow-[0_0_10px_rgba(217,169,74,0.5)] active:scale-90"
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-accent-fg transition-all duration-150 hover:shadow-[0_0_10px_rgb(var(--accent-rgb)/0.5)] active:scale-90"
                 >
                   <Check className="h-3.5 w-3.5" />
                 </button>
@@ -5930,7 +6272,7 @@ export function FocusFloatButton() {
         aria-label="Ventana flotante de foco"
         className={`transition-colors ${
           pipWindow
-            ? 'text-accent drop-shadow-[0_0_6px_rgba(217,169,74,0.5)]'
+            ? 'text-accent drop-shadow-[0_0_6px_rgb(var(--accent-rgb)/0.5)]'
             : 'text-fg-muted hover:text-fg'
         }`}
       >
@@ -5942,175 +6284,47 @@ export function FocusFloatButton() {
 }
 ```
 
-### src/features/tasks/components/TaskCard.tsx
+### src/features/tasks/components/RescheduleButtons.tsx
 
 ```tsx
-import { useState } from 'react'
-import { useDraggable } from '@dnd-kit/core'
-import { format, isPast } from 'date-fns'
-import { Check, Link2, Undo2 } from 'lucide-react'
-import { useCategories } from '@/features/projects/hooks'
-import { useCompleteTask, useReopenTask, useSubtasks, useUpdateTask } from '@/features/tasks/hooks'
-import { useFollowUpForTask, useSendToFollowUp } from '@/features/followups/hooks'
+import { CalendarClock } from 'lucide-react'
+import { showToast } from '@/components/ui/toast-store'
+import { useUpdateTask } from '@/features/tasks/hooks'
+import { rescheduleIso } from '@/utils/datetime'
 import type { Task } from '@/types/database.types'
 
-const DEFAULT_FOLLOW_UP_INTERVAL_DAYS = 7
+const OPTIONS = [
+  { label: 'Mañana', days: 1, toast: 'Reprogramada para mañana' },
+  { label: '+1 semana', days: 7, toast: 'Reprogramada para dentro de una semana' },
+] as const
 
-export function TaskCard({ task, onOpen }: { task: Task; onOpen: (task: Task) => void }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: task.id,
-  })
-  const { data: categories } = useCategories()
-  const [showSubtasks, setShowSubtasks] = useState(false)
-  const { data: subtasks } = useSubtasks(task.id)
-  const { data: followUp } = useFollowUpForTask(task.id)
-  const updateTask = useUpdateTask()
-  const completeTask = useCompleteTask()
-  const reopenTask = useReopenTask()
-  const sendToFollowUp = useSendToFollowUp()
-
-  const category = categories?.find((c) => c.id === task.category_id)
-  const overdue =
-    task.status !== 'done' && task.deadline !== null && isPast(new Date(task.deadline))
-  const doneCount = subtasks?.filter((s) => s.status === 'done').length ?? 0
+// Reprogramar de un toque. Mantiene la hora original; el tono es de
+// "reagendar", no de fracaso (diseño sin culpa visual).
+export function RescheduleButtons({ task }: { task: Pick<Task, 'id' | 'deadline'> }) {
+  const update = useUpdateTask()
 
   return (
-    <div
-      ref={setNodeRef}
-      className={`rounded-md border bg-surface-2 p-3 text-sm shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-[0_12px_30px_rgba(139,92,246,0.18)] active:translate-y-0 active:scale-[0.99] ${
-        task.status === 'in_progress'
-          ? 'border-gold/50 shadow-[0_0_14px_rgba(217,169,74,0.25)]'
-          : 'border-border'
-      } ${task.status === 'done' ? 'opacity-60' : ''} ${isDragging ? 'opacity-50' : ''}`}
-      style={{
-        ...(transform
-          ? { transform: `translate(${transform.x}px, ${transform.y}px)`, zIndex: 10 }
-          : undefined),
-        borderLeft: category ? `3px solid ${category.color_hex}` : undefined,
-      }}
-    >
-      <div
-        {...listeners}
-        {...attributes}
-        onClick={() => onOpen(task)}
-        className="cursor-grab active:cursor-grabbing"
-      >
-        <p className={`font-medium text-fg ${task.status === 'done' ? 'line-through' : ''}`}>
-          {task.title}
-          {task.status === 'done' && (
-            <span
-              title="Completada"
-              className="ml-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full align-middle text-[9px] text-accent-fg shadow-[inset_0_0_3px_rgba(0,0,0,0.4)]"
-              style={{
-                background:
-                  'radial-gradient(circle at 35% 30%, var(--gold-bright), var(--gold) 70%, #7a5a1e 100%)',
-              }}
-            >
-              ✓
-            </span>
-          )}
-        </p>
-
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          {category && (
-            <span
-              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs"
-              style={{ backgroundColor: `${category.color_hex}1f`, color: category.color_hex }}
-            >
-              {category.name}
-            </span>
-          )}
-          {task.deadline && (
-            <span
-              className={`rounded-full px-2 py-0.5 font-mono text-xs ${
-                overdue ? 'bg-warn-bg text-warn-fg' : 'bg-surface-2 text-fg-muted'
-              }`}
-            >
-              {format(new Date(task.deadline), 'd MMM')}
-            </span>
-          )}
-          {followUp && (
-            <span
-              className="inline-flex items-center gap-0.5 rounded-full bg-sky-500/15 px-1.5 py-0.5 text-xs text-sky-500"
-              title="Follow-up activo"
-            >
-              <Link2 className="h-3 w-3" />
-            </span>
-          )}
-        </div>
-      </div>
-
-      {subtasks && subtasks.length > 0 && (
-        <div className="mt-2 border-t border-border pt-2">
-          <button
-            type="button"
-            onClick={() => setShowSubtasks((v) => !v)}
-            className="font-mono text-xs text-fg-muted hover:text-fg"
-          >
-            {showSubtasks ? '▾' : '▸'} {doneCount}/{subtasks.length} subtareas
-          </button>
-          {showSubtasks && (
-            <ul className="mt-1.5 flex flex-col gap-1">
-              {subtasks.map((subtask) => (
-                <li key={subtask.id} className="flex items-center gap-1.5 text-xs">
-                  <input
-                    type="checkbox"
-                    checked={subtask.status === 'done'}
-                    onChange={(e) =>
-                      updateTask.mutate({
-                        id: subtask.id,
-                        patch: { status: e.target.checked ? 'done' : 'pending' },
-                      })
-                    }
-                    className="h-3 w-3 accent-accent"
-                  />
-                  <span className={subtask.status === 'done' ? 'text-fg-muted line-through' : 'text-fg'}>
-                    {subtask.title}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-
-      <div className="mt-2 flex items-center justify-end gap-1.5 border-t border-border pt-2">
-        {task.status === 'done' ? (
-          <button
-            type="button"
-            onClick={() => reopenTask.mutate({ id: task.id, project_id: task.project_id })}
-            title="Reabrir tarea"
-            className="flex items-center gap-1 rounded-full px-2 py-1 text-xs text-fg-muted transition-colors hover:text-fg"
-          >
-            <Undo2 className="h-3.5 w-3.5" />
-          </button>
-        ) : (
-          <>
-            <button
-              type="button"
-              onClick={() =>
-                sendToFollowUp.mutate({
-                  taskId: task.id,
-                  intervalDays: DEFAULT_FOLLOW_UP_INTERVAL_DAYS,
-                  stakeholderName: null,
-                })
-              }
-              title="Enviar a Follow-up (cada 7 días, editable después)"
-              className="flex items-center gap-1 rounded-full border border-border px-2 py-1 text-xs text-fg-muted transition-all duration-150 hover:border-sky-500/40 hover:text-sky-500 active:scale-95"
-            >
-              <Link2 className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => completeTask.mutate({ id: task.id, project_id: task.project_id })}
-              title="Completar tarea"
-              className="flex items-center gap-1 rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-fg transition-all duration-150 hover:shadow-[0_0_14px_rgba(217,169,74,0.45)] active:scale-95"
-            >
-              <Check className="h-3.5 w-3.5" /> Completar
-            </button>
-          </>
-        )}
-      </div>
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="flex items-center gap-1 font-mono text-xs text-fg-muted">
+        <CalendarClock className="h-3.5 w-3.5" aria-hidden="true" /> Reprogramar:
+      </span>
+      {OPTIONS.map((opt) => (
+        <button
+          key={opt.label}
+          type="button"
+          disabled={update.isPending}
+          onClick={(e) => {
+            e.stopPropagation()
+            update.mutate(
+              { id: task.id, patch: { deadline: rescheduleIso(opt.days, task.deadline) } },
+              { onSuccess: () => showToast({ title: opt.toast }) },
+            )
+          }}
+          className="rounded-full border border-border-glow px-3 py-1.5 font-mono text-xs font-bold uppercase text-rune transition-colors hover:bg-rune/10 disabled:opacity-50"
+        >
+          {opt.label}
+        </button>
+      ))}
     </div>
   )
 }
@@ -6120,7 +6334,7 @@ export function TaskCard({ task, onOpen }: { task: Task; onOpen: (task: Task) =>
 
 ```tsx
 import { useEffect, useState } from 'react'
-import { X, Trash2, Swords, Check, Undo2, Link2 } from 'lucide-react'
+import { X, Trash2, Swords, Check, Undo2, Link2, ChevronRight, ScrollText, Star } from 'lucide-react'
 import { addDays } from 'date-fns'
 import { useCategories, useProjects } from '@/features/projects/hooks'
 import {
@@ -6140,7 +6354,6 @@ import {
 import {
   useDeleteFollowUp,
   useFollowUpForTask,
-  useRegisterFollowUpContact,
   useSendToFollowUp,
 } from '@/features/followups/hooks'
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '@/utils/datetime'
@@ -6187,7 +6400,6 @@ export function TaskModal({
   const { data: existingFollowUp } = useFollowUpForTask(task?.id ?? null)
   const sendToFollowUp = useSendToFollowUp()
   const deleteFollowUp = useDeleteFollowUp()
-  const registerContact = useRegisterFollowUpContact()
   const [showFollowUpForm, setShowFollowUpForm] = useState(false)
   const [followUpIntervalDays, setFollowUpIntervalDays] = useState(DEFAULT_FOLLOW_UP_INTERVAL_DAYS)
   const [followUpStakeholder, setFollowUpStakeholder] = useState('')
@@ -6314,11 +6526,11 @@ export function TaskModal({
         }`}
       >
         {/* Encabezado con Estado y Acciones Rápidas */}
-        <header className="flex items-center justify-between gap-3 border-b border-white/5 p-6">
-          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 font-mono text-[10px] font-bold text-fg-muted">
+        <header className="flex items-center justify-between gap-3 border-b border-glass/5 p-6">
+          <span className="rounded-full border border-glass/10 bg-glass/5 px-3 py-1 font-mono text-xs font-bold text-fg-muted">
             {task?.hud_slot !== null && task?.hud_slot !== undefined
-              ? `⚔️ EQUIPADO EN HUD SLOT ${task.hud_slot}`
-              : '📜 EN EL GRIMORIO'}
+              ? (<><Swords className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />EQUIPADO EN HUD SLOT {task.hud_slot}</>)
+              : (<><ScrollText className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />EN EL GRIMORIO</>)}
           </span>
 
           <div className="flex items-center gap-2">
@@ -6328,7 +6540,7 @@ export function TaskModal({
                 <button
                   type="button"
                   onClick={handleReopen}
-                  className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-widest text-fg-muted transition-colors hover:text-fg"
+                  className="flex items-center gap-1.5 rounded-full border border-glass/10 bg-glass/5 px-3.5 py-1.5 font-mono text-xs font-bold uppercase tracking-widest text-fg-muted transition-colors hover:text-fg"
                 >
                   <Undo2 className="h-3.5 w-3.5" /> Reabrir
                 </button>
@@ -6336,7 +6548,7 @@ export function TaskModal({
                 <button
                   type="button"
                   onClick={handleComplete}
-                  className="btn-prime flex items-center gap-1.5 rounded-full px-4 py-1.5 font-mono text-[10px] font-black uppercase tracking-widest"
+                  className="btn-prime flex items-center gap-1.5 rounded-full px-4 py-1.5 font-mono text-xs font-black uppercase tracking-widest"
                 >
                   <Check className="h-3.5 w-3.5" /> Completar
                 </button>
@@ -6344,7 +6556,7 @@ export function TaskModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex h-9 w-9 items-center justify-center rounded-full text-fg-muted transition-colors hover:bg-white/5 hover:text-fg"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-fg-muted transition-colors hover:bg-glass/5 hover:text-fg"
             >
               <X className="h-5 w-5" />
             </button>
@@ -6355,7 +6567,7 @@ export function TaskModal({
         <div className="space-y-8 p-6 md:p-8">
           {/* Título Principal */}
           <div className="space-y-1.5">
-            <label className="font-mono text-[10px] font-bold uppercase tracking-[0.3em] text-accent/70">
+            <label className="font-mono text-xs font-bold uppercase tracking-[0.3em] text-accent/70">
               Decreto de Misión
             </label>
             <input
@@ -6372,7 +6584,7 @@ export function TaskModal({
             {/* Chips de Envergadura (XP / Arma) */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <p className="font-mono text-[10px] uppercase tracking-widest text-fg-muted/60">
+                <p className="font-mono text-xs uppercase tracking-widest text-fg-muted/60">
                   Envergadura (Dificultad & XP)
                 </p>
                 {canBePriority && task && (
@@ -6382,13 +6594,14 @@ export function TaskModal({
                       isTodayPriority ? clearTodayPriority.mutate() : setTodayPriority.mutate(task.id)
                     }
                     title="Prioridad de hoy"
+                    aria-label="Prioridad de hoy"
                     className={`text-base leading-none transition-all duration-150 hover:scale-110 active:scale-95 ${
                       isTodayPriority
-                        ? 'text-accent drop-shadow-[0_0_6px_rgba(217,169,74,0.6)]'
-                        : 'text-fg-muted/40 hover:text-accent/60'
+                        ? 'text-gold drop-shadow-[0_0_6px_rgb(var(--gold-rgb)/0.6)]'
+                        : 'text-fg-muted/40 hover:text-gold/60'
                     }`}
                   >
-                    {isTodayPriority ? '★' : '☆'}
+                    <Star className={`h-5 w-5 ${isTodayPriority ? 'fill-gold' : ''}`} aria-hidden="true" />
                   </button>
                 )}
               </div>
@@ -6411,7 +6624,7 @@ export function TaskModal({
                       }`}
                     >
                       <img src={w.icon} alt="" className="h-6 w-6 object-contain" />
-                      <span className="font-mono text-[9px] font-black uppercase">{w.xp} XP</span>
+                      <span className="font-mono text-xs font-black uppercase">{w.xp} XP</span>
                     </button>
                   )
                 })}
@@ -6420,28 +6633,28 @@ export function TaskModal({
 
             {/* Chips de Plazo Rápidos */}
             <div className="space-y-3">
-              <p className="font-mono text-[10px] uppercase tracking-widest text-fg-muted/60">
+              <p className="font-mono text-xs uppercase tracking-widest text-fg-muted/60">
                 Plazo de Entrega
               </p>
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => setQuickDeadline(0)}
-                  className="tactile-chip rounded-full px-4 py-2 font-mono text-[10px] font-bold uppercase active-gold"
+                  className="tactile-chip rounded-full px-4 py-2 font-mono text-xs font-bold uppercase active-gold"
                 >
                   Hoy
                 </button>
                 <button
                   type="button"
                   onClick={() => setQuickDeadline(1)}
-                  className="tactile-chip rounded-full px-4 py-2 font-mono text-[10px] font-bold uppercase"
+                  className="tactile-chip rounded-full px-4 py-2 font-mono text-xs font-bold uppercase"
                 >
                   Mañana
                 </button>
                 <button
                   type="button"
                   onClick={() => setQuickDeadline(3)}
-                  className="tactile-chip rounded-full px-4 py-2 font-mono text-[10px] font-bold uppercase"
+                  className="tactile-chip rounded-full px-4 py-2 font-mono text-xs font-bold uppercase"
                 >
                   Finde
                 </button>
@@ -6449,7 +6662,7 @@ export function TaskModal({
                   type="datetime-local"
                   value={deadline}
                   onChange={(e) => setDeadline(e.target.value)}
-                  className="tactile-chip rounded-full px-3 py-1.5 font-mono text-[10px] text-fg outline-none"
+                  className="tactile-chip rounded-full px-3 py-1.5 font-mono text-xs text-fg outline-none"
                 />
               </div>
             </div>
@@ -6457,7 +6670,7 @@ export function TaskModal({
 
           {/* Chips de Clase / Ámbitos */}
           <div className="space-y-3">
-            <p className="font-mono text-[10px] uppercase tracking-widest text-fg-muted/60">
+            <p className="font-mono text-xs uppercase tracking-widest text-fg-muted/60">
               Ámbito de la Orden (Clase)
             </p>
             <div className="flex flex-wrap gap-2">
@@ -6468,7 +6681,7 @@ export function TaskModal({
                     key={cat.id}
                     type="button"
                     onClick={() => setCategoryId(cat.id)}
-                    className={`tactile-chip rounded-xl px-4 py-2 font-mono text-[10px] font-bold uppercase ${
+                    className={`tactile-chip rounded-xl px-4 py-2 font-mono text-xs font-bold uppercase ${
                       isActive ? 'active-gold' : ''
                     }`}
                   >
@@ -6481,8 +6694,8 @@ export function TaskModal({
 
           {/* Seguimiento (Follow-up) */}
           {isEditing && task && task.status !== 'done' && (
-            <div className="space-y-3 rounded-2xl border border-white/5 bg-black/20 p-5">
-              <p className="font-mono text-[10px] uppercase tracking-widest text-fg-muted/60">
+            <div className="space-y-3 rounded-2xl border border-glass/5 bg-shade/20 p-5">
+              <p className="font-mono text-xs uppercase tracking-widest text-fg-muted/60">
                 Seguimiento (Follow-up)
               </p>
 
@@ -6493,23 +6706,16 @@ export function TaskModal({
                     {existingFollowUp.stakeholder_name ? ` con ${existingFollowUp.stakeholder_name}` : ''} · cada{' '}
                     {existingFollowUp.interval_days} días
                   </p>
-                  <p className="font-mono text-[10px] text-fg-muted/60">
+                  <p className="font-mono text-xs text-fg-muted/60">
                     Próximo recordatorio: {toDatetimeLocalValue(existingFollowUp.next_reminder_at).slice(0, 10)}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
                       onClick={handleCancelFollowUp}
-                      className="tactile-chip rounded-full px-4 py-2 font-mono text-[10px] font-bold uppercase"
+                      className="tactile-chip rounded-full px-4 py-2 font-mono text-xs font-bold uppercase"
                     >
                       Cancelar seguimiento
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => registerContact.mutate(existingFollowUp.id)}
-                      className="tactile-chip rounded-full px-4 py-2 font-mono text-[10px] font-bold uppercase"
-                    >
-                      Registrar contacto ahora
                     </button>
                   </div>
                 </div>
@@ -6517,14 +6723,14 @@ export function TaskModal({
                 showFollowUpForm ? (
                   <div className="space-y-2.5">
                     <div className="flex flex-wrap items-center gap-2">
-                      <label className="flex items-center gap-1.5 font-mono text-[10px] text-fg-muted">
+                      <label className="flex items-center gap-1.5 font-mono text-xs text-fg-muted">
                         Cada
                         <input
                           type="number"
                           min={1}
                           value={followUpIntervalDays}
                           onChange={(e) => setFollowUpIntervalDays(Number(e.target.value) || 1)}
-                          className="w-14 rounded-lg border border-white/10 bg-black/30 px-2 py-1 font-mono text-xs text-fg outline-none focus:border-accent"
+                          className="w-14 rounded-lg border border-glass/10 bg-shade/30 px-2 py-1 font-mono text-xs text-fg outline-none focus:border-accent"
                         />
                         días
                       </label>
@@ -6532,21 +6738,21 @@ export function TaskModal({
                         value={followUpStakeholder}
                         onChange={(e) => setFollowUpStakeholder(e.target.value)}
                         placeholder="Nombre del stakeholder (opcional)"
-                        className="flex-1 rounded-lg border border-white/10 bg-black/30 px-3 py-1.5 font-mono text-xs text-fg outline-none focus:border-accent"
+                        className="flex-1 rounded-lg border border-glass/10 bg-shade/30 px-3 py-1.5 font-mono text-xs text-fg outline-none focus:border-accent"
                       />
                     </div>
                     <div className="flex gap-2">
                       <button
                         type="button"
                         onClick={handleConfirmFollowUp}
-                        className="tactile-chip active-gold rounded-full px-4 py-2 font-mono text-[10px] font-bold uppercase"
+                        className="tactile-chip active-gold rounded-full px-4 py-2 font-mono text-xs font-bold uppercase"
                       >
                         Confirmar seguimiento
                       </button>
                       <button
                         type="button"
                         onClick={() => setShowFollowUpForm(false)}
-                        className="tactile-chip rounded-full px-4 py-2 font-mono text-[10px] font-bold uppercase"
+                        className="tactile-chip rounded-full px-4 py-2 font-mono text-xs font-bold uppercase"
                       >
                         Cancelar
                       </button>
@@ -6556,7 +6762,7 @@ export function TaskModal({
                   <button
                     type="button"
                     onClick={() => setShowFollowUpForm(true)}
-                    className="tactile-chip flex w-fit items-center gap-1.5 rounded-full px-4 py-2 font-mono text-[10px] font-bold uppercase"
+                    className="tactile-chip flex w-fit items-center gap-1.5 rounded-full px-4 py-2 font-mono text-xs font-bold uppercase"
                   >
                     <Link2 className="h-3.5 w-3.5" /> Enviar a Follow-up
                   </button>
@@ -6567,12 +6773,12 @@ export function TaskModal({
 
           {/* Micro-Stepping (Submisiones & Integridad HP) */}
           {isEditing && task && (
-            <div className="space-y-4 rounded-2xl border border-white/5 bg-black/20 p-5">
+            <div className="space-y-4 rounded-2xl border border-glass/5 bg-shade/20 p-5">
               <div className="flex items-center justify-between">
-                <p className="font-mono text-[10px] uppercase tracking-widest text-fg-muted/60">
+                <p className="font-mono text-xs uppercase tracking-widest text-fg-muted/60">
                   Integridad de la Quest (Submisiones)
                 </p>
-                <span className="font-mono text-[10px] font-bold text-accent">{hpPercent}%</span>
+                <span className="font-mono text-xs font-bold text-accent">{hpPercent}%</span>
               </div>
 
               <div className="quest-hp-track">
@@ -6591,11 +6797,11 @@ export function TaskModal({
                           patch: { status: st.status === 'done' ? 'pending' : 'done' },
                         })
                       }
-                      className={`flex h-5 w-5 items-center justify-center rounded border font-mono text-[10px] transition-all ${
-                        st.status === 'done' ? 'border-accent bg-accent text-accent-fg' : 'border-white/20'
+                      className={`flex h-5 w-5 items-center justify-center rounded border font-mono text-xs transition-all ${
+                        st.status === 'done' ? 'border-accent bg-accent text-accent-fg' : 'border-glass/20'
                       }`}
                     >
-                      {st.status === 'done' ? '✓' : ''}
+                      {st.status === 'done' ? <Check className="h-3 w-3" aria-hidden="true" /> : null}
                     </button>
                     <span
                       className={`flex-1 text-xs text-fg ${
@@ -6623,12 +6829,12 @@ export function TaskModal({
                   onChange={(e) => setNewSubtaskText(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleAddSubtask()}
                   placeholder="+ Añadir Micro-paso (2 min)..."
-                  className="flex-1 rounded-lg border border-dashed border-white/10 bg-transparent px-3 py-2 font-mono text-xs text-fg outline-none focus:border-accent"
+                  className="flex-1 rounded-lg border border-dashed border-glass/10 bg-transparent px-3 py-2 font-mono text-xs text-fg outline-none focus:border-accent"
                 />
                 <button
                   type="button"
                   onClick={handleAddSubtask}
-                  className="rounded-lg border border-border bg-white/5 px-3 py-2 font-mono text-xs font-bold text-fg hover:bg-white/10"
+                  className="rounded-lg border border-border bg-glass/5 px-3 py-2 font-mono text-xs font-bold text-fg hover:bg-glass/10"
                 >
                   Añadir
                 </button>
@@ -6638,20 +6844,19 @@ export function TaskModal({
 
           {/* Acordeón Oculto de Notas y Proyecto Complejo */}
           <details className="group">
-            <summary className="flex cursor-pointer items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-fg-muted/40 transition-all hover:text-fg group-open:text-accent">
-              <span className="transition-transform group-open:rotate-90">▶</span> 📜 Notas y
-              Detalles Arcanos
+            <summary className="flex cursor-pointer items-center gap-2 font-mono text-xs uppercase tracking-widest text-fg-muted/40 transition-all hover:text-fg group-open:text-accent">
+              <ChevronRight className="h-3.5 w-3.5 transition-transform group-open:rotate-90" aria-hidden="true" /> Notas y Detalles Arcanos
             </summary>
             <div className="space-y-4 pt-4">
               {/* Selección de Proyecto */}
               <div className="space-y-1">
-                <label className="font-mono text-[9px] uppercase text-fg-muted/50">
+                <label className="font-mono text-xs uppercase text-fg-muted/50">
                   Proyecto Asociado (Mazmorra)
                 </label>
                 <select
                   value={projectId ?? ''}
                   onChange={(e) => setProjectId(e.target.value || null)}
-                  className="w-full rounded-xl border border-border bg-black/40 p-3 font-mono text-xs font-bold uppercase text-fg"
+                  className="w-full rounded-xl border border-border bg-shade/40 p-3 font-mono text-xs font-bold uppercase text-fg"
                 >
                   <option value="">Sin Proyecto (Misión Suelta)</option>
                   {projects?.map((p) => (
@@ -6667,7 +6872,7 @@ export function TaskModal({
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Escribe aquí los detalles del hechizo, links o instrucciones..."
-                className="h-24 w-full resize-none rounded-xl border border-white/5 bg-black/30 p-4 text-sm text-fg outline-none focus:border-accent/30"
+                className="h-24 w-full resize-none rounded-xl border border-glass/5 bg-shade/30 p-4 text-sm text-fg outline-none focus:border-accent/30"
               />
             </div>
           </details>
@@ -6676,14 +6881,14 @@ export function TaskModal({
         </div>
 
         {/* Footer de Acciones Principales */}
-        <footer className="flex flex-col gap-3 border-t border-white/5 bg-black/20 p-6 md:flex-row md:p-8">
+        <footer className="flex flex-col gap-3 border-t border-glass/5 bg-shade/20 p-6 md:flex-row md:p-8">
           <button
             type="button"
             onClick={handleSubmit}
             disabled={!title.trim() || !categoryId || saving}
             className="btn-prime flex-1 rounded-xl py-4 font-display text-sm font-black uppercase tracking-widest disabled:opacity-40"
           >
-            📜 Sellar Decreto
+            <ScrollText className="mr-2 inline h-4 w-4" aria-hidden="true" /> Sellar Decreto
           </button>
 
           <div className="flex gap-2">
@@ -6694,7 +6899,7 @@ export function TaskModal({
                   equipToHud.mutate({ taskId: task.id, slot: firstFreeSlot })
                   onClose()
                 }}
-                className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-5 py-4 font-mono text-[10px] font-black uppercase tracking-widest text-fg hover:bg-white/10"
+                className="flex items-center gap-1.5 rounded-xl border border-glass/10 bg-glass/5 px-5 py-4 font-mono text-xs font-black uppercase tracking-widest text-fg hover:bg-glass/10"
               >
                 <Swords className="h-4 w-4" /> Equipar
               </button>
@@ -6824,7 +7029,6 @@ import {
   deleteTask,
   fetchActiveTasksWithDeadline,
   fetchAllBoardTasks,
-  fetchBoardTasks,
   fetchInboxTasks,
   fetchInProgressTasks,
   fetchLastCompletedTask,
@@ -6837,10 +7041,10 @@ import {
   fetchTasksCompletedToday,
   fetchTasksInRange,
   reopenTask,
-  sendTaskToFollowUp,
   updateTask,
 } from '@/features/tasks/api'
-import type { Task } from '@/types/database.types'
+import { showToast } from '@/components/ui/toast-store'
+import type { Category, Task } from '@/types/database.types'
 
 export function useTaskById(id: string | null) {
   return useQuery({
@@ -6913,13 +7117,6 @@ export function useInboxTasks() {
   })
 }
 
-export function useBoardTasks(projectId: string | null) {
-  return useQuery({
-    queryKey: ['tasks', 'board', projectId],
-    queryFn: () => fetchBoardTasks(projectId),
-  })
-}
-
 export function useAllBoardTasks() {
   return useQuery({
     queryKey: ['tasks', 'board', 'all'],
@@ -6978,17 +7175,28 @@ export function useDeleteTask() {
 
 export function useCompleteTask() {
   const invalidate = useInvalidateTasks()
-  return useMutation({ mutationFn: completeTask, onSuccess: invalidate })
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: completeTask,
+    onSuccess: (task) => {
+      invalidate()
+      // Recompensa inmediata: el XP real lo calcula el trigger de Postgres
+      // (tasks.xp_reward); acá solo se muestra.
+      const category = queryClient
+        .getQueryData<Category[]>(['categories'])
+        ?.find((c) => c.id === task.category_id)
+      showToast(
+        task.xp_reward > 0
+          ? { title: `+${task.xp_reward} XP`, detail: category?.name ?? task.title, tone: 'reward' }
+          : { title: 'Misión completada', detail: task.title, tone: 'reward' },
+      )
+    },
+  })
 }
 
 export function useReopenTask() {
   const invalidate = useInvalidateTasks()
   return useMutation({ mutationFn: reopenTask, onSuccess: invalidate })
-}
-
-export function useSendTaskToFollowUp() {
-  const invalidate = useInvalidateTasks()
-  return useMutation({ mutationFn: sendTaskToFollowUp, onSuccess: invalidate })
 }
 
 // Captura del Inbox: actualiza el cache al toque (antes de que la mutación
@@ -7093,13 +7301,19 @@ export async function dispatchTriagedTask(input: DispatchInput): Promise<Task> {
 ### src/features/triage/components/InboxCardDeck.tsx
 
 ```tsx
-import { addDays, format } from 'date-fns'
+import { addDays, format, nextSaturday } from 'date-fns'
 
-function getQuickDeadlineIso(daysFromNow: number): string {
-  const d = addDays(new Date(), daysFromNow)
+function toLocalValue(d: Date): string {
   d.setHours(18, 0, 0, 0)
   return format(d, "yyyy-MM-dd'T'HH:mm")
 }
+
+const QUICK_DEADLINES = [
+  { label: 'Hoy', value: () => toLocalValue(new Date()) },
+  { label: 'Mañana', value: () => toLocalValue(addDays(new Date(), 1)) },
+  { label: 'Fin de semana', value: () => toLocalValue(nextSaturday(new Date())) },
+  { label: '+1 semana', value: () => toLocalValue(addDays(new Date(), 7)) },
+]
 
 export function InboxCardDeck({
   title,
@@ -7121,30 +7335,26 @@ export function InboxCardDeck({
         value={title}
         onChange={(e) => onTitleChange(e.target.value)}
         placeholder="Título de la misión..."
-        className="w-full border-b border-white/10 bg-transparent pb-2 font-display text-2xl font-bold text-accent outline-none transition-colors focus:border-accent"
+        className="w-full border-b border-glass/10 bg-transparent pb-2 font-display text-2xl font-bold text-accent outline-none transition-colors focus:border-accent"
       />
 
       {/* Shortcuts de Fecha / Deadline */}
       <div className="flex flex-wrap gap-2.5">
-        <button
-          type="button"
-          onClick={() => onDeadlineChange(getQuickDeadlineIso(0))}
-          className="rounded-lg border border-border bg-white/5 px-3.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-widest text-fg-muted transition-all hover:bg-white/10 hover:text-fg active:scale-95"
-        >
-          Hoy
-        </button>
-        <button
-          type="button"
-          onClick={() => onDeadlineChange(getQuickDeadlineIso(1))}
-          className="rounded-lg border border-border bg-white/5 px-3.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-widest text-fg-muted transition-all hover:bg-white/10 hover:text-fg active:scale-95"
-        >
-          Mañana
-        </button>
+        {QUICK_DEADLINES.map((opt) => (
+          <button
+            key={opt.label}
+            type="button"
+            onClick={() => onDeadlineChange(opt.value())}
+            className="rounded-lg border border-border bg-glass/5 px-3.5 py-2 font-mono text-xs font-bold uppercase tracking-widest text-fg-muted transition-all hover:bg-glass/10 hover:text-fg active:scale-95"
+          >
+            {opt.label}
+          </button>
+        ))}
         <input
           type="datetime-local"
           value={deadline}
           onChange={(e) => onDeadlineChange(e.target.value)}
-          className="rounded-lg border border-border bg-white/5 px-3 py-1.5 font-mono text-[10px] font-bold uppercase text-fg-muted outline-none focus:border-accent"
+          className="rounded-lg border border-border bg-glass/5 px-3 py-1.5 font-mono text-xs font-bold uppercase text-fg-muted outline-none focus:border-accent"
         />
       </div>
     </div>
@@ -7157,7 +7367,9 @@ export function InboxCardDeck({
 ```tsx
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Link2, Swords } from 'lucide-react'
+import { showToast } from '@/components/ui/toast-store'
+import { useDeleteTask } from '@/features/tasks/hooks'
+import { Castle, Link2, Swords } from 'lucide-react'
 import { useCategories, useCreateProject, useProjects } from '@/features/projects/hooks'
 import { useHudTasks } from '@/features/battle-hud/hooks'
 import { useTriageSession } from '@/features/triage/hooks'
@@ -7169,32 +7381,59 @@ import type { DispatchOutcome } from '@/features/triage/api'
 
 const NEW_PROJECT = '__new__'
 const NO_PROJECT = ''
+const LAST_CHOICE_KEY = 'questly_triage_last'
+
+// Recordar la última clase/destino: la mayoría de capturas seguidas comparten
+// contexto, y cada decisión repetida es fricción (parálisis en TDAH).
+function readLastChoice(): { categoryId: string; projectChoice: string } {
+  try {
+    const raw = localStorage.getItem(LAST_CHOICE_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw) as { categoryId?: string; projectChoice?: string }
+      return { categoryId: parsed.categoryId ?? '', projectChoice: parsed.projectChoice ?? NO_PROJECT }
+    }
+  } catch {
+    // localStorage no disponible: se arranca sin recuerdo.
+  }
+  return { categoryId: '', projectChoice: NO_PROJECT }
+}
 
 export function StrategyTablePage() {
-  const { current, remainingCount, isLoading, dispatch } = useTriageSession()
+  const { items, isLoading, dispatch } = useTriageSession()
+  const deleteTask = useDeleteTask()
   const { data: categories } = useCategories()
   const { data: projects } = useProjects()
   const createProject = useCreateProject()
   const { data: hudTasks } = useHudTasks()
 
   const [title, setTitle] = useState('')
-  const [categoryId, setCategoryId] = useState('')
-  const [projectChoice, setProjectChoice] = useState(NO_PROJECT)
+  const [categoryId, setCategoryId] = useState(() => readLastChoice().categoryId)
+  const [projectChoice, setProjectChoice] = useState(() => readLastChoice().projectChoice)
+  const [skipped, setSkipped] = useState<string[]>([])
+  const [showErrors, setShowErrors] = useState(false)
+  const [confirmingDiscard, setConfirmingDiscard] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
   const [deadline, setDeadline] = useState('')
   const [size, setSize] = useState<TaskSize | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [animatingOut, setAnimatingOut] = useState(false)
 
-  // Reset del formulario cuando entra una nueva carta
+  // "Saltar por ahora" manda la carta al final de la cola durante esta sesión.
+  const pending = items.filter((i) => !skipped.includes(i.id))
+  const current = pending[0] ?? items[0]
+  const remainingCount = items.length
+
+  // Reset del formulario cuando entra una nueva carta. Clase y destino se
+  // conservan a propósito (ver readLastChoice); fecha y arma no, porque son
+  // decisiones propias de cada misión.
   useEffect(() => {
     setTitle(current?.title ?? '')
-    setCategoryId('')
-    setProjectChoice(NO_PROJECT)
     setNewProjectName('')
     setDeadline('')
     setSize(null)
     setError(null)
+    setShowErrors(false)
+    setConfirmingDiscard(false)
     setAnimatingOut(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current?.id])
@@ -7202,30 +7441,49 @@ export function StrategyTablePage() {
   const occupiedSlots = new Set((hudTasks ?? []).map((t) => t.hud_slot))
   const firstFreeSlot = [1, 2, 3].find((s) => !occupiedSlots.has(s)) ?? null
 
+  const problems = {
+    title: !title.trim(),
+    category: !categoryId,
+    deadline: !deadline,
+    size: !size,
+    project: projectChoice === NEW_PROJECT && !newProjectName.trim(),
+  }
+  const missing = [
+    problems.title && 'título',
+    problems.category && 'clase',
+    problems.deadline && 'fecha',
+    problems.size && 'arma',
+    problems.project && 'nombre del proyecto',
+  ].filter(Boolean) as string[]
+
+  function persistChoice() {
+    try {
+      localStorage.setItem(LAST_CHOICE_KEY, JSON.stringify({ categoryId, projectChoice: projectChoice === NEW_PROJECT ? NO_PROJECT : projectChoice }))
+    } catch {
+      // sin localStorage: solo se pierde el recuerdo.
+    }
+  }
+
+  function handleSkip() {
+    if (!current) return
+    setSkipped((ids) => (pending.length <= 1 ? [] : [...ids, current.id]))
+  }
+
+  function handleDiscard() {
+    if (!current) return
+    deleteTask.mutate(current.id, { onSuccess: () => showToast({ title: 'Captura descartada' }) })
+  }
+
   async function handleDispatch(outcome: DispatchOutcome) {
     if (!current) return
     setError(null)
 
-    if (!title.trim()) {
-      setError('La misión necesita un título.')
+    if (missing.length > 0) {
+      setShowErrors(true)
       return
     }
-    if (!categoryId) {
-      setError('Elegí una categoría para tu clase.')
-      return
-    }
-    if (!deadline) {
-      setError('El deadline es obligatorio para despachar el pergamino.')
-      return
-    }
-    if (!size) {
-      setError('Selecciona un arma (define la dificultad y XP).')
-      return
-    }
-    if (projectChoice === NEW_PROJECT && !newProjectName.trim()) {
-      setError('Ponele nombre al nuevo proyecto.')
-      return
-    }
+    const chosenCategoryId = categoryId
+    const chosenSize = size as TaskSize
 
     // Iniciar física de deslizamiento
     setAnimatingOut(true)
@@ -7243,13 +7501,14 @@ export function StrategyTablePage() {
         await dispatch.mutateAsync({
           taskId: current.id,
           title: title.trim(),
-          categoryId,
+          categoryId: chosenCategoryId,
           projectId,
           deadlineIso: fromDatetimeLocalValue(deadline),
-          size,
+          size: chosenSize,
           outcome,
           hudSlot: outcome === 'equip' ? firstFreeSlot : null,
         })
+        persistChoice()
       } catch (err) {
         setAnimatingOut(false)
         setError(err instanceof Error ? err.message : 'No se pudo despachar la carta.')
@@ -7265,7 +7524,7 @@ export function StrategyTablePage() {
   if (!current) {
     return (
       <div className="mx-auto flex min-h-[70vh] max-w-lg flex-col items-center justify-center px-4 py-8 text-center">
-        <div className="mb-6 text-7xl">🏰</div>
+        <Castle className="mb-6 h-20 w-20 text-accent" aria-hidden="true" />
         <h1 className="mb-2 font-display text-4xl font-black uppercase tracking-tighter text-accent">
           Maza Limpia
         </h1>
@@ -7289,7 +7548,7 @@ export function StrategyTablePage() {
         <h1 className="font-display text-lg font-bold tracking-wide text-fg">
           Mesa de Estrategia
         </h1>
-        <span className="rounded-full border border-border bg-black/40 px-3 py-1 font-mono text-[10px] font-bold text-accent">
+        <span className="rounded-full border border-border bg-shade/40 px-3 py-1 font-mono text-xs font-bold text-accent">
           {remainingCount} PERGAMINOS PENDIENTES
         </span>
       </header>
@@ -7307,21 +7566,28 @@ export function StrategyTablePage() {
           }`}
         >
           {/* Título & Deadline */}
-          <InboxCardDeck
-            remainingCount={remainingCount}
-            title={title}
-            onTitleChange={setTitle}
-            deadline={deadline}
-            onDeadlineChange={setDeadline}
-          />
+          <div>
+            <InboxCardDeck
+              remainingCount={remainingCount}
+              title={title}
+              onTitleChange={setTitle}
+              deadline={deadline}
+              onDeadlineChange={setDeadline}
+            />
+            {showErrors && problems.title && <FieldError>Ponle un título a la misión.</FieldError>}
+            {showErrors && problems.deadline && <FieldError>Elige una fecha límite.</FieldError>}
+          </div>
 
           {/* Selector de Armas / Dificultad */}
-          <WeaponSelector value={size} onChange={setSize} />
+          <div>
+            <WeaponSelector value={size} onChange={setSize} />
+            {showErrors && problems.size && <FieldError>Elige un arma: define la dificultad y el XP.</FieldError>}
+          </div>
 
           {/* Categoría y Proyecto */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="font-mono text-[9px] uppercase tracking-widest text-fg-muted/50">
+              <label className="font-mono text-xs uppercase tracking-widest text-fg-muted/50">
                 Categoría / Clase
               </label>
               <select
@@ -7338,10 +7604,11 @@ export function StrategyTablePage() {
                   </option>
                 ))}
               </select>
+              {showErrors && problems.category && <FieldError>Elige una clase.</FieldError>}
             </div>
 
             <div className="space-y-1.5">
-              <label className="font-mono text-[9px] uppercase tracking-widest text-fg-muted/50">
+              <label className="font-mono text-xs uppercase tracking-widest text-fg-muted/50">
                 Proyecto / Destino
               </label>
               <select
@@ -7369,8 +7636,14 @@ export function StrategyTablePage() {
               className="input-parchment w-full rounded-xl p-3 text-sm text-fg"
             />
           )}
+          {showErrors && problems.project && <FieldError>Ponle nombre al nuevo proyecto.</FieldError>}
 
-          {error && <p className="font-mono text-xs font-medium text-warn-fg">{error}</p>}
+          {showErrors && missing.length > 0 && (
+            <p role="alert" className="rounded-lg border border-warn-border bg-warn-bg px-3 py-2 font-mono text-xs font-medium text-warn-fg">
+              Falta: {missing.join(', ')}.
+            </p>
+          )}
+          {error && <p role="alert" className="font-mono text-xs font-medium text-warn-fg">{error}</p>}
 
           {/* Botones de Despacho Inmediato */}
           <footer className="mt-2 flex flex-col gap-3">
@@ -7379,7 +7652,7 @@ export function StrategyTablePage() {
                 type="button"
                 onClick={() => void handleDispatch('grimorio')}
                 disabled={dispatch.isPending}
-                className="rounded-xl border border-border py-3.5 font-mono text-[10px] font-black uppercase tracking-widest text-fg transition-all hover:bg-white/5 active:scale-95 disabled:opacity-50"
+                className="rounded-xl border border-border py-3.5 font-mono text-xs font-black uppercase tracking-widest text-fg transition-all hover:bg-glass/5 active:scale-95 disabled:opacity-50"
               >
                 Despachar al Grimorio
               </button>
@@ -7387,7 +7660,7 @@ export function StrategyTablePage() {
                 type="button"
                 onClick={() => void handleDispatch('follow_up')}
                 disabled={dispatch.isPending}
-                className="flex items-center justify-center gap-1.5 rounded-xl border border-sky-900/50 py-3.5 font-mono text-[10px] font-black uppercase tracking-widest text-sky-400 transition-all hover:bg-sky-400/10 active:scale-95 disabled:opacity-50"
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-rune/30 py-3.5 font-mono text-xs font-black uppercase tracking-widest text-rune transition-all hover:bg-rune/10 active:scale-95 disabled:opacity-50"
               >
                 <Link2 className="h-3.5 w-3.5" /> Seguimiento
               </button>
@@ -7401,10 +7674,56 @@ export function StrategyTablePage() {
             >
               <Swords className="h-4 w-4" /> Equipar en Combate
             </button>
+            <div className="flex items-center justify-center gap-2 pt-1">
+              {remainingCount > 1 && (
+                <button
+                  type="button"
+                  onClick={handleSkip}
+                  className="rounded-lg px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-widest text-fg-muted transition-colors hover:text-fg"
+                >
+                  Saltar por ahora
+                </button>
+              )}
+              {confirmingDiscard ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleDiscard}
+                    disabled={deleteTask.isPending}
+                    className="rounded-lg border border-red-600/40 bg-red-600/20 px-4 py-2.5 font-mono text-xs font-black uppercase tracking-widest text-red-400"
+                  >
+                    Sí, descartar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingDiscard(false)}
+                    className="rounded-lg px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-widest text-fg-muted"
+                  >
+                    Cancelar
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setConfirmingDiscard(true)}
+                  className="rounded-lg px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-widest text-fg-muted transition-colors hover:text-red-400"
+                >
+                  Descartar
+                </button>
+              )}
+            </div>
           </footer>
         </article>
       </main>
     </div>
+  )
+}
+
+function FieldError({ children }: { children: string }) {
+  return (
+    <p role="alert" className="mt-1.5 font-mono text-xs font-medium text-warn-fg">
+      {children}
+    </p>
   )
 }
 ```
@@ -7430,7 +7749,7 @@ export function WeaponSelector({
 }) {
   return (
     <div className="space-y-2">
-      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-fg-muted/60">
+      <p className="font-mono text-xs uppercase tracking-[0.2em] text-fg-muted/60">
         Seleccionar Envergadura (Dificultad)
       </p>
       <div className="grid grid-cols-3 gap-3">
@@ -7451,7 +7770,7 @@ export function WeaponSelector({
                 alt={weapon.label}
                 className="h-9 w-9 object-contain transition-transform group-hover:scale-110 drop-shadow-[0_0_6px_rgba(0,0,0,0.5)]"
               />
-              <span className="font-mono text-[9px] font-black uppercase tracking-tight text-fg">
+              <span className="font-mono text-xs font-black uppercase tracking-tight text-fg">
                 {weapon.label} (+{weapon.xp} XP)
               </span>
             </button>
@@ -7485,6 +7804,7 @@ export function useTriageSession() {
   })
 
   return {
+    items: items ?? [],
     current: items?.[0],
     remainingCount: items?.length ?? 0,
     isLoading,
@@ -7505,7 +7825,11 @@ export function useTriageSession() {
 @import "@fontsource/cinzel/900.css";
 
 /* Tokens de color: valores reales en :root / @media dark más abajo,
-   acá solo se registran como utilidades de Tailwind (bg-bg, text-fg, etc). */
+   acá solo se registran como utilidades de Tailwind (bg-bg, text-fg, etc).
+   Identidad "Hyrule" (rediseño Fase 9): bosque + tecnología rúnica cian +
+   oro reservado SOLO para recompensas/logros. Inspirada en el tono de la
+   naturaleza y las ruinas antiguas de los juegos de aventura; sin marcas,
+   símbolos ni nombres de terceros (la app se publicará). */
 @theme {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
@@ -7515,8 +7839,13 @@ export function useTriageSession() {
   --color-border: var(--border);
   --color-accent: var(--accent);
   --color-accent-fg: var(--accent-fg);
+  --color-accent-deep: var(--accent-deep);
+  --color-rune: var(--rune);
+  --color-rune-deep: var(--rune-deep);
   --color-gold: var(--gold);
   --color-gold-bright: var(--gold-bright);
+  --color-parchment: var(--parchment);
+  --color-parchment-ink: var(--parchment-ink);
   --color-surface-card: var(--surface-card);
   --color-border-card: var(--border-card);
   --color-border-glow: var(--border-glow);
@@ -7527,6 +7856,9 @@ export function useTriageSession() {
   --color-weapon-daga: var(--weapon-daga);
   --color-weapon-espada: var(--weapon-espada);
   --color-weapon-mandoble: var(--weapon-mandoble);
+  --color-shade: rgb(var(--shade-rgb));
+  --color-glass: rgb(var(--glass-rgb));
+  --color-warn-dot: var(--warn-dot);
   --color-warn-bg: var(--warn-bg);
   --color-warn-fg: var(--warn-fg);
   --color-warn-border: var(--warn-border);
@@ -7536,63 +7868,96 @@ export function useTriageSession() {
   --font-display: "Cinzel", ui-sans-serif, serif;
 }
 
+/* Claro = "Día en el valle": crema cálida + verde bosque. Se diseña junto
+   con el oscuro, no es un respaldo. Los tokens *-rgb alimentan los
+   rgb(var(--x-rgb) / alpha) del CSS de componentes, para que cambien con
+   el tema sin hex sueltos. */
 :root {
   color-scheme: light dark;
 
-  /* claro — respaldo, mismo requisito de spec de siempre soportar ambos */
-  --bg: #faf9f6;
-  --surface: #ffffff;
-  --surface-2: #f1efe9;
-  --fg: #181814;
-  --fg-muted: #6b6862;
-  --border: rgba(20, 18, 14, 0.1);
-  --accent: #b8791a;
+  --bg: #f3f1e2;
+  --bg-glow: #e8e6cf;
+  --surface: #fffdf3;
+  --surface-2: #e9e6d0;
+  --fg: #1c2418;
+  --fg-muted: #5b6a58;
+  --border: rgba(28, 36, 24, 0.14);
+  --accent: #2f6b3a;
   --accent-fg: #ffffff;
-  --gold: #b8791a;
-  --gold-bright: #8a5a10;
-  --surface-card: #f5f0e6;
-  --border-card: rgba(20, 18, 14, 0.16);
-  --border-glow: rgba(20, 18, 14, 0.24);
-  --accent-runic: #7c3aed;
-  /* Dungeon Bosses (Fase 7, Módulo 2): HP del jefe, mismos valores en claro
-     y oscuro (la spec de Gemini no distinguió tema para estos). */
+  --accent-deep: #1f4a29;
+  --rune: #0e7490;
+  --rune-deep: #0f766e;
+  --gold: #8a5d0e;
+  --gold-bright: #6e4a0a;
+  --parchment: #efe6c8;
+  --parchment-ink: #2b2a1e;
+  --surface-card: #f7f3df;
+  --border-card: rgba(28, 36, 24, 0.18);
+  --border-glow: rgba(28, 36, 24, 0.28);
+  --accent-runic: var(--rune);
+
+  --bg-rgb: 243 241 226;
+  --surface-rgb: 255 253 243;
+  --accent-rgb: 47 107 58;
+  --gold-rgb: 138 93 14;
+  --rune-rgb: 14 116 144;
+  --glow-rgb: 28 36 24;
+  --shade-rgb: 28 36 24;
+  --glass-rgb: 28 36 24;
+
+  /* Jefes: HP del enemigo, mismo valor en claro y oscuro (es el enemigo,
+     no el progreso del jugador). */
   --hp-full: #dc2626;
   --hp-critical: #991b1b;
   --phase-shield: var(--gold);
-  /* Mesa de Estrategia (Fase 7, Módulo 3): cartas de arma/dificultad,
-     mismos valores en claro y oscuro. */
-  --weapon-daga: #059669;
-  --weapon-espada: #2563eb;
+  /* Mesa de Estrategia: color de cada arma/dificultad. */
+  --weapon-daga: #4fb35f;
+  --weapon-espada: #2bb5aa;
   --weapon-mandoble: #d9a94a;
-  --warn-bg: #fef3e2;
-  --warn-fg: #92400e;
-  --warn-border: rgba(217, 119, 6, 0.3);
+  --weapon-daga-rgb: 79 179 95;
+  --weapon-espada-rgb: 43 181 170;
+  /* Aviso cálido (ámbar): reemplaza al rojo para todo lo que no sea error
+     real, por la regla de diseño sin culpa visual. */
+  --warn-bg: #fdf1d8;
+  --warn-fg: #7a4a08;
+  --warn-border: rgba(217, 119, 6, 0.35);
+  --warn-dot: #d97706;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    /* oscuro — identidad principal: fantasía RPG, base ciruela profunda + acento oro.
-       Valores afinados en el Módulo 4 (Design System) de Fase 7 — Gemini dio
-       hex fijos sin distinguir tema; se aplican acá del lado oscuro nomás,
-       preservando el respaldo claro de arriba (ver HANDOFF, Fase 7 Módulo 4). */
-    --bg: #120c18;
-    --surface: #1e1526;
-    --surface-2: #281c33;
-    --fg: #f3ece4;
-    --fg-muted: #a395b0;
-    --border: #3d2a4e;
-    --border-glow: #63437f;
-    --accent: #d9a94a;
-    --accent-fg: #241705;
-    --accent-runic: #7c3aed;
+    /* Oscuro = "Noche en el bosque": verde profundo, luz rúnica cian. */
+    --bg: #0b1410;
+    --bg-glow: #14281e;
+    --surface: #12211a;
+    --surface-2: #1a2e24;
+    --fg: #eaf1e4;
+    --fg-muted: #8fa99a;
+    --border: #2c4a3a;
+    --border-glow: #3f6b55;
+    --accent: #7ccf6a;
+    --accent-fg: #07140b;
+    --accent-deep: #3d7a34;
+    --rune: #4fd1c5;
+    --rune-deep: #0f766e;
     --gold: #d9a94a;
     --gold-bright: #f0be5d;
-    /* Battle HUD (Fase 7, Módulo 1): superficie/borde de las Combat Slot Cards. */
-    --surface-card: #2d1f3b;
-    --border-card: #3d2a4e;
-    --warn-bg: rgba(146, 64, 14, 0.25);
-    --warn-fg: #fcd9a8;
+    --surface-card: #16291f;
+    --border-card: #2c4a3a;
+
+    --bg-rgb: 11 20 16;
+    --surface-rgb: 18 33 26;
+    --accent-rgb: 124 207 106;
+    --gold-rgb: 217 169 74;
+    --rune-rgb: 79 209 197;
+    --glow-rgb: 63 107 85;
+    --shade-rgb: 0 0 0;
+    --glass-rgb: 255 255 255;
+
+    --warn-bg: rgba(217, 119, 6, 0.16);
+    --warn-fg: #fcd9a0;
     --warn-border: rgba(217, 119, 6, 0.4);
+    --warn-dot: #fbbf24;
   }
 }
 
@@ -7609,29 +7974,72 @@ body {
 
 @media (prefers-color-scheme: dark) {
   body {
-    background: radial-gradient(circle at 20% 0%, #251636 0%, var(--bg) 55%);
+    background: radial-gradient(circle at 20% 0%, var(--bg-glow) 0%, var(--bg) 55%);
   }
 }
 
 /* Fondo ambiental (ver AmbientBackground.tsx) */
+/* Fondo ambiental "bosque vivo": de noche, luciérnagas + aurora rúnica;
+   de día, haces de luz y polen. Solo transform/opacity (barato en GPU). */
+.ambient-root {
+  --ray-rgb: 232 190 80;
+  --ray-a: 0.16;
+  --mote-a: 214 160 40;
+  --mote-b: 110 160 70;
+}
+
+@media (prefers-color-scheme: dark) {
+  .ambient-root {
+    --ray-rgb: 79 209 197;
+    --ray-a: 0.07;
+    --mote-a: 240 190 93;
+    --mote-b: 124 207 106;
+  }
+}
+
 .ambient-aurora {
   opacity: 0.5;
   filter: blur(60px);
   background: conic-gradient(
     from 0deg at 50% 50%,
-    #8b5cf655,
-    #f0c36433,
-    #ec489944,
-    #3b82f633,
-    #8b5cf655
+    rgb(var(--accent-rgb) / 0.3),
+    rgb(var(--rune-rgb) / 0.2),
+    rgb(var(--gold-rgb) / 0.12),
+    rgb(var(--rune-rgb) / 0.18),
+    rgb(var(--accent-rgb) / 0.3)
   );
   animation: ambient-spin 40s linear infinite;
 }
 
+@media (prefers-color-scheme: light) {
+  .ambient-aurora {
+    display: none;
+  }
+}
+
+.ambient-rays {
+  position: absolute;
+  inset: -25% -15% auto -15%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    105deg,
+    transparent 0 90px,
+    rgb(var(--ray-rgb) / var(--ray-a)) 90px 150px,
+    transparent 150px 280px
+  );
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 80%);
+  filter: blur(8px);
+  animation: ambient-sway 22s ease-in-out infinite alternate;
+}
+
 .ambient-mote {
-  background: radial-gradient(circle, var(--gold-bright), transparent 70%);
-  opacity: 0.75;
-  animation: ambient-float linear infinite;
+  position: absolute;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgb(var(--mote-c)) 0%, transparent 70%);
+  opacity: 0;
+  animation:
+    ambient-wander var(--dur) ease-in-out var(--delay) infinite,
+    ambient-twinkle calc(var(--dur) / 3) ease-in-out var(--delay) infinite;
 }
 
 @keyframes ambient-spin {
@@ -7640,28 +8048,56 @@ body {
   }
 }
 
-@keyframes ambient-float {
-  0% {
-    transform: translateY(0) translateX(0);
-    opacity: 0;
+@keyframes ambient-sway {
+  from {
+    transform: translateX(-3%) skewX(-2deg);
   }
-  10% {
-    opacity: 0.8;
+  to {
+    transform: translateX(3%) skewX(2deg);
   }
-  90% {
-    opacity: 0.6;
+}
+
+@keyframes ambient-wander {
+  50% {
+    transform: translate(var(--dx), var(--dy));
   }
+}
+
+@keyframes ambient-twinkle {
+  0%,
   100% {
-    transform: translateY(-115vh) translateX(var(--drift, 20px));
-    opacity: 0;
+    opacity: 0.05;
+  }
+  50% {
+    opacity: 0.85;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .ambient-aurora,
+  .ambient-rays,
   .ambient-mote {
     animation: none;
   }
+  .ambient-mote {
+    opacity: 0.3;
+  }
+}
+
+/* Foco visible global (teclado): runa cian, nunca se quita sin reemplazo. */
+:focus-visible {
+  outline: 2px solid var(--rune);
+  outline-offset: 2px;
+}
+
+/* Header y paneles flotantes con filo rúnico sutil */
+.app-header {
+  box-shadow: 0 1px 0 rgb(var(--rune-rgb) / 0.14), 0 8px 24px -12px rgb(var(--shade-rgb) / 0.5);
+}
+
+.panel-rune {
+  border-color: var(--border-glow);
+  box-shadow: 0 0 0 1px rgb(var(--rune-rgb) / 0.12), 0 18px 40px -12px rgb(var(--shade-rgb) / 0.6);
 }
 
 /* Celebracion de logros (ver AchievementCelebration.tsx) */
@@ -7684,17 +8120,17 @@ body {
   0% {
     opacity: 0;
     transform: scale(0.6);
-    box-shadow: 0 0 0 rgba(240, 195, 100, 0);
+    box-shadow: 0 0 0 rgb(var(--gold-rgb) / 0);
   }
   60% {
     opacity: 1;
     transform: scale(1.05);
-    box-shadow: 0 0 60px rgba(240, 195, 100, 0.5);
+    box-shadow: 0 0 60px rgb(var(--gold-rgb) / 0.5);
   }
   100% {
     opacity: 1;
     transform: scale(1);
-    box-shadow: 0 0 40px rgba(240, 195, 100, 0.35);
+    box-shadow: 0 0 40px rgb(var(--gold-rgb) / 0.35);
   }
 }
 
@@ -7739,47 +8175,47 @@ body {
 .grimoire-card {
   background: linear-gradient(165deg, var(--surface) 0%, var(--surface-2) 100%);
   border: 2px solid var(--border);
-  box-shadow: 0 0 50px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(61, 42, 78, 0.3);
+  box-shadow: 0 0 50px rgba(0, 0, 0, 0.8), inset 0 0 20px rgb(var(--glow-rgb) / 0.3);
 }
 
 .input-parchment {
-  background-color: rgba(18, 12, 24, 0.7);
+  background-color: rgb(var(--bg-rgb) / 0.7);
   border: 1px solid var(--border);
   transition: all 0.3s ease;
 }
 
 .input-parchment:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 10px rgba(217, 169, 74, 0.2);
+  box-shadow: 0 0 10px rgb(var(--accent-rgb) / 0.2);
   outline: none;
-  background-color: rgba(30, 21, 38, 0.9);
+  background-color: rgb(var(--surface-rgb) / 0.9);
 }
 
 .btn-prime {
-  background: linear-gradient(180deg, var(--gold) 0%, #b3862e 100%);
-  color: #120c18;
+  background: linear-gradient(180deg, var(--accent) 0%, var(--accent-deep) 100%);
+  color: var(--accent-fg);
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 1px;
-  box-shadow: 0 4px 0 #7a5a1d, 0 10px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 0 var(--accent-deep), 0 10px 20px rgba(0, 0, 0, 0.3);
   transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .btn-prime:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 0 #7a5a1d, 0 15px 25px rgba(217, 169, 74, 0.25);
+  box-shadow: 0 6px 0 var(--accent-deep), 0 15px 25px rgb(var(--accent-rgb) / 0.25);
 }
 
 .btn-prime:active {
   transform: translateY(2px);
-  box-shadow: 0 1px 0 #7a5a1d;
+  box-shadow: 0 1px 0 var(--accent-deep);
 }
 
 .tab-active {
   color: var(--gold) !important;
   border-bottom: 2px solid var(--gold);
-  text-shadow: 0 0 8px rgba(217, 169, 74, 0.5);
-  background: linear-gradient(to top, rgba(217, 169, 74, 0.08), transparent);
+  text-shadow: 0 0 8px rgb(var(--accent-rgb) / 0.5);
+  background: linear-gradient(to top, rgb(var(--accent-rgb) / 0.08), transparent);
 }
 
 .glyph-glow {
@@ -7803,7 +8239,7 @@ body {
   width: 280px;
   background: linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%);
   border-right: 2px solid var(--border);
-  box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+  box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5), inset -1px 0 0 rgb(var(--rune-rgb) / 0.18);
   transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -7811,7 +8247,7 @@ body {
 .sidebar-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(18, 12, 24, 0.6);
+  background: rgb(var(--bg-rgb) / 0.6);
   backdrop-filter: blur(8px);
   z-index: 40;
   transition: all 0.3s ease;
@@ -7827,17 +8263,29 @@ body {
 .nav-item-link:hover {
   transform: translateX(4px);
   color: var(--accent);
-  background-color: rgba(217, 169, 74, 0.06);
+  background-color: rgb(var(--accent-rgb) / 0.06);
 }
 
 .nav-item-link.active {
   border-left-color: var(--accent);
-  background: linear-gradient(90deg, rgba(217, 169, 74, 0.12), transparent);
+  background: linear-gradient(90deg, rgb(var(--accent-rgb) / 0.12), transparent);
   color: var(--accent);
 }
 
+.nav-item-link.active::after {
+  content: '';
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  background: var(--rune);
+  transform: translateY(-50%) rotate(45deg);
+  box-shadow: 0 0 10px rgb(var(--rune-rgb) / 0.7);
+}
+
 .nav-item-link.active .nav-label {
-  text-shadow: 0 0 10px rgba(217, 169, 74, 0.4);
+  text-shadow: 0 0 10px rgb(var(--accent-rgb) / 0.4);
   font-weight: 700;
 }
 
@@ -7852,14 +8300,70 @@ body {
 .combat-card:hover {
   transform: translateY(-6px);
   border-color: var(--card-theme, var(--gold));
-  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.7), 0 0 20px var(--card-glow, rgba(217, 169, 74, 0.2));
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.7), 0 0 20px var(--card-glow, rgb(var(--accent-rgb) / 0.2));
+}
+
+/* Marco rúnico: esquinas de trazo cian, se encienden al enfocar la tarjeta */
+.combat-card::before,
+.combat-card::after,
+.empty-slot-card::before,
+.empty-slot-card::after,
+.rune-frame::before,
+.rune-frame::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  pointer-events: none;
+  border: 0 solid rgb(var(--rune-rgb) / 0.45);
+  transition: border-color 0.3s ease, width 0.3s ease, height 0.3s ease;
+}
+
+.combat-card::before,
+.empty-slot-card::before,
+.rune-frame::before {
+  top: 8px;
+  left: 8px;
+  border-width: 2px 0 0 2px;
+  border-top-left-radius: 8px;
+}
+
+.combat-card::after,
+.empty-slot-card::after,
+.rune-frame::after {
+  right: 8px;
+  bottom: 8px;
+  border-width: 0 2px 2px 0;
+  border-bottom-right-radius: 8px;
+}
+
+.combat-card:hover::before,
+.combat-card:hover::after,
+.empty-slot-card:hover::before,
+.empty-slot-card:hover::after {
+  border-color: var(--rune);
+  width: 26px;
+  height: 26px;
+}
+
+.rune-frame {
+  position: relative;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .combat-card::before,
+  .combat-card::after,
+  .empty-slot-card::before,
+  .empty-slot-card::after {
+    transition: none;
+  }
 }
 
 /* Barra de Salud Segmentada (HP) */
 .hp-segment {
   height: 8px;
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgb(var(--shade-rgb) / 0.5);
+  border: 1px solid rgb(var(--glass-rgb) / 0.05);
   border-radius: 2px;
   transition: all 0.3s ease;
 }
@@ -7871,14 +8375,15 @@ body {
 
 /* Slot Vacío Rúnico */
 .empty-slot-card {
+  position: relative;
   border: 2px dashed var(--border);
-  background: rgba(0, 0, 0, 0.2);
+  background: rgb(var(--shade-rgb) / 0.2);
   transition: all 0.3s ease;
 }
 
 .empty-slot-card:hover {
-  border-color: var(--gold);
-  background: rgba(217, 169, 74, 0.03);
+  border-color: var(--accent);
+  background: rgb(var(--accent-rgb) / 0.03);
 }
 
 /* Animaciones Feedback TDAH (Shake & Kill Flash) */
@@ -7911,7 +8416,7 @@ body {
 
 /* Input Pergamino de Captura Rápida (ver InboxPage.tsx) */
 .input-parchment-inbox {
-  background: rgba(30, 21, 38, 0.6);
+  background: rgb(var(--surface-rgb) / 0.6);
   border: 2px solid var(--border);
   box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -7919,7 +8424,7 @@ body {
 
 .input-parchment-inbox:focus-within {
   border-color: var(--accent);
-  box-shadow: 0 0 20px rgba(217, 169, 74, 0.15), inset 0 0 10px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 20px rgb(var(--accent-rgb) / 0.15), inset 0 0 10px rgba(0, 0, 0, 0.3);
   transform: translateY(-1px);
 }
 
@@ -7995,31 +8500,31 @@ body {
 /* Botones Selector de Armas */
 .weapon-card-btn {
   border: 2px solid var(--border);
-  background: rgba(0, 0, 0, 0.3);
+  background: rgb(var(--shade-rgb) / 0.3);
   transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .weapon-card-btn.active[data-type="small"] {
-  border-color: var(--weapon-daga, #059669);
-  box-shadow: 0 0 16px rgba(5, 150, 105, 0.4);
+  border-color: var(--weapon-daga);
+  box-shadow: 0 0 16px rgb(var(--weapon-daga-rgb) / 0.4);
   transform: scale(1.04);
 }
 
 .weapon-card-btn.active[data-type="medium"] {
-  border-color: var(--weapon-espada, #2563eb);
-  box-shadow: 0 0 16px rgba(37, 99, 235, 0.4);
+  border-color: var(--weapon-espada);
+  box-shadow: 0 0 16px rgb(var(--weapon-espada-rgb) / 0.4);
   transform: scale(1.04);
 }
 
 .weapon-card-btn.active[data-type="large"] {
-  border-color: var(--weapon-mandoble, #d9a94a);
-  box-shadow: 0 0 16px rgba(217, 169, 74, 0.4);
+  border-color: var(--weapon-mandoble);
+  box-shadow: 0 0 16px rgb(var(--accent-rgb) / 0.4);
   transform: scale(1.04);
 }
 
 /* Selects con Estilo Pergamino Oscuro */
 .parchment-select {
-  background: rgba(0, 0, 0, 0.3);
+  background: rgb(var(--shade-rgb) / 0.3);
   border: 1px solid var(--border);
   color: var(--fg);
   cursor: pointer;
@@ -8054,7 +8559,7 @@ body {
   top: 0;
   bottom: 0;
   width: 2px;
-  background: rgba(255, 255, 255, 0.25);
+  background: rgb(var(--glass-rgb) / 0.25);
   z-index: 10;
 }
 
@@ -8083,7 +8588,7 @@ body {
 
 /* Modal de Recompensa con Destello de Oro */
 .gold-shimmer-bg {
-  background: linear-gradient(90deg, transparent, rgba(217, 169, 74, 0.2), transparent);
+  background: linear-gradient(90deg, transparent, rgb(var(--gold-rgb) / 0.2), transparent);
   background-size: 200% 100%;
   animation: goldShimmer 2.2s infinite linear;
 }
@@ -8101,7 +8606,7 @@ body {
 
 /* Toggle de Modo de Vista (Foco Gradual vs Ámbitos) — ver KanbanPage.tsx */
 .view-mode-toggle {
-  background: rgba(0, 0, 0, 0.4);
+  background: rgb(var(--shade-rgb) / 0.4);
   border: 1px solid var(--border);
   border-radius: 9999px;
   padding: 4px;
@@ -8121,8 +8626,8 @@ body {
 
 .view-mode-btn.active {
   background: var(--gold);
-  color: var(--plum-dark, #120c18);
-  box-shadow: 0 0 12px rgba(217, 169, 74, 0.35);
+  color: var(--accent-fg);
+  box-shadow: 0 0 12px rgb(var(--accent-rgb) / 0.35);
 }
 
 /* Acordeón de Foco Gradual */
@@ -8155,7 +8660,7 @@ body {
 .wax-seal-btn.active {
   filter: grayscale(0) brightness(1.2);
   transform: translateY(-4px);
-  box-shadow: 0 0 20px rgba(217, 169, 74, 0.4);
+  box-shadow: 0 0 20px rgb(var(--accent-rgb) / 0.4);
   border-color: var(--gold) !important;
 }
 
@@ -8217,9 +8722,9 @@ body {
 
 /* Destello del Nodo HOY */
 .node-today-active {
-  background: rgba(217, 169, 74, 0.04);
+  background: rgb(var(--accent-rgb) / 0.04);
   border-radius: 1rem;
-  border: 1px solid rgba(217, 169, 74, 0.2);
+  border: 1px solid rgb(var(--accent-rgb) / 0.2);
 }
 
 .node-today-active .day-node-dot {
@@ -8239,14 +8744,14 @@ body {
 .energy-meter-track {
   height: 5px;
   border-radius: 3px;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgb(var(--shade-rgb) / 0.4);
   overflow: hidden;
 }
 
 /* Cuadrícula de Mapa de Calor Astral */
 .grid-day-cell {
   aspect-ratio: 1 / 1;
-  background: rgba(0, 0, 0, 0.25);
+  background: rgb(var(--shade-rgb) / 0.25);
   border: 1px solid var(--border);
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
@@ -8261,13 +8766,13 @@ body {
 
 .grid-day-cell.selected {
   border-color: var(--gold);
-  box-shadow: 0 0 15px rgba(217, 169, 74, 0.4);
-  background: rgba(217, 169, 74, 0.08);
+  box-shadow: 0 0 15px rgb(var(--accent-rgb) / 0.4);
+  background: rgb(var(--accent-rgb) / 0.08);
 }
 
-.heat-low { box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.03); }
-.heat-mid { box-shadow: inset 0 0 15px rgba(234, 88, 12, 0.25); border-color: rgba(234, 88, 12, 0.35); }
-.heat-high { box-shadow: inset 0 0 20px rgba(220, 38, 38, 0.45); border-color: rgba(220, 38, 38, 0.55); }
+.heat-low { box-shadow: inset 0 0 10px rgb(var(--glass-rgb) / 0.03); }
+.heat-mid { box-shadow: inset 0 0 15px rgb(var(--accent-rgb) / 0.25); border-color: rgb(var(--accent-rgb) / 0.4); }
+.heat-high { box-shadow: inset 0 0 20px rgb(var(--gold-rgb) / 0.4); border-color: rgb(var(--gold-rgb) / 0.6); }
 
 /* Gemas de Color por Categoría */
 .gem-rune {
@@ -8311,8 +8816,8 @@ body {
 }
 
 @keyframes streakGlow {
-  0%, 100% { box-shadow: 0 0 8px rgba(217, 169, 74, 0.2); }
-  50% { box-shadow: 0 0 22px rgba(217, 169, 74, 0.45); }
+  0%, 100% { box-shadow: 0 0 8px rgb(var(--gold-rgb) / 0.2); }
+  50% { box-shadow: 0 0 22px rgb(var(--gold-rgb) / 0.45); }
 }
 
 /* Destello de XP al completar misión */
@@ -8328,9 +8833,9 @@ body {
 
 /* Modal Pergamino de Clase */
 .modal-parchment-scroll {
-  background: #f4e4bc;
-  color: #2d241e;
-  border: 12px solid #2d241e;
+  background: var(--parchment);
+  color: var(--parchment-ink);
+  border: 12px solid var(--parchment-ink);
   box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85);
 }
 
@@ -8347,7 +8852,7 @@ body {
 .grimoire-editor-modal {
   background: linear-gradient(165deg, var(--surface) 0%, var(--surface-2) 100%);
   border: 2px solid var(--border);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85), 0 0 20px rgba(61, 42, 78, 0.35);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85), 0 0 20px rgb(var(--glow-rgb) / 0.35);
   max-height: 90vh;
   overflow-y: auto;
 }
@@ -8365,7 +8870,7 @@ body {
 
 /* Chips Táctiles */
 .tactile-chip {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgb(var(--glass-rgb) / 0.03);
   border: 1px solid var(--border);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
@@ -8373,37 +8878,37 @@ body {
 }
 
 .tactile-chip:hover {
-  border-color: rgba(217, 169, 74, 0.5);
-  background: rgba(255, 255, 255, 0.06);
+  border-color: rgb(var(--accent-rgb) / 0.5);
+  background: rgb(var(--glass-rgb) / 0.06);
 }
 
 .tactile-chip.active-weapon-small {
-  border-color: #059669;
-  box-shadow: 0 0 10px rgba(5, 150, 105, 0.35);
-  color: #34d399;
+  border-color: var(--weapon-daga);
+  box-shadow: 0 0 10px rgb(var(--weapon-daga-rgb) / 0.35);
+  color: var(--weapon-daga);
 }
 
 .tactile-chip.active-weapon-medium {
-  border-color: #2563eb;
-  box-shadow: 0 0 10px rgba(37, 99, 235, 0.35);
-  color: #60a5fa;
+  border-color: var(--weapon-espada);
+  box-shadow: 0 0 10px rgb(var(--weapon-espada-rgb) / 0.35);
+  color: var(--weapon-espada);
 }
 
 .tactile-chip.active-weapon-large {
   border-color: var(--gold);
-  box-shadow: 0 0 10px rgba(217, 169, 74, 0.35);
+  box-shadow: 0 0 10px rgb(var(--accent-rgb) / 0.35);
   color: var(--gold);
 }
 
 .tactile-chip.active-gold {
   border-color: var(--gold);
-  background: rgba(217, 169, 74, 0.12);
+  background: rgb(var(--gold-rgb) / 0.12);
   color: var(--gold);
 }
 
 /* Barra de Integridad HP de Submisiones */
 .quest-hp-track {
-  background: rgba(0, 0, 0, 0.4);
+  background: rgb(var(--shade-rgb) / 0.4);
   height: 6px;
   border-radius: 3px;
   overflow: hidden;
@@ -8411,7 +8916,7 @@ body {
 
 .quest-hp-fill {
   height: 100%;
-  background: linear-gradient(90deg, #991b1b, #ef4444);
+  background: linear-gradient(90deg, var(--accent-deep), var(--accent));
   transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -8431,6 +8936,100 @@ body {
   .animate-seal-flash {
     animation: none;
     transition: none;
+  }
+}
+
+/* Tarjeta de Pacto de Custodia — ver FollowUpCard.tsx */
+.follow-up-card {
+  background: linear-gradient(165deg, var(--surface) 0%, var(--surface-2) 100%);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--rune);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.follow-up-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 30px -5px rgb(var(--rune-rgb) / 0.2);
+  border-left-width: 8px;
+}
+
+/* Medidor de Insistencia (Puntos de Intento) */
+.insistence-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgb(var(--glass-rgb) / 0.1);
+  border: 1px solid rgb(var(--glass-rgb) / 0.2);
+  transition: all 0.3s ease;
+}
+
+.insistence-dot.active {
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+  border-color: var(--accent);
+}
+
+.insistence-dot.warning {
+  background: var(--warn-dot);
+  box-shadow: 0 0 8px var(--warn-dot);
+  border-color: var(--warn-dot);
+}
+
+/* Acordeón de Bitácora Histórica */
+.bitacora-accordion {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease-out;
+}
+
+.bitacora-accordion.open {
+  max-height: 600px;
+}
+
+/* Modal Pergamino de Registro */
+.modal-parchment-log {
+  background: var(--parchment);
+  color: var(--parchment-ink);
+  box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+  border: 8px solid var(--parchment-ink);
+}
+
+/* Animación de Resolución de Follow-Up */
+.animate-success-glow {
+  animation: successFollowUp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes successFollowUp {
+  0% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(1.05); filter: brightness(1.5) saturate(1.5); }
+  100% { transform: scale(0.9); opacity: 0; filter: brightness(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .follow-up-card,
+  .insistence-dot,
+  .bitacora-accordion,
+  .animate-success-glow {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* Avisos efímeros (Toaster) */
+.toast-pop {
+  animation: toast-pop 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes toast-pop {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast-pop {
+    animation: none;
   }
 }
 ```
@@ -8504,8 +9103,8 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title, {
       body: data.body,
-      icon: '/icons/icon-192.png',
-      badge: '/icons/icon-192.png',
+      icon: '/icons/web-app-manifest-192x192.png',
+      badge: '/icons/web-app-manifest-192x192.png',
       data: { url: data.url ?? '/' },
     }),
   )
@@ -8761,6 +9360,7 @@ export interface Database {
           last_contacted_at: string
           next_reminder_at: string
           notes: string | null
+          resolved_at: string | null
           created_at: string
         }
         Insert: {
@@ -8772,9 +9372,28 @@ export interface Database {
           last_contacted_at?: string
           next_reminder_at?: string
           notes?: string | null
+          resolved_at?: string | null
           created_at?: string
         }
         Update: Partial<Database['public']['Tables']['follow_ups']['Insert']>
+        Relationships: []
+      }
+      follow_up_logs: {
+        Row: {
+          id: string
+          user_id: string
+          follow_up_id: string
+          notes: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string
+          follow_up_id: string
+          notes: string
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['follow_up_logs']['Insert']>
         Relationships: []
       }
       notifications: {
@@ -8843,35 +9462,15 @@ export type ClassRank = Database['public']['Tables']['class_ranks']['Row']
 export type LootDefinition = Database['public']['Tables']['loot_definitions']['Row']
 export type Loot = Database['public']['Tables']['loot']['Row']
 export type FollowUp = Database['public']['Tables']['follow_ups']['Row']
+export type FollowUpLog = Database['public']['Tables']['follow_up_logs']['Row']
 export type AppNotification = Database['public']['Tables']['notifications']['Row']
 export type PushSubscriptionRow = Database['public']['Tables']['push_subscriptions']['Row']
-```
-
-### src/utils/categoryIcon.tsx
-
-```tsx
-import type { ComponentType } from 'react'
-import { Brain, Car, BookOpen, Gamepad2, Heart, Home, Sparkles, type LucideProps } from 'lucide-react'
-
-const ICONS: Record<string, ComponentType<LucideProps>> = {
-  brain: Brain,
-  car: Car,
-  'book-open': BookOpen,
-  'gamepad-2': Gamepad2,
-  heart: Heart,
-  home: Home,
-}
-
-export function CategoryIcon({ iconName, ...props }: { iconName: string } & LucideProps) {
-  const Icon = ICONS[iconName] ?? Sparkles
-  return <Icon {...props} />
-}
 ```
 
 ### src/utils/datetime.ts
 
 ```typescript
-import { format } from 'date-fns'
+import { addDays, format, isPast } from 'date-fns'
 
 export function toDatetimeLocalValue(iso: string | null): string {
   if (!iso) return ''
@@ -8880,6 +9479,18 @@ export function toDatetimeLocalValue(iso: string | null): string {
 
 export function fromDatetimeLocalValue(value: string): string {
   return new Date(value).toISOString()
+}
+
+// Nueva fecha límite dentro de N días conservando la hora original (18:00 si no tenía).
+export function rescheduleIso(daysFromNow: number, previousIso: string | null): string {
+  const target = addDays(new Date(), daysFromNow)
+  const prev = previousIso ? new Date(previousIso) : null
+  target.setHours(prev ? prev.getHours() : 18, prev ? prev.getMinutes() : 0, 0, 0)
+  return target.toISOString()
+}
+
+export function isOverdue(task: { deadline: string | null; status: string }): boolean {
+  return task.status !== 'done' && !!task.deadline && isPast(new Date(task.deadline))
 }
 ```
 
@@ -9531,6 +10142,7 @@ Deno.serve(async () => {
   const { data: followUps, error: followUpsError } = await supabase
     .from('follow_ups')
     .select('user_id, task_id, stakeholder_name, next_reminder_at')
+    .is('resolved_at', null)
     .lte('next_reminder_at', now.toISOString())
   if (followUpsError) throw followUpsError
 
@@ -10953,6 +11565,54 @@ end;
 $$;
 ```
 
+### supabase/migrations/20260727000001_fase8_followup_logs.sql
+
+```sql
+-- Fase 8, Paso 10 — "Pacto de Custodia": bitácora de trazabilidad de
+-- follow-ups. Antes de esto, "registrar contacto" solo pisaba
+-- last_contacted_at sin dejar rastro de qué se habló ni de resoluciones
+-- previas.
+
+-- ============================================================
+-- follow_ups.resolved_at
+-- La spec original de Gemini resolvía un follow-up borrando la fila
+-- (mismo camino que ya usa "Cancelar seguimiento" en TaskModal) — pero
+-- eso se llevaría puesta la bitácora que el usuario acaba de escribir en
+-- el mismo gesto de resolver, justo lo que este Paso 10 quiere preservar.
+-- Se usa resolución blanda (resolved_at) en vez de borrado: la fila y su
+-- historial quedan, "activo" pasa a significar resolved_at is null.
+-- "Cancelar seguimiento" (Fase 6.2) sigue borrando de verdad — es una
+-- acción distinta ("nunca pasó") de "Resolver Éxito" ("pasó y quedó bien").
+-- ============================================================
+alter table public.follow_ups
+  add column resolved_at timestamptz;
+
+-- ============================================================
+-- follow_up_logs
+-- Una entrada por cada "registrar contacto". contact_count de la UI se
+-- deriva de count(*) de esta tabla en vez de guardarse como columna
+-- aparte en follow_ups, para no tener dos fuentes de verdad que se
+-- puedan desincronizar.
+-- ============================================================
+create table public.follow_up_logs (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  follow_up_id uuid not null references public.follow_ups (id) on delete cascade,
+  notes text not null,
+  created_at timestamptz not null default now()
+);
+
+create index follow_up_logs_follow_up_id_idx on public.follow_up_logs (follow_up_id);
+
+alter table public.follow_up_logs enable row level security;
+
+create policy "follow_up_logs_all_own_rows"
+  on public.follow_up_logs for all
+  to authenticated
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+```
+
 ### tsconfig.app.json
 
 ```json
@@ -11088,8 +11748,8 @@ export default defineConfig({
         name: 'Questly',
         short_name: 'Questly',
         description: 'Maneja tus misiones. Conquista el caos.',
-        theme_color: '#121212',
-        background_color: '#121212',
+        theme_color: '#0b1410',
+        background_color: '#0b1410',
         display: 'standalone',
         start_url: '/',
         icons: [

@@ -1,7 +1,7 @@
 import { formatDistanceToNow, isPast, isToday } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useNavigate } from 'react-router-dom'
-import { AlertTriangle, Flame, Sparkles, Star } from 'lucide-react'
+import { AlertTriangle, Castle, Check, Circle, Flame, Sparkles, Star, Trophy, Zap } from 'lucide-react'
 import {
   useStreak,
   useTodayQuests,
@@ -34,7 +34,7 @@ export function InboxTopBar({ onOpenTask }: { onOpenTask: (task: Task) => void }
     <div className="mb-8 flex flex-col gap-3">
       {/* Grid de Métricas Tácticas */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <div className="flex items-center justify-between rounded-xl border border-border bg-black/30 p-3">
+        <div className="flex items-center justify-between rounded-xl border border-border bg-shade/30 p-3">
           <span className="font-mono text-xs font-semibold uppercase tracking-tight text-fg-muted/60">Racha</span>
           <span className="flex items-center gap-1 font-display text-sm font-bold text-accent">
             <Flame className="h-4 w-4 animate-bounce text-accent" />
@@ -42,30 +42,36 @@ export function InboxTopBar({ onOpenTask }: { onOpenTask: (task: Task) => void }
           </span>
         </div>
 
-        <div className="flex items-center justify-between rounded-xl border border-border bg-black/30 p-3">
+        <div className="flex items-center justify-between rounded-xl border border-border bg-shade/30 p-3">
           <span className="font-mono text-xs font-semibold uppercase tracking-tight text-fg-muted/60">Progreso</span>
-          <span className="flex items-center gap-1 font-mono text-xs font-bold text-sky-400">
+          <span className="flex items-center gap-1 font-mono text-xs font-bold text-rune">
             <Sparkles className="h-3.5 w-3.5" />
             +{xpToday ?? 0} XP
           </span>
         </div>
 
-        <div className="flex items-center justify-between rounded-xl border border-border bg-black/30 p-3">
+        <div className="flex items-center justify-between rounded-xl border border-border bg-shade/30 p-3">
           <span className="font-mono text-xs font-semibold uppercase tracking-tight text-fg-muted/60">Triage</span>
-          <span className={`font-mono text-xs font-bold ${triageDone ? 'text-emerald-400' : 'text-fg-muted/50'}`}>
-            {triageDone ? '✓ COMPLETO' : '○ PENDIENTE'}
+          <span className={`font-mono text-xs font-bold ${triageDone ? 'text-accent' : 'text-fg-muted/50'}`}>
+            {triageDone ? (
+              <span className="inline-flex items-center gap-1"><Check className="h-3.5 w-3.5" aria-hidden="true" /> COMPLETO</span>
+            ) : (
+              <span className="inline-flex items-center gap-1"><Circle className="h-3.5 w-3.5" aria-hidden="true" /> PENDIENTE</span>
+            )}
           </span>
         </div>
 
         <button
           type="button"
-          onClick={() => navigate('/kanban')}
-          className="flex items-center justify-between rounded-xl border border-orange-500/30 bg-orange-500/10 p-3 transition-colors hover:bg-orange-500/20"
+          onClick={() => navigate(priorityTask && priorityTask.status !== 'done' ? '/kanban' : '/')}
+          className="flex items-center justify-between rounded-xl border border-gold/30 bg-gold/10 p-3 transition-colors hover:bg-gold/20"
         >
-          <span className="flex items-center gap-1 font-mono text-xs font-bold uppercase text-orange-400">
-            <Star className="h-3.5 w-3.5 fill-orange-400" /> Prioridad
+          <span className="flex items-center gap-1 font-mono text-xs font-bold uppercase text-gold">
+            <Star className="h-3.5 w-3.5 fill-gold" /> Prioridad
           </span>
-          <span className="font-mono text-[10px] font-bold underline text-fg-muted/80">VER GRIMORIO</span>
+          <span className="font-mono text-xs font-bold text-fg-muted/80">
+            {priorityTask && priorityTask.status !== 'done' ? 'DEFINIDA' : priorityTask ? 'CUMPLIDA' : 'ELEGIR EN COMBATE'}
+          </span>
         </button>
       </div>
 
@@ -82,7 +88,7 @@ export function InboxTopBar({ onOpenTask }: { onOpenTask: (task: Task) => void }
             {overdueCount > 0 && dueTodayCount > 0 && <span>·</span>}
             {dueTodayCount > 0 && <span>{dueTodayCount} vencen hoy</span>}
           </span>
-          <span className="font-mono text-[10px] font-bold underline">RESOLVER EN GRIMORIO →</span>
+          <span className="font-mono text-xs font-bold underline">RESOLVER EN GRIMORIO →</span>
         </button>
       )}
 
@@ -109,7 +115,7 @@ export function InboxEmptyState({ onOpenTask }: { onOpenTask: (task: Task) => vo
 
   return (
     <section className="rounded-3xl border-2 border-dashed border-border p-8 text-center bg-surface/20">
-      <div className="mb-4 text-5xl">🏰</div>
+      <Castle className="mx-auto mb-4 h-14 w-14 text-accent" aria-hidden="true" />
       <h2 className="mb-1 font-display text-xl font-bold uppercase tracking-wide text-accent">
         ¡Inbox limpio y maza lista para la batalla!
       </h2>
@@ -121,13 +127,14 @@ export function InboxEmptyState({ onOpenTask }: { onOpenTask: (task: Task) => vo
         {/* Última Victoria */}
         {lastTask && lastTask.completed_at && (
           <div className="rounded-2xl border border-border bg-surface p-4">
-            <span className="mb-2 block font-mono text-[10px] uppercase text-fg-muted/60">
-              Última Victoria 🏆
+            <span className="mb-2 block font-mono text-xs uppercase text-fg-muted/60">
+              <Trophy className="mr-1 inline h-3.5 w-3.5 text-gold" aria-hidden="true" />
+              Última Victoria
             </span>
             <p className="mb-1 truncate font-display text-sm font-bold text-fg">
               {lastTask.title}
             </p>
-            <p className="font-mono text-[10px] text-emerald-400">
+            <p className="font-mono text-xs text-accent">
               COMPLETADO {formatDistanceToNow(new Date(lastTask.completed_at), { addSuffix: true, locale: es }).toUpperCase()}
             </p>
           </div>
@@ -138,15 +145,16 @@ export function InboxEmptyState({ onOpenTask }: { onOpenTask: (task: Task) => vo
           <button
             type="button"
             onClick={() => onOpenTask(quickWin)}
-            className="group rounded-2xl border border-border bg-surface p-4 text-left transition-all hover:border-sky-400"
+            className="group rounded-2xl border border-border bg-surface p-4 text-left transition-all hover:border-rune"
           >
-            <span className="mb-2 block font-mono text-[10px] uppercase text-sky-400">
-              Quick Win ⚡
+            <span className="mb-2 block font-mono text-xs uppercase text-rune">
+              <Zap className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />
+              Quick Win
             </span>
-            <p className="mb-1 truncate font-display text-sm font-bold text-fg group-hover:text-sky-300">
+            <p className="mb-1 truncate font-display text-sm font-bold text-fg group-hover:text-rune">
               {quickWin.title}
             </p>
-            <p className="font-mono text-[10px] text-fg-muted/60">
+            <p className="font-mono text-xs text-fg-muted/60">
               GANA +10 XP RÁPIDO
             </p>
           </button>

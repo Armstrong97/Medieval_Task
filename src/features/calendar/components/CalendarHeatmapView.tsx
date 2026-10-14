@@ -1,3 +1,4 @@
+import { Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { addDays, format, isSameDay } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -27,13 +28,13 @@ export function CalendarHeatmapView({
       {/* Cuadrícula Astral Principal */}
       <div className="lg:col-span-2 space-y-6">
         <header className="mb-2">
-          <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-fg-muted/60">
+          <p className="font-mono text-xs uppercase tracking-[0.25em] text-fg-muted/60">
             Predicción de Carga y Misiones
           </p>
         </header>
 
         {/* Encabezados Día de la Semana */}
-        <div className="grid grid-cols-7 text-center font-mono text-[9px] uppercase tracking-widest text-fg-muted/50">
+        <div className="grid grid-cols-7 text-center font-mono text-xs uppercase tracking-widest text-fg-muted/50">
           <div>Lun</div>
           <div>Mar</div>
           <div>Mié</div>
@@ -76,7 +77,7 @@ export function CalendarHeatmapView({
                   )
                 })}
 
-                <span className="absolute bottom-1.5 right-2 font-mono text-[9px] text-fg-muted/40 font-bold">
+                <span className="absolute bottom-1.5 right-2 font-mono text-xs text-fg-muted/40 font-bold">
                   {format(dayDate, 'd')}
                 </span>
               </div>
@@ -92,7 +93,7 @@ export function CalendarHeatmapView({
                 className="h-2 w-2 rounded-full"
                 style={{ backgroundColor: cat.color_hex }}
               />
-              <span className="font-mono text-[9px] uppercase font-bold text-fg-muted/60">
+              <span className="font-mono text-xs uppercase font-bold text-fg-muted/60">
                 {cat.name}
               </span>
             </div>
@@ -106,7 +107,7 @@ export function CalendarHeatmapView({
           <h2 className="font-display text-lg font-bold text-accent uppercase tracking-wide">
             Jornada Escogida
           </h2>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-fg-muted/60 mt-0.5">
+          <p className="font-mono text-xs uppercase tracking-widest text-fg-muted/60 mt-0.5">
             {format(selectedDate, "EEEE d 'de' MMMM", { locale: es })}
           </p>
         </div>
@@ -114,7 +115,7 @@ export function CalendarHeatmapView({
         <div className="flex-1 overflow-y-auto space-y-3 pr-1">
           {selectedTasks.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center text-center opacity-40">
-              <span className="text-5xl mb-3">🔮</span>
+              <Sparkles className="mb-3 h-12 w-12" aria-hidden="true" />
               <p className="font-display text-xs uppercase tracking-widest">
                 Escudriña el tablero para ver el destino
               </p>
@@ -126,9 +127,9 @@ export function CalendarHeatmapView({
                 <div
                   key={task.id}
                   onClick={() => onOpenTask(task)}
-                  className="cursor-pointer rounded-2xl border border-border bg-black/30 p-3.5 transition-all hover:border-accent"
+                  className="cursor-pointer rounded-2xl border border-border bg-shade/30 p-3.5 transition-all hover:border-accent"
                 >
-                  <p className="font-mono text-[9px] uppercase text-fg-muted/50 mb-1">
+                  <p className="font-mono text-xs uppercase text-fg-muted/50 mb-1">
                     {format(new Date(task.deadline!), 'HH:mm')} HS
                   </p>
                   <h4 className="font-display text-sm font-bold text-fg">
@@ -136,7 +137,7 @@ export function CalendarHeatmapView({
                   </h4>
                   {category && (
                     <span
-                      className="mt-2 inline-block rounded px-2 py-0.5 font-mono text-[8px] font-black uppercase"
+                      className="mt-2 inline-block rounded px-2 py-0.5 font-mono text-xs font-black uppercase"
                       style={{
                         backgroundColor: `${category.color_hex}25`,
                         color: category.color_hex,

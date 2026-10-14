@@ -1,3 +1,4 @@
+import { Trophy } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useBossStats } from '@/features/projects/hooks'
 import { bossAvatarSrc } from '@/utils/rpgAssets'
@@ -35,7 +36,7 @@ export function ProjectBossCard({ project, category }: { project: Project; categ
       </div>
       {stats && (
         <span className="shrink-0 font-mono text-xs text-fg-muted">
-          {defeated ? '🏆' : `${stats.currentHp}/${stats.totalHp}`}
+          {defeated ? <Trophy className="h-4 w-4 text-gold" aria-label="Derrotado" /> : `${stats.currentHp}/${stats.totalHp}`}
         </span>
       )}
     </Link>

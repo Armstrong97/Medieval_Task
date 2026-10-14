@@ -1,10 +1,16 @@
-import { addDays, format } from 'date-fns'
+import { addDays, format, nextSaturday } from 'date-fns'
 
-function getQuickDeadlineIso(daysFromNow: number): string {
-  const d = addDays(new Date(), daysFromNow)
+function toLocalValue(d: Date): string {
   d.setHours(18, 0, 0, 0)
   return format(d, "yyyy-MM-dd'T'HH:mm")
 }
+
+const QUICK_DEADLINES = [
+  { label: 'Hoy', value: () => toLocalValue(new Date()) },
+  { label: 'Mañana', value: () => toLocalValue(addDays(new Date(), 1)) },
+  { label: 'Fin de semana', value: () => toLocalValue(nextSaturday(new Date())) },
+  { label: '+1 semana', value: () => toLocalValue(addDays(new Date(), 7)) },
+]
 
 export function InboxCardDeck({
   title,
@@ -26,30 +32,26 @@ export function InboxCardDeck({
         value={title}
         onChange={(e) => onTitleChange(e.target.value)}
         placeholder="Título de la misión..."
-        className="w-full border-b border-white/10 bg-transparent pb-2 font-display text-2xl font-bold text-accent outline-none transition-colors focus:border-accent"
+        className="w-full border-b border-glass/10 bg-transparent pb-2 font-display text-2xl font-bold text-accent outline-none transition-colors focus:border-accent"
       />
 
       {/* Shortcuts de Fecha / Deadline */}
       <div className="flex flex-wrap gap-2.5">
-        <button
-          type="button"
-          onClick={() => onDeadlineChange(getQuickDeadlineIso(0))}
-          className="rounded-lg border border-border bg-white/5 px-3.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-widest text-fg-muted transition-all hover:bg-white/10 hover:text-fg active:scale-95"
-        >
-          Hoy
-        </button>
-        <button
-          type="button"
-          onClick={() => onDeadlineChange(getQuickDeadlineIso(1))}
-          className="rounded-lg border border-border bg-white/5 px-3.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-widest text-fg-muted transition-all hover:bg-white/10 hover:text-fg active:scale-95"
-        >
-          Mañana
-        </button>
+        {QUICK_DEADLINES.map((opt) => (
+          <button
+            key={opt.label}
+            type="button"
+            onClick={() => onDeadlineChange(opt.value())}
+            className="rounded-lg border border-border bg-glass/5 px-3.5 py-2 font-mono text-xs font-bold uppercase tracking-widest text-fg-muted transition-all hover:bg-glass/10 hover:text-fg active:scale-95"
+          >
+            {opt.label}
+          </button>
+        ))}
         <input
           type="datetime-local"
           value={deadline}
           onChange={(e) => onDeadlineChange(e.target.value)}
-          className="rounded-lg border border-border bg-white/5 px-3 py-1.5 font-mono text-[10px] font-bold uppercase text-fg-muted outline-none focus:border-accent"
+          className="rounded-lg border border-border bg-glass/5 px-3 py-1.5 font-mono text-xs font-bold uppercase text-fg-muted outline-none focus:border-accent"
         />
       </div>
     </div>
