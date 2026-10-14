@@ -1,9 +1,8 @@
 import { formatDistanceToNow, isPast, isToday } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useNavigate } from 'react-router-dom'
-import { AlertTriangle, Castle, Check, Circle, Flame, Sparkles, Star, Trophy, Zap } from 'lucide-react'
+import { AlertTriangle, Castle, Check, Circle, Sparkles, Star, Trophy, Zap } from 'lucide-react'
 import {
-  useStreak,
   useTodayQuests,
   useXpEarnedToday,
 } from '@/features/gamification/hooks'
@@ -17,7 +16,6 @@ import type { Task } from '@/types/database.types'
 
 /** Franja Superior de Resumen (InboxTopBar) */
 export function InboxTopBar({ onOpenTask }: { onOpenTask: (task: Task) => void }) {
-  const { data: streak } = useStreak()
   const xpToday = useXpEarnedToday()
   const { data: todayQuests } = useTodayQuests()
   const navigate = useNavigate()
@@ -33,15 +31,7 @@ export function InboxTopBar({ onOpenTask }: { onOpenTask: (task: Task) => void }
   return (
     <div className="mb-8 flex flex-col gap-3">
       {/* Grid de Métricas Tácticas */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <div className="flex items-center justify-between rounded-xl border border-border bg-shade/30 p-3">
-          <span className="font-mono text-xs font-semibold uppercase tracking-tight text-fg-muted/60">Racha</span>
-          <span className="flex items-center gap-1 font-display text-sm font-bold text-accent">
-            <Flame className="h-4 w-4 animate-bounce text-accent" />
-            {streak?.current_streak_days ?? 0} DÍAS
-          </span>
-        </div>
-
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="flex items-center justify-between rounded-xl border border-border bg-shade/30 p-3">
           <span className="font-mono text-xs font-semibold uppercase tracking-tight text-fg-muted/60">Progreso</span>
           <span className="flex items-center gap-1 font-mono text-xs font-bold text-rune">

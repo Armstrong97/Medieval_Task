@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
-import { FolderOpen, Pencil } from 'lucide-react'
+import { ArchiveRestore, FolderOpen, Pencil } from 'lucide-react'
 import { showToast } from '@/components/ui/toast-store'
-import { useCategories, useCreateProject, useProjects, useUpdateProject } from '@/features/projects/hooks'
+import { useArchivedProjects, useCategories, useCreateProject, useProjects, useUpdateProject } from '@/features/projects/hooks'
 import { ProjectBossCard } from '@/features/projects/components/ProjectBossCard'
 import { BOSS_AVATARS } from '@/utils/rpgAssets'
 import type { Category, Project } from '@/types/database.types'
@@ -97,6 +97,9 @@ export function ProjectsPage() {
   const createProject = useCreateProject()
   const [name, setName] = useState('')
   const [categoryId, setCategoryId] = useState('')
+  const [showArchived, setShowArchived] = useState(false)
+  const { data: archived } = useArchivedProjects(showArchived)
+  const restore = useUpdateProject()
 
   function handleCreate(e: FormEvent) {
     e.preventDefault()
@@ -144,6 +147,43 @@ export function ProjectsPage() {
           ))}
         </ul>
       )}
+
+      <section className="mt-10">
+        <button
+          type="button"
+          onClick={() => setShowArchived((v) => !v)}
+          aria-expanded={showArchived}
+          className="rounded-lg px-3 py-2.5 font-mono text-xs font-bold uppercase tracking-widest text-fg-muted transition-colors hover:text-fg"
+        >
+          {showArchived ? 'Ocultar archivados' : 'Ver archivados'}
+        </button>
+        {showArchived && (
+          <ul className="mt-3 space-y-2">
+            {!archived || archived.length === 0 ? (
+              <li className="font-mono text-xs text-fg-muted">No hay proyectos archivados.</li>
+            ) : (
+              archived.map((project) => (
+                <li key={project.id} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface/50 px-4 py-3">
+                  <span className="min-w-0 truncate text-sm text-fg-muted">{project.name}</span>
+                  <button
+                    type="button"
+                    disabled={restore.isPending}
+                    onClick={() =>
+                      restore.mutate(
+                        { id: project.id, patch: { status: 'active' } },
+                        { onSuccess: () => showToast({ title: 'Proyecto restaurado', detail: project.name }) },
+                      )
+                    }
+                    className="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2.5 font-mono text-xs font-bold uppercase tracking-widest text-accent hover:bg-accent/10"
+                  >
+                    <ArchiveRestore className="h-4 w-4" aria-hidden="true" /> Restaurar
+                  </button>
+                </li>
+              ))
+            )}
+          </ul>
+        )}
+      </section>
     </div>
   )
 }

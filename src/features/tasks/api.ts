@@ -27,6 +27,7 @@ export type TaskPatch = Partial<
     | 'status'
     | 'size'
     | 'hud_slot'
+    | 'position'
   >
 >
 
@@ -43,10 +44,15 @@ export async function fetchTasksByIds(ids: string[]): Promise<Task[]> {
   return data
 }
 
+// Solo misiones de nivel superior. Los micro-pasos heredan el deadline de su
+// misión y, si se completa la misión con pasos sin tildar, quedan 'pending' con
+// una fecha ya pasada: contarlos inflaba "vencidas" (y generaba avisos de
+// micro-pasos). Mismo criterio que la Edge Function de notificaciones.
 export async function fetchActiveTasksWithDeadline(): Promise<Task[]> {
   const { data, error } = await supabase
     .from('tasks')
     .select('*')
+    .is('parent_task_id', null)
     .not('status', 'in', '(done,follow_up)')
     .not('deadline', 'is', null)
   if (error) throw error
@@ -120,15 +126,27 @@ export async function fetchSubtasks(parentTaskId: string): Promise<Task[]> {
     .from('tasks')
     .select('*')
     .eq('parent_task_id', parentTaskId)
-    .order('deadline', { ascending: true, nullsFirst: false })
+    .order('position', { ascending: true, nullsFirst: false })
+    .order('created_at', { ascending: true })
   if (error) throw error
   return data
+}
+
+// Misiones de nivel superior, hechas o pendientes (las hechas se muestran
+// tachadas en el calendario). Excluye las que están en seguimiento (liberadas
+// de la vista activa, igual que en el Grimorio y las notificaciones) y los
+// micro-pasos, que heredan el deadline de su misión y la duplicarían.
+// Orden manual de los micro-pasos: la posición es el índice en la lista dada.
+export async function reorderSubtasks(orderedIds: string[]): Promise<void> {
+  await Promise.all(orderedIds.map((id, index) => updateTask(id, { position: index + 1 })))
 }
 
 export async function fetchTasksInRange(startIso: string, endIso: string): Promise<Task[]> {
   const { data, error } = await supabase
     .from('tasks')
     .select('*')
+    .is('parent_task_id', null)
+    .neq('status', 'follow_up')
     .gte('deadline', startIso)
     .lt('deadline', endIso)
     .order('deadline', { ascending: true })
@@ -151,6 +169,20 @@ export async function updateTask(id: string, patch: TaskPatch): Promise<Task> {
     .single()
   if (error) throw error
   return data
+}
+
+// Mueve el deadline de una misión. El trigger tasks_before_write prohíbe que el
+// padre quede antes que alguna subtarea, así que primero se recortan al nuevo
+// deadline las subtareas que lo superen (los micro-pasos heredan la fecha del
+// padre); al mover hacia adelante ese UPDATE no toca nada.
+export async function moveTaskDeadline(taskId: string, deadlineIso: string): Promise<void> {
+  const { error } = await supabase
+    .from('tasks')
+    .update({ deadline: deadlineIso })
+    .eq('parent_task_id', taskId)
+    .gt('deadline', deadlineIso)
+  if (error) throw error
+  await updateTask(taskId, { deadline: deadlineIso })
 }
 
 export async function deleteTask(id: string): Promise<void> {

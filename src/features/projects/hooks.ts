@@ -5,6 +5,7 @@ import {
   computeBossStats,
   createProject,
   fetchActiveProjects,
+  fetchArchivedProjects,
   fetchCategories,
   fetchProjectById,
   updateProject,
@@ -23,6 +24,14 @@ export function useProjects() {
   return useQuery({
     queryKey: ['projects'],
     queryFn: fetchActiveProjects,
+  })
+}
+
+export function useArchivedProjects(enabled: boolean) {
+  return useQuery({
+    queryKey: ['projects', 'archived'],
+    queryFn: fetchArchivedProjects,
+    enabled,
   })
 }
 

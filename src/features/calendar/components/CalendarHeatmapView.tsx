@@ -1,8 +1,10 @@
-import { Sparkles } from 'lucide-react'
+import { Plus, Sparkles } from 'lucide-react'
 import { useState } from 'react'
-import { addDays, format, isSameDay } from 'date-fns'
+import { addDays, format, isSameDay, startOfDay } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useCategories } from '@/features/projects/hooks'
+import { CalendarQuickAdd } from '@/features/calendar/components/CalendarQuickAdd'
+import { RescheduleButtons } from '@/features/tasks/components/RescheduleButtons'
 import type { Task } from '@/types/database.types'
 
 export function CalendarHeatmapView({
@@ -14,9 +16,10 @@ export function CalendarHeatmapView({
 }) {
   const { data: categories } = useCategories()
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
+  const [adding, setAdding] = useState(false)
 
   // Mostrar 21 días (3 semanas)
-  const startDate = new Date()
+  const startDate = startOfDay(new Date())
   const days = Array.from({ length: 21 }, (_, i) => addDays(startDate, i))
 
   const selectedTasks = tasks
@@ -50,7 +53,7 @@ export function CalendarHeatmapView({
             const dayTasks = tasks.filter(
               (t) => t.deadline && isSameDay(new Date(t.deadline), dayDate),
             )
-            const count = dayTasks.length
+            const count = dayTasks.filter((t) => t.status !== 'done').length
             const isSelected = isSameDay(dayDate, selectedDate)
 
             const heatClass =
@@ -58,7 +61,7 @@ export function CalendarHeatmapView({
 
             return (
               <div
-                key={dayDate.toISOString()}
+                key={format(dayDate, 'yyyy-MM-dd')}
                 onClick={() => setSelectedDate(dayDate)}
                 className={`grid-day-cell rounded-2xl p-2 flex flex-wrap gap-1 content-start ${heatClass} ${
                   isSelected ? 'selected' : ''
@@ -72,7 +75,7 @@ export function CalendarHeatmapView({
                     <div
                       key={t.id}
                       className="gem-rune"
-                      style={{ backgroundColor: gemColor, color: gemColor }}
+                      style={{ backgroundColor: gemColor, color: gemColor, opacity: t.status === 'done' ? 0.3 : 1 }}
                     />
                   )
                 })}
@@ -112,6 +115,14 @@ export function CalendarHeatmapView({
           </p>
         </div>
 
+        <button
+          type="button"
+          onClick={() => setAdding(true)}
+          className="mb-3 flex items-center justify-center gap-2 rounded-xl border border-dashed border-accent/50 py-3 font-mono text-xs font-bold uppercase tracking-widest text-accent transition-colors hover:bg-accent/10"
+        >
+          <Plus className="h-4 w-4" aria-hidden="true" /> Añadir misión a este día
+        </button>
+
         <div className="flex-1 overflow-y-auto space-y-3 pr-1">
           {selectedTasks.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center text-center opacity-40">
@@ -127,12 +138,18 @@ export function CalendarHeatmapView({
                 <div
                   key={task.id}
                   onClick={() => onOpenTask(task)}
-                  className="cursor-pointer rounded-2xl border border-border bg-shade/30 p-3.5 transition-all hover:border-accent"
+                  className={`cursor-pointer rounded-2xl border border-border bg-shade/30 p-3.5 transition-all hover:border-accent ${
+                    task.status === 'done' ? 'opacity-60' : ''
+                  }`}
                 >
                   <p className="font-mono text-xs uppercase text-fg-muted/50 mb-1">
                     {format(new Date(task.deadline!), 'HH:mm')} HS
                   </p>
-                  <h4 className="font-display text-sm font-bold text-fg">
+                  <h4
+                    className={`font-display text-sm font-bold ${
+                      task.status === 'done' ? 'text-fg-muted line-through' : 'text-fg'
+                    }`}
+                  >
                     {task.title}
                   </h4>
                   {category && (
@@ -146,12 +163,19 @@ export function CalendarHeatmapView({
                       {category.name}
                     </span>
                   )}
+                  {task.status !== 'done' && (
+                    <div className="mt-2.5">
+                      <RescheduleButtons task={task} mode="from-deadline" label="Mover:" />
+                    </div>
+                  )}
                 </div>
               )
             })
           )}
         </div>
       </aside>
+
+      {adding && <CalendarQuickAdd day={selectedDate} onClose={() => setAdding(false)} />}
     </div>
   )
 }

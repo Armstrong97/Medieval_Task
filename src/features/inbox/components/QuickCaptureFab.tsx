@@ -42,7 +42,7 @@ export function QuickCaptureFab() {
 
   return (
     <div
-      className="fixed right-4 z-40 flex flex-col items-end gap-3 bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] md:bottom-4"
+      className="fixed right-4 lg:right-[calc(var(--rail-w,4rem)+1rem)] z-40 flex flex-col items-end gap-3 bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] md:bottom-4"
     >
       {open && (
         <form

@@ -1,4 +1,4 @@
-import { Check, Landmark, Shield, Trophy } from 'lucide-react'
+import { Check, Landmark, Shield, Trophy, Hourglass } from 'lucide-react'
 import { CLASS_ICONS } from '@/utils/classIcons'
 import { useState } from 'react'
 import { useCategories } from '@/features/projects/hooks'
@@ -72,7 +72,7 @@ export function GrimorioTabsView({
         {/* Pendientes */}
         <section className="space-y-4">
           <div className="flex items-center gap-2.5 border-b border-border pb-2.5">
-            <span className="text-xl">⏳</span>
+            <Hourglass className="h-5 w-5 text-accent" aria-hidden="true" />
             <h2 className="font-display text-base font-bold uppercase tracking-widest text-accent">
               Misiones Pendientes
             </h2>

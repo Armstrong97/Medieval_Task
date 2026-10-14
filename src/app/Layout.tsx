@@ -12,6 +12,7 @@ import { formatClock, useFocusClock } from '@/features/tasks/useFocusClock'
 import { ProfileMenu } from '@/features/auth/components/ProfileMenu'
 import { AmbientBackground } from '@/components/ui/AmbientBackground'
 import { BrandMark } from '@/components/ui/BrandMark'
+import { StatusRail, StatusSummaryCard } from '@/app/StatusRail'
 import { Toaster } from '@/components/ui/Toaster'
 import { QuickCaptureFab } from '@/features/inbox/components/QuickCaptureFab'
 import { AchievementWatcher } from '@/features/gamification/components/AchievementWatcher'
@@ -22,28 +23,31 @@ interface NavItem {
   label: string
   iconKey?: NavIconKey
   Icon?: LucideIcon
+  hint: string
   end?: boolean
 }
 
 const navItems: NavItem[] = [
-  { to: '/', label: 'Combate', iconKey: 'combat', end: true },
-  { to: '/inbox', label: 'Inbox', iconKey: 'inbox' },
-  { to: '/triage', label: 'Estrategia', iconKey: 'strategy' },
-  { to: '/kanban', label: 'Grimorio', iconKey: 'grimoire' },
-  { to: '/calendario', label: 'Calendario', iconKey: 'calendar' },
-  { to: '/progreso', label: 'Progreso', iconKey: 'progress' },
-  { to: '/follow-ups', label: 'Follow-ups', iconKey: 'followups' },
-  { to: '/proyectos', label: 'Proyectos', Icon: FolderOpen },
+  { to: '/', label: 'Combate', hint: 'Tus 3 misiones activas', iconKey: 'combat', end: true },
+  { to: '/inbox', label: 'Inbox', hint: 'Captura rápida de ideas', iconKey: 'inbox' },
+  { to: '/triage', label: 'Estrategia', hint: 'Ordena lo capturado', iconKey: 'strategy' },
+  { to: '/kanban', label: 'Grimorio', hint: 'Todas tus misiones', iconKey: 'grimoire' },
+  { to: '/calendario', label: 'Calendario', hint: 'Qué vence y cuándo', iconKey: 'calendar' },
+  { to: '/progreso', label: 'Progreso', hint: 'XP, clases y logros', iconKey: 'progress' },
+  { to: '/follow-ups', label: 'Follow-ups', hint: 'Esperando a otros', iconKey: 'followups' },
+  { to: '/proyectos', label: 'Proyectos', hint: 'Tus jefes de mazmorra', Icon: FolderOpen },
 ]
 
 function StreakIndicator() {
   const { data: streak } = useStreak()
-  if (!streak) return null
+  const { pathname } = useLocation()
+  // Combate y Progreso ya muestran la racha en grande: evitar repetirla.
+  if (!streak || pathname === '/' || pathname.startsWith('/progreso')) return null
 
   return (
     <NavLink
       to="/progreso"
-      className="hidden items-center gap-2 rounded-full border border-border bg-surface-2/80 px-3 py-1 font-mono text-xs text-fg-muted sm:flex"
+      className="hidden items-center gap-2 rounded-full border border-border bg-surface-2/80 px-3 py-1 font-mono text-xs text-fg-muted sm:flex lg:hidden"
     >
       <span className="flex items-center gap-1 font-bold text-accent">
         <Flame className="h-3.5 w-3.5 text-accent animate-pulse" />
@@ -98,6 +102,24 @@ function CountBadge({ count }: { count: number }) {
 
 export function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [railPinned, setRailPinned] = useState(() => {
+    try {
+      return localStorage.getItem('questly_status_rail_pinned') === 'true'
+    } catch {
+      return false
+    }
+  })
+
+  function toggleRailPinned() {
+    setRailPinned((prev) => {
+      try {
+        localStorage.setItem('questly_status_rail_pinned', String(!prev))
+      } catch {
+        // sin localStorage: solo no se recuerda
+      }
+      return !prev
+    })
+  }
   const { data: inboxItems } = useInboxTasks()
   const pendingTriage = inboxItems?.length ?? 0
   const location = useLocation()
@@ -122,7 +144,11 @@ export function Layout() {
   return (
     <FocusSessionProvider>
     <FocusFloatProvider>
-      <div className="min-h-dvh text-fg">
+      {/* --rail-w: ancho de la barra de estado; el contenido y el botón de captura lo respetan. */}
+      <div
+        className="min-h-dvh text-fg"
+        style={{ '--rail-w': railPinned ? '14rem' : '4rem' } as React.CSSProperties}
+      >
         <AmbientBackground />
         <AchievementWatcher />
         <Toaster />
@@ -174,7 +200,7 @@ export function Layout() {
 
         {/* Sidebar Lateral Flotante */}
         <aside
-          className={`sidebar-panel fixed top-0 left-0 z-50 flex h-full flex-col pt-20 pb-6 transition-transform duration-300 ${
+          className={`sidebar-panel fixed top-0 left-0 z-50 flex h-full flex-col overflow-y-auto pt-20 pb-6 transition-transform duration-300 ${
             sidebarOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
@@ -206,13 +232,20 @@ export function Layout() {
                   className="h-6 w-6 object-contain drop-shadow-[0_0_4px_rgb(var(--shade-rgb)/0.5)]"
                 />
                 ) : null}
-                <span className="nav-label font-display text-xs tracking-wider uppercase">
-                  {item.label}
+                <span className="flex min-w-0 flex-col">
+                  <span className="nav-label font-display text-xs tracking-wider uppercase">
+                    {item.label}
+                  </span>
+                  <span className="font-mono text-xs font-normal normal-case tracking-normal text-fg-muted">
+                    {item.hint}
+                  </span>
                 </span>
                 {item.to === '/triage' && <CountBadge count={pendingTriage} />}
               </NavLink>
             ))}
           </nav>
+
+          <StatusSummaryCard onNavigate={() => setSidebarOpen(false)} />
 
           <div className="mt-auto border-t border-border/40 px-6 pt-4">
             <p className="font-mono text-xs tracking-tight uppercase text-fg-muted">
@@ -222,7 +255,9 @@ export function Layout() {
         </aside>
 
         {/* Contenido Principal con Offset para el Header */}
-        <main className="pb-24 pt-16 md:pb-0">
+        <StatusRail pinned={railPinned} onTogglePinned={toggleRailPinned} />
+
+        <main className="pb-24 pt-16 transition-[padding] duration-150 motion-reduce:transition-none md:pb-0 lg:pr-[var(--rail-w)]">
           <Outlet />
         </main>
 

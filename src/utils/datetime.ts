@@ -1,4 +1,4 @@
-import { addDays, format, isPast } from 'date-fns'
+import { addDays, format, isPast, isSameDay } from 'date-fns'
 
 export function toDatetimeLocalValue(iso: string | null): string {
   if (!iso) return ''
@@ -19,4 +19,19 @@ export function rescheduleIso(daysFromNow: number, previousIso: string | null): 
 
 export function isOverdue(task: { deadline: string | null; status: string }): boolean {
   return task.status !== 'done' && !!task.deadline && isPast(new Date(task.deadline))
+}
+
+// Mueve una fecha límite N días respecto a ella misma (misma hora).
+export function shiftDeadlineIso(previousIso: string, days: number): string {
+  return addDays(new Date(previousIso), days).toISOString()
+}
+
+// Misma hora que tenía (18:00 si no tenía) pero en otro día. Si cae hoy y esa
+// hora ya pasó, 23:00 para que no nazca "por rescatar".
+export function deadlineOnDay(day: Date, previousIso: string | null): string {
+  const d = new Date(day)
+  const prev = previousIso ? new Date(previousIso) : null
+  d.setHours(prev ? prev.getHours() : 18, prev ? prev.getMinutes() : 0, 0, 0)
+  if (d.getTime() <= Date.now() && isSameDay(d, new Date())) d.setHours(23, 0, 0, 0)
+  return d.toISOString()
 }

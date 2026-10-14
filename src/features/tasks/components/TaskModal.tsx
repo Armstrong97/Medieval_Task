@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { X, Trash2, Swords, Check, Undo2, Link2, ChevronRight, ScrollText, Star } from 'lucide-react'
+import { ChevronDown, ChevronUp, GripVertical, X, Trash2, Swords, Check, Undo2, Link2, ChevronRight, ScrollText, Star } from 'lucide-react'
 import { addDays } from 'date-fns'
 import { useCategories, useProjects } from '@/features/projects/hooks'
 import {
@@ -7,6 +7,7 @@ import {
   useCreateTask,
   useDeleteTask,
   useReopenTask,
+  useReorderSubtasks,
   useSubtasks,
   useUpdateTask,
 } from '@/features/tasks/hooks'
@@ -52,6 +53,9 @@ export function TaskModal({
 
   // Subtareas de la misión (micro-pasos)
   const { data: subtasks } = useSubtasks(task?.id ?? null)
+  const reorderSubtasks = useReorderSubtasks(task?.id ?? '')
+  const [dragSubId, setDragSubId] = useState<string | null>(null)
+  const [overSubId, setOverSubId] = useState<string | null>(null)
 
   // Prioridad del día
   const { data: todayQuests } = useTodayQuests()
@@ -104,7 +108,8 @@ export function TaskModal({
 
   function handleComplete() {
     if (!task) return
-    completeTask.mutate({ id: task.id, project_id: task.project_id })
+    // La misión ya está hecha: se cierra el editor (el aviso de XP confirma el logro).
+    completeTask.mutate({ id: task.id, project_id: task.project_id }, { onSuccess: onClose })
   }
 
   function handleReopen() {
@@ -128,6 +133,28 @@ export function TaskModal({
     if (!task || !existingFollowUp) return
     deleteFollowUp.mutate(existingFollowUp.id)
     reopenTask.mutate({ id: task.id, project_id: task.project_id })
+  }
+
+  // Los micro-pasos son un paso a paso: el orden lo decide el usuario.
+  function moveSubtask(index: number, delta: -1 | 1) {
+    if (!subtasks || !task) return
+    const target = index + delta
+    if (target < 0 || target >= subtasks.length) return
+    const ids = subtasks.map((s) => s.id)
+    ;[ids[index], ids[target]] = [ids[target], ids[index]]
+    reorderSubtasks.mutate(ids)
+  }
+
+  // Arrastrar un micro-paso sobre otro lo deja en esa posición (arrastre nativo,
+  // solo mouse; en celular quedan las flechas).
+  function dropSubtask(targetId: string) {
+    const fromId = dragSubId
+    setDragSubId(null)
+    setOverSubId(null)
+    if (!subtasks || !task || !fromId || fromId === targetId) return
+    const ids = subtasks.map((s) => s.id)
+    ids.splice(ids.indexOf(targetId), 0, ids.splice(ids.indexOf(fromId), 1)[0])
+    reorderSubtasks.mutate(ids)
   }
 
   function handleAddSubtask() {
@@ -452,8 +479,38 @@ export function TaskModal({
 
               {/* Lista de Submisiones Existentes */}
               <div className="space-y-2 pt-1">
-                {subtasks?.map((st) => (
-                  <div key={st.id} className="flex items-center justify-between gap-3">
+                {subtasks?.map((st, index) => (
+                  <div
+                    key={st.id}
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.effectAllowed = 'move'
+                      e.dataTransfer.setData('text/plain', st.id)
+                      setDragSubId(st.id)
+                    }}
+                    onDragOver={(e) => {
+                      if (!dragSubId) return
+                      e.preventDefault()
+                      e.dataTransfer.dropEffect = 'move'
+                      setOverSubId(st.id)
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault()
+                      dropSubtask(st.id)
+                    }}
+                    onDragEnd={() => {
+                      setDragSubId(null)
+                      setOverSubId(null)
+                    }}
+                    className={`flex items-center justify-between gap-2 rounded ${
+                      dragSubId === st.id ? 'opacity-40' : ''
+                    } ${overSubId === st.id && dragSubId !== st.id ? 'border-t-2 border-rune' : 'border-t-2 border-transparent'}`}
+                  >
+                    <GripVertical
+                      className="h-4 w-4 shrink-0 cursor-grab text-fg-muted active:cursor-grabbing"
+                      aria-hidden="true"
+                    />
+                    <span className="w-4 shrink-0 text-right font-mono text-xs text-fg-muted">{index + 1}.</span>
                     <button
                       type="button"
                       onClick={() =>
@@ -475,6 +532,24 @@ export function TaskModal({
                     >
                       {st.title}
                     </span>
+                    <button
+                      type="button"
+                      onClick={() => moveSubtask(index, -1)}
+                      disabled={index === 0}
+                      aria-label={`Subir micro-paso: ${st.title}`}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded text-fg-muted transition-colors hover:text-fg disabled:opacity-25"
+                    >
+                      <ChevronUp className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveSubtask(index, 1)}
+                      disabled={index === subtasks.length - 1}
+                      aria-label={`Bajar micro-paso: ${st.title}`}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded text-fg-muted transition-colors hover:text-fg disabled:opacity-25"
+                    >
+                      <ChevronDown className="h-4 w-4" aria-hidden="true" />
+                    </button>
                     <button
                       type="button"
                       onClick={() => deleteTask.mutate(st.id)}

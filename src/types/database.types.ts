@@ -98,6 +98,7 @@ export interface Database {
           xp_reward: number
           rescue_bonus: number
           hud_slot: number | null
+          position: number | null
           created_at: string
           completed_at: string | null
         }
@@ -114,6 +115,7 @@ export interface Database {
           status?: TaskStatus
           size?: TaskSize | null
           hud_slot?: number | null
+          position?: number | null
           created_at?: string
           completed_at?: string | null
         }

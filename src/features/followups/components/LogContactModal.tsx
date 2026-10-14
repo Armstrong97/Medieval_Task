@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, PartyPopper } from 'lucide-react'
+import { X, PartyPopper, Hourglass } from 'lucide-react'
 import { useLogFollowUpContact, useResolveFollowUp } from '@/features/followups/hooks'
 import type { FollowUp } from '@/types/database.types'
 
@@ -114,7 +114,7 @@ export function LogContactModal({
             onClick={handleSaveWait}
             className="flex-1 bg-parchment-ink py-4 font-display text-sm font-black uppercase tracking-widest text-parchment transition-all hover:brightness-125 disabled:opacity-50"
           >
-            Sigue en Espera ⏳
+            Sigue en Espera <Hourglass className="ml-1.5 inline h-4 w-4" aria-hidden="true" />
           </button>
           <button
             type="button"

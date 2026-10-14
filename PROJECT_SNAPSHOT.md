@@ -18,7 +18,9 @@
 │   │   ├── ProtectedRoute.tsx
 │   │   ├── providers.tsx
 │   │   ├── PwaUpdatePrompt.tsx
-│   │   └── router.tsx
+│   │   ├── router.tsx
+│   │   ├── statusItems.ts
+│   │   └── StatusRail.tsx
 │   ├── App.tsx
 │   ├── components
 │   │   └── ui
@@ -46,6 +48,7 @@
 │   │   │   └── components
 │   │   │       ├── CalendarHeatmapView.tsx
 │   │   │       ├── CalendarPage.tsx
+│   │   │       ├── CalendarQuickAdd.tsx
 │   │   │       └── CalendarTimelineView.tsx
 │   │   ├── followups
 │   │   │   ├── api.ts
@@ -138,7 +141,9 @@
 │       ├── 20260726000001_fase7_battle_hud_slots.sql
 │       ├── 20260726000002_fase7_dungeon_bosses.sql
 │       ├── 20260727000001_fase8_followup_logs.sql
-│       └── 20261013000001_fase9_rescate_avisos_triage.sql
+│       ├── 20261013000001_fase9_rescate_avisos_triage.sql
+│       ├── 20261014000001_fase9_orden_subtareas.sql
+│       └── 20261014000002_limpiar_avisos_microtareas.sql
 ├── tsconfig.app.json
 ├── tsconfig.json
 ├── tsconfig.node.json
@@ -470,6 +475,7 @@ import { formatClock, useFocusClock } from '@/features/tasks/useFocusClock'
 import { ProfileMenu } from '@/features/auth/components/ProfileMenu'
 import { AmbientBackground } from '@/components/ui/AmbientBackground'
 import { BrandMark } from '@/components/ui/BrandMark'
+import { StatusRail, StatusSummaryCard } from '@/app/StatusRail'
 import { Toaster } from '@/components/ui/Toaster'
 import { QuickCaptureFab } from '@/features/inbox/components/QuickCaptureFab'
 import { AchievementWatcher } from '@/features/gamification/components/AchievementWatcher'
@@ -480,28 +486,31 @@ interface NavItem {
   label: string
   iconKey?: NavIconKey
   Icon?: LucideIcon
+  hint: string
   end?: boolean
 }
 
 const navItems: NavItem[] = [
-  { to: '/', label: 'Combate', iconKey: 'combat', end: true },
-  { to: '/inbox', label: 'Inbox', iconKey: 'inbox' },
-  { to: '/triage', label: 'Estrategia', iconKey: 'strategy' },
-  { to: '/kanban', label: 'Grimorio', iconKey: 'grimoire' },
-  { to: '/calendario', label: 'Calendario', iconKey: 'calendar' },
-  { to: '/progreso', label: 'Progreso', iconKey: 'progress' },
-  { to: '/follow-ups', label: 'Follow-ups', iconKey: 'followups' },
-  { to: '/proyectos', label: 'Proyectos', Icon: FolderOpen },
+  { to: '/', label: 'Combate', hint: 'Tus 3 misiones activas', iconKey: 'combat', end: true },
+  { to: '/inbox', label: 'Inbox', hint: 'Captura rápida de ideas', iconKey: 'inbox' },
+  { to: '/triage', label: 'Estrategia', hint: 'Ordena lo capturado', iconKey: 'strategy' },
+  { to: '/kanban', label: 'Grimorio', hint: 'Todas tus misiones', iconKey: 'grimoire' },
+  { to: '/calendario', label: 'Calendario', hint: 'Qué vence y cuándo', iconKey: 'calendar' },
+  { to: '/progreso', label: 'Progreso', hint: 'XP, clases y logros', iconKey: 'progress' },
+  { to: '/follow-ups', label: 'Follow-ups', hint: 'Esperando a otros', iconKey: 'followups' },
+  { to: '/proyectos', label: 'Proyectos', hint: 'Tus jefes de mazmorra', Icon: FolderOpen },
 ]
 
 function StreakIndicator() {
   const { data: streak } = useStreak()
-  if (!streak) return null
+  const { pathname } = useLocation()
+  // Combate y Progreso ya muestran la racha en grande: evitar repetirla.
+  if (!streak || pathname === '/' || pathname.startsWith('/progreso')) return null
 
   return (
     <NavLink
       to="/progreso"
-      className="hidden items-center gap-2 rounded-full border border-border bg-surface-2/80 px-3 py-1 font-mono text-xs text-fg-muted sm:flex"
+      className="hidden items-center gap-2 rounded-full border border-border bg-surface-2/80 px-3 py-1 font-mono text-xs text-fg-muted sm:flex lg:hidden"
     >
       <span className="flex items-center gap-1 font-bold text-accent">
         <Flame className="h-3.5 w-3.5 text-accent animate-pulse" />
@@ -556,6 +565,24 @@ function CountBadge({ count }: { count: number }) {
 
 export function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [railPinned, setRailPinned] = useState(() => {
+    try {
+      return localStorage.getItem('questly_status_rail_pinned') === 'true'
+    } catch {
+      return false
+    }
+  })
+
+  function toggleRailPinned() {
+    setRailPinned((prev) => {
+      try {
+        localStorage.setItem('questly_status_rail_pinned', String(!prev))
+      } catch {
+        // sin localStorage: solo no se recuerda
+      }
+      return !prev
+    })
+  }
   const { data: inboxItems } = useInboxTasks()
   const pendingTriage = inboxItems?.length ?? 0
   const location = useLocation()
@@ -580,7 +607,11 @@ export function Layout() {
   return (
     <FocusSessionProvider>
     <FocusFloatProvider>
-      <div className="min-h-dvh text-fg">
+      {/* --rail-w: ancho de la barra de estado; el contenido y el botón de captura lo respetan. */}
+      <div
+        className="min-h-dvh text-fg"
+        style={{ '--rail-w': railPinned ? '14rem' : '4rem' } as React.CSSProperties}
+      >
         <AmbientBackground />
         <AchievementWatcher />
         <Toaster />
@@ -632,7 +663,7 @@ export function Layout() {
 
         {/* Sidebar Lateral Flotante */}
         <aside
-          className={`sidebar-panel fixed top-0 left-0 z-50 flex h-full flex-col pt-20 pb-6 transition-transform duration-300 ${
+          className={`sidebar-panel fixed top-0 left-0 z-50 flex h-full flex-col overflow-y-auto pt-20 pb-6 transition-transform duration-300 ${
             sidebarOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
@@ -664,13 +695,20 @@ export function Layout() {
                   className="h-6 w-6 object-contain drop-shadow-[0_0_4px_rgb(var(--shade-rgb)/0.5)]"
                 />
                 ) : null}
-                <span className="nav-label font-display text-xs tracking-wider uppercase">
-                  {item.label}
+                <span className="flex min-w-0 flex-col">
+                  <span className="nav-label font-display text-xs tracking-wider uppercase">
+                    {item.label}
+                  </span>
+                  <span className="font-mono text-xs font-normal normal-case tracking-normal text-fg-muted">
+                    {item.hint}
+                  </span>
                 </span>
                 {item.to === '/triage' && <CountBadge count={pendingTriage} />}
               </NavLink>
             ))}
           </nav>
+
+          <StatusSummaryCard onNavigate={() => setSidebarOpen(false)} />
 
           <div className="mt-auto border-t border-border/40 px-6 pt-4">
             <p className="font-mono text-xs tracking-tight uppercase text-fg-muted">
@@ -680,7 +718,9 @@ export function Layout() {
         </aside>
 
         {/* Contenido Principal con Offset para el Header */}
-        <main className="pb-24 pt-16 md:pb-0">
+        <StatusRail pinned={railPinned} onTogglePinned={toggleRailPinned} />
+
+        <main className="pb-24 pt-16 transition-[padding] duration-150 motion-reduce:transition-none md:pb-0 lg:pr-[var(--rail-w)]">
           <Outlet />
         </main>
 
@@ -885,6 +925,226 @@ export const router = createBrowserRouter([
     ],
   },
 ])
+```
+
+### src/app/statusItems.ts
+
+```typescript
+import { isPast } from 'date-fns'
+import { Inbox, LifeBuoy, Link2, Sparkles, Swords, type LucideIcon } from 'lucide-react'
+import { useHudTasks } from '@/features/battle-hud/hooks'
+import { useActiveFollowUps } from '@/features/followups/hooks'
+import { useStreak, useXpEarnedToday } from '@/features/gamification/hooks'
+import { useActiveTasksWithDeadline, useInboxTasks } from '@/features/tasks/hooks'
+
+const HUD_SLOTS = 3
+
+export type Tone = 'calm' | 'neutral' | 'attention' | 'warn' | 'reward'
+
+export const TONE_CLASS: Record<Tone, string> = {
+  calm: 'text-fg-muted',
+  neutral: 'text-fg',
+  attention: 'text-accent',
+  warn: 'text-warn-fg',
+  reward: 'text-gold',
+}
+
+export interface RailItem {
+  key: string
+  to: string
+  state?: unknown
+  icon: LucideIcon
+  value: string
+  tone: Tone
+  label: string
+  detail: string
+}
+
+
+/** Los cinco indicadores de estado (compartidos por la barra lateral y la tarjeta del menú móvil). */
+export function useStatusItems(): { items: RailItem[]; allClear: boolean } {
+  const { data: hudTasks } = useHudTasks()
+  const { data: activeDeadlines } = useActiveTasksWithDeadline()
+  const { data: inbox } = useInboxTasks()
+  const { data: followUps } = useActiveFollowUps()
+  const { data: streak } = useStreak()
+  const xpToday = useXpEarnedToday()
+
+  const inBattle = hudTasks?.length ?? 0
+  const overdue = activeDeadlines?.filter((t) => t.deadline && isPast(new Date(t.deadline))).length ?? 0
+  const unsorted = inbox?.length ?? 0
+  const followTotal = followUps?.length ?? 0
+  const followDue = followUps?.filter((f) => isPast(new Date(f.next_reminder_at))).length ?? 0
+  const streakDays = streak?.current_streak_days ?? 0
+
+  const items: RailItem[] = [
+    {
+      key: 'battle',
+      to: '/',
+      icon: Swords,
+      value: `${inBattle}/${HUD_SLOTS}`,
+      tone: inBattle > 0 ? 'neutral' : 'calm',
+      label: 'En batalla',
+      detail: 'slots ocupados',
+    },
+    {
+      key: 'rescue',
+      to: '/kanban',
+      state: { dateFilter: 'overdue' },
+      icon: LifeBuoy,
+      value: String(overdue),
+      tone: overdue > 0 ? 'warn' : 'calm',
+      label: 'Por rescatar',
+      detail: 'pasadas de fecha',
+    },
+    {
+      key: 'unsorted',
+      to: '/triage',
+      icon: Inbox,
+      value: String(unsorted),
+      tone: unsorted > 0 ? 'attention' : 'calm',
+      label: 'Sin ordenar',
+      detail: 'capturas en el Inbox',
+    },
+    {
+      key: 'progress',
+      to: '/progreso',
+      icon: Sparkles,
+      value: xpToday === undefined ? '—' : `+${xpToday}`,
+      tone: xpToday ? 'reward' : 'calm',
+      label: 'XP de hoy',
+      detail: `racha de ${streakDays} ${streakDays === 1 ? 'día' : 'días'}`,
+    },
+    {
+      key: 'follow',
+      to: '/follow-ups',
+      icon: Link2,
+      value: `${followDue}/${followTotal}`,
+      tone: followDue > 0 ? 'warn' : 'calm',
+      label: 'Follow-ups',
+      detail: followDue > 0 ? 'esperan tu contacto' : 'sin pendientes de contacto',
+    },
+  ]
+
+  const allClear = overdue === 0 && unsorted === 0 && followDue === 0
+  return { items, allClear }
+}
+```
+
+### src/app/StatusRail.tsx
+
+```tsx
+import { Link } from 'react-router-dom'
+import { Check, Pin, PinOff } from 'lucide-react'
+import { TONE_CLASS, useStatusItems } from '@/app/statusItems'
+
+// Visible solo en reposo expandido: al pasar el mouse, con el foco del teclado o si está fijada.
+const REVEAL = 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
+
+/**
+ * Barra de estado ejecutiva (solo pantallas anchas): cinco indicadores de un
+ * vistazo, cada uno lleva a su vista. Reposo calmado: lo que vale 0 se ve
+ * apagado y el color solo aparece cuando algo pide atención (ámbar para lo
+ * pasado de fecha, nunca rojo). Se expande al pasar el mouse o con el foco del
+ * teclado; la chincheta la mantiene abierta. No hace consultas propias: usa los
+ * hooks que ya mantiene React Query (ver statusItems.ts).
+ */
+export function StatusRail({ pinned, onTogglePinned }: { pinned: boolean; onTogglePinned: () => void }) {
+  const { items, allClear } = useStatusItems()
+  const labelVisibility = pinned ? 'opacity-100' : REVEAL
+
+  return (
+    <aside
+      aria-label="Estado"
+      className={`group fixed bottom-0 right-0 top-16 z-20 hidden flex-col overflow-hidden border-l border-border bg-bg/80 backdrop-blur-md transition-[width,box-shadow] duration-150 motion-reduce:transition-none lg:flex ${
+        pinned
+          ? 'w-56'
+          : 'w-16 hover:w-56 hover:border-border-glow hover:bg-surface/95 hover:shadow-2xl focus-within:w-56 focus-within:bg-surface/95 focus-within:shadow-2xl'
+      }`}
+    >
+      <div className="flex h-11 shrink-0 items-center justify-between px-3">
+        <span className={`whitespace-nowrap font-mono text-xs uppercase tracking-widest text-fg-muted transition-opacity ${labelVisibility}`}>
+          Estado
+        </span>
+        <button
+          type="button"
+          onClick={onTogglePinned}
+          aria-pressed={pinned}
+          aria-label={pinned ? 'Soltar barra de estado' : 'Mantener barra de estado expandida'}
+          title={pinned ? 'Soltar' : 'Mantener expandida'}
+          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-glass/10 ${
+            pinned ? 'text-accent' : 'mx-auto text-fg-muted hover:text-fg group-hover:mx-0 group-focus-within:mx-0'
+          }`}
+        >
+          {pinned ? <PinOff className="h-4 w-4" aria-hidden="true" /> : <Pin className="h-4 w-4" aria-hidden="true" />}
+        </button>
+      </div>
+
+      <nav className="flex flex-col">
+        {items.map((item) => (
+          <Link
+            key={item.key}
+            to={item.to}
+            state={item.state}
+            className="flex min-h-14 items-center gap-3 px-3 py-2 transition-colors hover:bg-glass/5"
+          >
+            <span className="flex w-10 shrink-0 flex-col items-center gap-0.5">
+              <item.icon className={`h-4 w-4 ${TONE_CLASS[item.tone]}`} aria-hidden="true" />
+              <span className={`font-mono text-sm font-bold leading-none tabular-nums ${TONE_CLASS[item.tone]}`}>
+                {item.value}
+              </span>
+            </span>
+            <span className={`flex min-w-0 flex-col whitespace-nowrap transition-opacity ${labelVisibility}`}>
+              <span className="font-display text-xs font-bold uppercase tracking-wider text-fg">{item.label}</span>
+              <span className="font-mono text-xs text-fg-muted">{item.detail}</span>
+            </span>
+          </Link>
+        ))}
+      </nav>
+
+      {allClear && (
+        <div className="mt-auto flex items-center gap-3 px-3 py-4 text-accent">
+          <Check className="mx-3 h-4 w-4 shrink-0" aria-hidden="true" />
+          <span className={`whitespace-nowrap font-mono text-xs transition-opacity ${labelVisibility}`}>Todo en orden</span>
+        </div>
+      )}
+    </aside>
+  )
+}
+
+/** Mismo resumen como tarjeta dentro del menú lateral, para pantallas sin barra (móvil/tablet). */
+export function StatusSummaryCard({ onNavigate }: { onNavigate: () => void }) {
+  const { items, allClear } = useStatusItems()
+
+  return (
+    <section aria-label="Estado" className="mx-4 mb-4 rounded-xl border border-border bg-surface-2/60 p-3 lg:hidden">
+      <p className="mb-2 flex items-center justify-between font-mono text-xs uppercase tracking-widest text-fg-muted">
+        Estado
+        {allClear && (
+          <span className="flex items-center gap-1 normal-case tracking-normal text-accent">
+            <Check className="h-3.5 w-3.5" aria-hidden="true" /> Todo en orden
+          </span>
+        )}
+      </p>
+      <ul>
+        {items.map((item) => (
+          <li key={item.key}>
+            <Link
+              to={item.to}
+              state={item.state}
+              onClick={onNavigate}
+              className="flex min-h-11 items-center gap-3 rounded-lg px-1 transition-colors hover:bg-glass/5"
+            >
+              <item.icon className={`h-4 w-4 shrink-0 ${TONE_CLASS[item.tone]}`} aria-hidden="true" />
+              <span className="flex-1 font-mono text-xs text-fg-muted">{item.label}</span>
+              <span className={`font-mono text-sm font-bold tabular-nums ${TONE_CLASS[item.tone]}`}>{item.value}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
 ```
 
 ### src/components/ui/AchievementCelebration.tsx
@@ -2197,11 +2457,13 @@ export function useSuggestedTask() {
 ### src/features/calendar/components/CalendarHeatmapView.tsx
 
 ```tsx
-import { Sparkles } from 'lucide-react'
+import { Plus, Sparkles } from 'lucide-react'
 import { useState } from 'react'
-import { addDays, format, isSameDay } from 'date-fns'
+import { addDays, format, isSameDay, startOfDay } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useCategories } from '@/features/projects/hooks'
+import { CalendarQuickAdd } from '@/features/calendar/components/CalendarQuickAdd'
+import { RescheduleButtons } from '@/features/tasks/components/RescheduleButtons'
 import type { Task } from '@/types/database.types'
 
 export function CalendarHeatmapView({
@@ -2213,9 +2475,10 @@ export function CalendarHeatmapView({
 }) {
   const { data: categories } = useCategories()
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
+  const [adding, setAdding] = useState(false)
 
   // Mostrar 21 días (3 semanas)
-  const startDate = new Date()
+  const startDate = startOfDay(new Date())
   const days = Array.from({ length: 21 }, (_, i) => addDays(startDate, i))
 
   const selectedTasks = tasks
@@ -2249,7 +2512,7 @@ export function CalendarHeatmapView({
             const dayTasks = tasks.filter(
               (t) => t.deadline && isSameDay(new Date(t.deadline), dayDate),
             )
-            const count = dayTasks.length
+            const count = dayTasks.filter((t) => t.status !== 'done').length
             const isSelected = isSameDay(dayDate, selectedDate)
 
             const heatClass =
@@ -2257,7 +2520,7 @@ export function CalendarHeatmapView({
 
             return (
               <div
-                key={dayDate.toISOString()}
+                key={format(dayDate, 'yyyy-MM-dd')}
                 onClick={() => setSelectedDate(dayDate)}
                 className={`grid-day-cell rounded-2xl p-2 flex flex-wrap gap-1 content-start ${heatClass} ${
                   isSelected ? 'selected' : ''
@@ -2271,7 +2534,7 @@ export function CalendarHeatmapView({
                     <div
                       key={t.id}
                       className="gem-rune"
-                      style={{ backgroundColor: gemColor, color: gemColor }}
+                      style={{ backgroundColor: gemColor, color: gemColor, opacity: t.status === 'done' ? 0.3 : 1 }}
                     />
                   )
                 })}
@@ -2311,6 +2574,14 @@ export function CalendarHeatmapView({
           </p>
         </div>
 
+        <button
+          type="button"
+          onClick={() => setAdding(true)}
+          className="mb-3 flex items-center justify-center gap-2 rounded-xl border border-dashed border-accent/50 py-3 font-mono text-xs font-bold uppercase tracking-widest text-accent transition-colors hover:bg-accent/10"
+        >
+          <Plus className="h-4 w-4" aria-hidden="true" /> Añadir misión a este día
+        </button>
+
         <div className="flex-1 overflow-y-auto space-y-3 pr-1">
           {selectedTasks.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center text-center opacity-40">
@@ -2326,12 +2597,18 @@ export function CalendarHeatmapView({
                 <div
                   key={task.id}
                   onClick={() => onOpenTask(task)}
-                  className="cursor-pointer rounded-2xl border border-border bg-shade/30 p-3.5 transition-all hover:border-accent"
+                  className={`cursor-pointer rounded-2xl border border-border bg-shade/30 p-3.5 transition-all hover:border-accent ${
+                    task.status === 'done' ? 'opacity-60' : ''
+                  }`}
                 >
                   <p className="font-mono text-xs uppercase text-fg-muted/50 mb-1">
                     {format(new Date(task.deadline!), 'HH:mm')} HS
                   </p>
-                  <h4 className="font-display text-sm font-bold text-fg">
+                  <h4
+                    className={`font-display text-sm font-bold ${
+                      task.status === 'done' ? 'text-fg-muted line-through' : 'text-fg'
+                    }`}
+                  >
                     {task.title}
                   </h4>
                   {category && (
@@ -2345,12 +2622,19 @@ export function CalendarHeatmapView({
                       {category.name}
                     </span>
                   )}
+                  {task.status !== 'done' && (
+                    <div className="mt-2.5">
+                      <RescheduleButtons task={task} mode="from-deadline" label="Mover:" />
+                    </div>
+                  )}
                 </div>
               )
             })
           )}
         </div>
       </aside>
+
+      {adding && <CalendarQuickAdd day={selectedDate} onClose={() => setAdding(false)} />}
     </div>
   )
 }
@@ -2359,7 +2643,7 @@ export function CalendarHeatmapView({
 ### src/features/calendar/components/CalendarPage.tsx
 
 ```tsx
-import { Sparkles } from 'lucide-react'
+import { Sparkles, Hourglass } from 'lucide-react'
 import { useState } from 'react'
 import { addDays, endOfDay, startOfDay, subDays } from 'date-fns'
 import { useTasksInRange } from '@/features/tasks/hooks'
@@ -2375,6 +2659,7 @@ export function CalendarPage() {
     return (localStorage.getItem('questly_calendar_mode') as CalendarMode) || 'timeline'
   })
   const [editingTask, setEditingTask] = useState<Task | null>(null)
+  const [showDone, setShowDone] = useState(() => localStorage.getItem('questly_calendar_show_done') !== 'false')
 
   // Rango de consulta con margen: 2 días atrás (cubre deadlines de "hoy" ya
   // pasados en la hora actual y variación de zona horaria) hasta 21 días
@@ -2387,6 +2672,13 @@ export function CalendarPage() {
     rangeStart.toISOString(),
     rangeEnd.toISOString(),
   )
+
+  function handleShowDoneChange(next: boolean) {
+    setShowDone(next)
+    localStorage.setItem('questly_calendar_show_done', String(next))
+  }
+
+  const visibleTasks = showDone ? (tasks ?? []) : (tasks ?? []).filter((t) => t.status !== 'done')
 
   function handleModeChange(nextMode: CalendarMode) {
     setMode(nextMode)
@@ -2406,6 +2698,16 @@ export function CalendarPage() {
           </p>
         </div>
 
+        <label className="flex min-h-11 cursor-pointer items-center gap-2 font-mono text-xs uppercase tracking-widest text-fg-muted">
+          <input
+            type="checkbox"
+            checked={showDone}
+            onChange={(e) => handleShowDoneChange(e.target.checked)}
+            className="h-4 w-4 accent-[var(--accent)]"
+          />
+          Mostrar completadas
+        </label>
+
         {/* Toggle Dual Chrono-Stream / Mapa Astral */}
         <div className="view-mode-toggle flex items-center gap-1">
           <button
@@ -2413,7 +2715,7 @@ export function CalendarPage() {
             onClick={() => handleModeChange('timeline')}
             className={`view-mode-btn ${mode === 'timeline' ? 'active' : ''}`}
           >
-            ⏳ Chrono-Stream
+            <Hourglass className="mr-1.5 inline h-4 w-4" aria-hidden="true" /> Chrono-Stream
           </button>
           <button
             type="button"
@@ -2433,12 +2735,12 @@ export function CalendarPage() {
           </p>
         ) : mode === 'timeline' ? (
           <CalendarTimelineView
-            tasks={tasks ?? []}
+            tasks={visibleTasks}
             onOpenTask={setEditingTask}
           />
         ) : (
           <CalendarHeatmapView
-            tasks={tasks ?? []}
+            tasks={visibleTasks}
             onOpenTask={setEditingTask}
           />
         )}
@@ -2457,15 +2759,161 @@ export function CalendarPage() {
 }
 ```
 
+### src/features/calendar/components/CalendarQuickAdd.tsx
+
+```tsx
+import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
+import { X } from 'lucide-react'
+import { showToast } from '@/components/ui/toast-store'
+import { fetchFirstColumnId } from '@/features/kanban/api'
+import { useCategories } from '@/features/projects/hooks'
+import { useCreateTask } from '@/features/tasks/hooks'
+import { WeaponSelector } from '@/features/triage/components/WeaponSelector'
+import type { TaskSize } from '@/types/database.types'
+
+// Hora por defecto de una misión creada desde el calendario: 18:00; si ya pasó
+// (hoy), 23:00 para que no nazca ya "por rescatar".
+function defaultDeadline(day: Date): Date {
+  const d = new Date(day)
+  d.setHours(18, 0, 0, 0)
+  if (d.getTime() <= Date.now()) d.setHours(23, 0, 0, 0)
+  return d
+}
+
+function lastTriageCategory(): string {
+  try {
+    const raw = localStorage.getItem('questly_triage_last')
+    if (raw) return (JSON.parse(raw) as { categoryId?: string }).categoryId ?? ''
+  } catch {
+    // sin recuerdo
+  }
+  return ''
+}
+
+/** Alta rápida de una misión ya ordenada (clase + arma) para un día concreto. */
+export function CalendarQuickAdd({ day, onClose }: { day: Date; onClose: () => void }) {
+  const { data: categories } = useCategories()
+  const createTask = useCreateTask()
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [title, setTitle] = useState('')
+  const [categoryId, setCategoryId] = useState(lastTriageCategory)
+  const [size, setSize] = useState<TaskSize | null>(null)
+  const [showErrors, setShowErrors] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    inputRef.current?.focus()
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  const missing = [!title.trim() && 'título', !categoryId && 'clase', !size && 'arma'].filter(Boolean) as string[]
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (missing.length > 0) {
+      setShowErrors(true)
+      return
+    }
+    setSaving(true)
+    try {
+      const kanbanColumnId = await fetchFirstColumnId(null)
+      await createTask.mutateAsync({
+        title: title.trim(),
+        category_id: categoryId,
+        size,
+        kanban_column_id: kanbanColumnId,
+        deadline: defaultDeadline(day).toISOString(),
+      })
+      showToast({ title: 'Misión añadida', detail: format(day, "d 'de' MMMM", { locale: es }) })
+      onClose()
+    } catch {
+      setSaving(false)
+      showToast({ title: 'No se pudo añadir', detail: 'Inténtalo de nuevo.' })
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-shade/50 p-4 backdrop-blur-sm sm:items-center" onClick={onClose}>
+      <form
+        onClick={(e) => e.stopPropagation()}
+        onSubmit={handleSubmit}
+        className="modal-panel panel-rune w-full max-w-md space-y-4 rounded-2xl border border-border bg-surface p-5"
+      >
+        <header className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="font-display text-lg font-bold text-accent">Nueva misión</h2>
+            <p className="font-mono text-xs uppercase tracking-widest text-fg-muted">
+              {format(day, "EEEE d 'de' MMMM", { locale: es })}
+            </p>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Cerrar" className="flex h-11 w-11 items-center justify-center rounded-lg text-fg-muted hover:text-fg">
+            <X className="h-5 w-5" />
+          </button>
+        </header>
+
+        <input
+          ref={inputRef}
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="¿Qué hay que hacer ese día?"
+          aria-label="Título de la misión"
+          className="input-parchment w-full rounded-xl px-4 py-3 text-base text-fg"
+        />
+
+        <select
+          value={categoryId}
+          onChange={(e) => setCategoryId(e.target.value)}
+          aria-label="Clase"
+          className="parchment-select w-full rounded-xl p-3 text-base"
+        >
+          <option value="" disabled>Elegir clase</option>
+          {categories?.map((c) => (
+            <option key={c.id} value={c.id}>{c.name} ({c.class_name})</option>
+          ))}
+        </select>
+
+        <WeaponSelector value={size} onChange={setSize} />
+
+        {showErrors && missing.length > 0 && (
+          <p role="alert" className="rounded-lg border border-warn-border bg-warn-bg px-3 py-2 font-mono text-xs font-medium text-warn-fg">
+            Falta: {missing.join(', ')}.
+          </p>
+        )}
+
+        <button type="submit" disabled={saving} className="btn-prime w-full rounded-xl py-3.5 font-display text-sm font-black uppercase tracking-widest disabled:opacity-50">
+          Añadir al día
+        </button>
+      </form>
+    </div>
+  )
+}
+```
+
 ### src/features/calendar/components/CalendarTimelineView.tsx
 
 ```tsx
 import { useState } from 'react'
-import { addDays, format, isToday, isSameDay } from 'date-fns'
+import { addDays, format, isToday, isSameDay, startOfDay } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { AlertTriangle, Calendar as CalendarIcon } from 'lucide-react'
+import { AlertTriangle, Calendar as CalendarIcon, Check, Plus } from 'lucide-react'
+import { showToast } from '@/components/ui/toast-store'
 import { useCategories } from '@/features/projects/hooks'
-import type { Task } from '@/types/database.types'
+import { useMoveTaskDeadline } from '@/features/tasks/hooks'
+import { deadlineOnDay } from '@/utils/datetime'
+import { CalendarQuickAdd } from '@/features/calendar/components/CalendarQuickAdd'
+import { RescheduleButtons } from '@/features/tasks/components/RescheduleButtons'
+import type { Task, TaskSize } from '@/types/database.types'
+
+// Carga de energía por misión según su arma (antes: 20 % fijo por misión, así
+// que 5 dagas pesaban lo mismo que 5 mandobles). Sin arma: peso medio-bajo.
+const ENERGY_WEIGHT: Record<TaskSize, number> = { small: 10, medium: 20, large: 35 }
+const ENERGY_WEIGHT_UNSIZED = 15
 
 export function CalendarTimelineView({
   tasks,
@@ -2476,8 +2924,27 @@ export function CalendarTimelineView({
 }) {
   const { data: categories } = useCategories()
   const [daysCount, setDaysCount] = useState<3 | 7 | 14>(7)
+  const [addingDay, setAddingDay] = useState<Date | null>(null)
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [overDay, setOverDay] = useState<string | null>(null)
+  const moveTask = useMoveTaskDeadline()
 
-  const today = new Date()
+  // Soltar una misión sobre otro día: mismo horario, nueva fecha.
+  function handleDrop(day: Date) {
+    const task = tasks.find((t) => t.id === draggingId)
+    setDraggingId(null)
+    setOverDay(null)
+    if (!task?.deadline || isSameDay(new Date(task.deadline), day)) return
+    moveTask.mutate(
+      { taskId: task.id, deadlineIso: deadlineOnDay(day, task.deadline) },
+      { onSuccess: () => showToast({ title: 'Misión movida', detail: format(day, "EEEE d 'de' MMMM", { locale: es }) }) },
+    )
+  }
+
+  // Inicio del día: con la hora exacta de "ahora" cada render generaba claves
+  // distintas por día, así que React volvía a montar todas las secciones (y la
+  // tarjeta arrastrada) y el navegador cancelaba el arrastre.
+  const today = startOfDay(new Date())
   const days = Array.from({ length: daysCount }, (_, i) => addDays(today, i))
 
   function scrollToToday() {
@@ -2515,6 +2982,10 @@ export function CalendarTimelineView({
       </div>
 
       {/* Stream Vertical Cronológico */}
+      <p className="hidden font-mono text-xs text-fg-muted md:block">
+        Arrastra una misión pendiente a otro día para moverla. En el celular, usa los botones Mover.
+      </p>
+
       <div className="chrono-stream-line relative space-y-8 pl-4 pr-2">
         {days.map((dayDate) => {
           const isDayToday = isToday(dayDate)
@@ -2522,16 +2993,34 @@ export function CalendarTimelineView({
             (t) => t.deadline && isSameDay(new Date(t.deadline), dayDate),
           )
 
-          // Cálculo de consumo de energía (20% por misión)
-          const energyUsage = Math.min(100, dayTasks.length * 20)
+          // Consumo de energía del día: suma de pesos por arma, tope 100 %.
+          const energyUsage = Math.min(
+            100,
+            dayTasks
+              .filter((t) => t.status !== 'done')
+              .reduce((sum, t) => sum + (t.size ? ENERGY_WEIGHT[t.size] : ENERGY_WEIGHT_UNSIZED), 0),
+          )
           const isFatigueHigh = energyUsage >= 80
 
           return (
             <section
-              key={dayDate.toISOString()}
-              className={`relative py-3 pl-12 pr-4 transition-all ${
+              key={format(dayDate, 'yyyy-MM-dd')}
+              onDragOver={(e) => {
+                if (!draggingId) return
+                e.preventDefault()
+                e.dataTransfer.dropEffect = 'move'
+                setOverDay(format(dayDate, 'yyyy-MM-dd'))
+              }}
+              onDragLeave={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOverDay(null)
+              }}
+              onDrop={(e) => {
+                e.preventDefault()
+                handleDrop(dayDate)
+              }}
+              className={`relative rounded-xl py-3 pl-12 pr-4 transition-all ${
                 isDayToday ? 'node-today-active' : ''
-              }`}
+              } ${draggingId && overDay === format(dayDate, 'yyyy-MM-dd') ? 'bg-rune/10 ring-2 ring-rune/60' : ''}`}
             >
               {/* Punto del Nodo */}
               <div className="day-node-dot" />
@@ -2551,6 +3040,13 @@ export function CalendarTimelineView({
                   <p className="font-mono text-xs uppercase tracking-widest text-fg-muted/50">
                     {format(dayDate, 'd MMMM', { locale: es })}
                   </p>
+                  <button
+                    type="button"
+                    onClick={() => setAddingDay(dayDate)}
+                    className="mt-1.5 flex items-center gap-1 rounded-lg px-2 py-2 font-mono text-xs font-bold uppercase tracking-widest text-accent transition-colors hover:bg-accent/10"
+                  >
+                    <Plus className="h-3.5 w-3.5" aria-hidden="true" /> Añadir
+                  </button>
                 </div>
 
                 {/* Medidor de Energía */}
@@ -2599,7 +3095,22 @@ export function CalendarTimelineView({
                       <article
                         key={task.id}
                         onClick={() => onOpenTask(task)}
-                        className="mission-scroll-card flex cursor-pointer items-center justify-between rounded-xl p-3.5 transition-all"
+                        draggable={task.status !== 'done'}
+                        onDragStart={(e) => {
+                          e.dataTransfer.effectAllowed = 'move'
+                          e.dataTransfer.setData('text/plain', task.id)
+                          setDraggingId(task.id)
+                        }}
+                        onDragEnd={() => {
+                          setDraggingId(null)
+                          setOverDay(null)
+                        }}
+                        title={task.status !== 'done' ? 'Arrastra a otro día para moverla' : undefined}
+                        className={`mission-scroll-card flex ${
+                          task.status !== 'done' ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'
+                        } ${draggingId === task.id ? 'opacity-40' : ''} items-center justify-between rounded-xl p-3.5 transition-all ${
+                          task.status === 'done' ? 'opacity-60' : ''
+                        }`}
                         style={
                           category
                             ? { borderLeftColor: category.color_hex }
@@ -2611,7 +3122,11 @@ export function CalendarTimelineView({
                             {format(new Date(task.deadline!), 'HH:mm')}
                           </span>
                           <div className="min-w-0 flex-1">
-                            <h4 className="truncate font-display text-sm font-bold text-fg">
+                            <h4
+                              className={`truncate font-display text-sm font-bold ${
+                                task.status === 'done' ? 'text-fg-muted line-through' : 'text-fg'
+                              }`}
+                            >
                               {task.title}
                             </h4>
                             {category && (
@@ -2625,9 +3140,18 @@ export function CalendarTimelineView({
                                 {category.name}
                               </span>
                             )}
+                            {task.status !== 'done' && (
+                              <div className="mt-2">
+                                <RescheduleButtons task={task} mode="from-deadline" label="Mover:" />
+                              </div>
+                            )}
                           </div>
                         </div>
-                        <CalendarIcon className="h-4 w-4 shrink-0 opacity-20 transition-opacity hover:opacity-100 text-accent" />
+                        {task.status === 'done' ? (
+                          <Check className="h-4 w-4 shrink-0 text-accent" aria-label="Completada" />
+                        ) : (
+                          <CalendarIcon className="h-4 w-4 shrink-0 opacity-20 transition-opacity hover:opacity-100 text-accent" />
+                        )}
                       </article>
                     )
                   })
@@ -2637,6 +3161,8 @@ export function CalendarTimelineView({
           )
         })}
       </div>
+
+      {addingDay && <CalendarQuickAdd day={addingDay} onClose={() => setAddingDay(null)} />}
     </div>
   )
 }
@@ -3013,7 +3539,7 @@ export function FollowUpsPage() {
 
 ```tsx
 import { useState } from 'react'
-import { X, PartyPopper } from 'lucide-react'
+import { X, PartyPopper, Hourglass } from 'lucide-react'
 import { useLogFollowUpContact, useResolveFollowUp } from '@/features/followups/hooks'
 import type { FollowUp } from '@/types/database.types'
 
@@ -3128,7 +3654,7 @@ export function LogContactModal({
             onClick={handleSaveWait}
             className="flex-1 bg-parchment-ink py-4 font-display text-sm font-black uppercase tracking-widest text-parchment transition-all hover:brightness-125 disabled:opacity-50"
           >
-            Sigue en Espera ⏳
+            Sigue en Espera <Hourglass className="ml-1.5 inline h-4 w-4" aria-hidden="true" />
           </button>
           <button
             type="button"
@@ -3936,9 +4462,8 @@ export function useClearTodayPriority() {
 import { formatDistanceToNow, isPast, isToday } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useNavigate } from 'react-router-dom'
-import { AlertTriangle, Castle, Check, Circle, Flame, Sparkles, Star, Trophy, Zap } from 'lucide-react'
+import { AlertTriangle, Castle, Check, Circle, Sparkles, Star, Trophy, Zap } from 'lucide-react'
 import {
-  useStreak,
   useTodayQuests,
   useXpEarnedToday,
 } from '@/features/gamification/hooks'
@@ -3952,7 +4477,6 @@ import type { Task } from '@/types/database.types'
 
 /** Franja Superior de Resumen (InboxTopBar) */
 export function InboxTopBar({ onOpenTask }: { onOpenTask: (task: Task) => void }) {
-  const { data: streak } = useStreak()
   const xpToday = useXpEarnedToday()
   const { data: todayQuests } = useTodayQuests()
   const navigate = useNavigate()
@@ -3968,15 +4492,7 @@ export function InboxTopBar({ onOpenTask }: { onOpenTask: (task: Task) => void }
   return (
     <div className="mb-8 flex flex-col gap-3">
       {/* Grid de Métricas Tácticas */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <div className="flex items-center justify-between rounded-xl border border-border bg-shade/30 p-3">
-          <span className="font-mono text-xs font-semibold uppercase tracking-tight text-fg-muted/60">Racha</span>
-          <span className="flex items-center gap-1 font-display text-sm font-bold text-accent">
-            <Flame className="h-4 w-4 animate-bounce text-accent" />
-            {streak?.current_streak_days ?? 0} DÍAS
-          </span>
-        </div>
-
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="flex items-center justify-between rounded-xl border border-border bg-shade/30 p-3">
           <span className="font-mono text-xs font-semibold uppercase tracking-tight text-fg-muted/60">Progreso</span>
           <span className="flex items-center gap-1 font-mono text-xs font-bold text-rune">
@@ -4349,7 +4865,7 @@ export function QuickCaptureFab() {
 
   return (
     <div
-      className="fixed right-4 z-40 flex flex-col items-end gap-3 bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] md:bottom-4"
+      className="fixed right-4 lg:right-[calc(var(--rail-w,4rem)+1rem)] z-40 flex flex-col items-end gap-3 bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] md:bottom-4"
     >
       {open && (
         <form
@@ -4720,7 +5236,7 @@ function RenderMissionCard({
 ### src/features/kanban/components/GrimorioTabsView.tsx
 
 ```tsx
-import { Check, Landmark, Shield, Trophy } from 'lucide-react'
+import { Check, Landmark, Shield, Trophy, Hourglass } from 'lucide-react'
 import { CLASS_ICONS } from '@/utils/classIcons'
 import { useState } from 'react'
 import { useCategories } from '@/features/projects/hooks'
@@ -4794,7 +5310,7 @@ export function GrimorioTabsView({
         {/* Pendientes */}
         <section className="space-y-4">
           <div className="flex items-center gap-2.5 border-b border-border pb-2.5">
-            <span className="text-xl">⏳</span>
+            <Hourglass className="h-5 w-5 text-accent" aria-hidden="true" />
             <h2 className="font-display text-base font-bold uppercase tracking-widest text-accent">
               Misiones Pendientes
             </h2>
@@ -5450,6 +5966,16 @@ export async function fetchActiveProjects(): Promise<Project[]> {
   return data
 }
 
+export async function fetchArchivedProjects(): Promise<Project[]> {
+  const { data, error } = await supabase
+    .from('projects')
+    .select('*')
+    .eq('status', 'archived')
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data
+}
+
 export async function createProject(input: {
   name: string
   categoryId: string
@@ -5918,9 +6444,9 @@ export function ProjectBossCard({ project, category }: { project: Project; categ
 
 ```tsx
 import { useState, type FormEvent } from 'react'
-import { FolderOpen, Pencil } from 'lucide-react'
+import { ArchiveRestore, FolderOpen, Pencil } from 'lucide-react'
 import { showToast } from '@/components/ui/toast-store'
-import { useCategories, useCreateProject, useProjects, useUpdateProject } from '@/features/projects/hooks'
+import { useArchivedProjects, useCategories, useCreateProject, useProjects, useUpdateProject } from '@/features/projects/hooks'
 import { ProjectBossCard } from '@/features/projects/components/ProjectBossCard'
 import { BOSS_AVATARS } from '@/utils/rpgAssets'
 import type { Category, Project } from '@/types/database.types'
@@ -6016,6 +6542,9 @@ export function ProjectsPage() {
   const createProject = useCreateProject()
   const [name, setName] = useState('')
   const [categoryId, setCategoryId] = useState('')
+  const [showArchived, setShowArchived] = useState(false)
+  const { data: archived } = useArchivedProjects(showArchived)
+  const restore = useUpdateProject()
 
   function handleCreate(e: FormEvent) {
     e.preventDefault()
@@ -6063,6 +6592,43 @@ export function ProjectsPage() {
           ))}
         </ul>
       )}
+
+      <section className="mt-10">
+        <button
+          type="button"
+          onClick={() => setShowArchived((v) => !v)}
+          aria-expanded={showArchived}
+          className="rounded-lg px-3 py-2.5 font-mono text-xs font-bold uppercase tracking-widest text-fg-muted transition-colors hover:text-fg"
+        >
+          {showArchived ? 'Ocultar archivados' : 'Ver archivados'}
+        </button>
+        {showArchived && (
+          <ul className="mt-3 space-y-2">
+            {!archived || archived.length === 0 ? (
+              <li className="font-mono text-xs text-fg-muted">No hay proyectos archivados.</li>
+            ) : (
+              archived.map((project) => (
+                <li key={project.id} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface/50 px-4 py-3">
+                  <span className="min-w-0 truncate text-sm text-fg-muted">{project.name}</span>
+                  <button
+                    type="button"
+                    disabled={restore.isPending}
+                    onClick={() =>
+                      restore.mutate(
+                        { id: project.id, patch: { status: 'active' } },
+                        { onSuccess: () => showToast({ title: 'Proyecto restaurado', detail: project.name }) },
+                      )
+                    }
+                    className="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2.5 font-mono text-xs font-bold uppercase tracking-widest text-accent hover:bg-accent/10"
+                  >
+                    <ArchiveRestore className="h-4 w-4" aria-hidden="true" /> Restaurar
+                  </button>
+                </li>
+              ))
+            )}
+          </ul>
+        )}
+      </section>
     </div>
   )
 }
@@ -6078,6 +6644,7 @@ import {
   computeBossStats,
   createProject,
   fetchActiveProjects,
+  fetchArchivedProjects,
   fetchCategories,
   fetchProjectById,
   updateProject,
@@ -6096,6 +6663,14 @@ export function useProjects() {
   return useQuery({
     queryKey: ['projects'],
     queryFn: fetchActiveProjects,
+  })
+}
+
+export function useArchivedProjects(enabled: boolean) {
+  return useQuery({
+    queryKey: ['projects', 'archived'],
+    queryFn: fetchArchivedProjects,
+    enabled,
   })
 }
 
@@ -6177,6 +6752,7 @@ export type TaskPatch = Partial<
     | 'status'
     | 'size'
     | 'hud_slot'
+    | 'position'
   >
 >
 
@@ -6193,10 +6769,15 @@ export async function fetchTasksByIds(ids: string[]): Promise<Task[]> {
   return data
 }
 
+// Solo misiones de nivel superior. Los micro-pasos heredan el deadline de su
+// misión y, si se completa la misión con pasos sin tildar, quedan 'pending' con
+// una fecha ya pasada: contarlos inflaba "vencidas" (y generaba avisos de
+// micro-pasos). Mismo criterio que la Edge Function de notificaciones.
 export async function fetchActiveTasksWithDeadline(): Promise<Task[]> {
   const { data, error } = await supabase
     .from('tasks')
     .select('*')
+    .is('parent_task_id', null)
     .not('status', 'in', '(done,follow_up)')
     .not('deadline', 'is', null)
   if (error) throw error
@@ -6270,15 +6851,27 @@ export async function fetchSubtasks(parentTaskId: string): Promise<Task[]> {
     .from('tasks')
     .select('*')
     .eq('parent_task_id', parentTaskId)
-    .order('deadline', { ascending: true, nullsFirst: false })
+    .order('position', { ascending: true, nullsFirst: false })
+    .order('created_at', { ascending: true })
   if (error) throw error
   return data
+}
+
+// Misiones de nivel superior, hechas o pendientes (las hechas se muestran
+// tachadas en el calendario). Excluye las que están en seguimiento (liberadas
+// de la vista activa, igual que en el Grimorio y las notificaciones) y los
+// micro-pasos, que heredan el deadline de su misión y la duplicarían.
+// Orden manual de los micro-pasos: la posición es el índice en la lista dada.
+export async function reorderSubtasks(orderedIds: string[]): Promise<void> {
+  await Promise.all(orderedIds.map((id, index) => updateTask(id, { position: index + 1 })))
 }
 
 export async function fetchTasksInRange(startIso: string, endIso: string): Promise<Task[]> {
   const { data, error } = await supabase
     .from('tasks')
     .select('*')
+    .is('parent_task_id', null)
+    .neq('status', 'follow_up')
     .gte('deadline', startIso)
     .lt('deadline', endIso)
     .order('deadline', { ascending: true })
@@ -6301,6 +6894,20 @@ export async function updateTask(id: string, patch: TaskPatch): Promise<Task> {
     .single()
   if (error) throw error
   return data
+}
+
+// Mueve el deadline de una misión. El trigger tasks_before_write prohíbe que el
+// padre quede antes que alguna subtarea, así que primero se recortan al nuevo
+// deadline las subtareas que lo superen (los micro-pasos heredan la fecha del
+// padre); al mover hacia adelante ese UPDATE no toca nada.
+export async function moveTaskDeadline(taskId: string, deadlineIso: string): Promise<void> {
+  const { error } = await supabase
+    .from('tasks')
+    .update({ deadline: deadlineIso })
+    .eq('parent_task_id', taskId)
+    .gt('deadline', deadlineIso)
+  if (error) throw error
+  await updateTask(taskId, { deadline: deadlineIso })
 }
 
 export async function deleteTask(id: string): Promise<void> {
@@ -6789,25 +7396,41 @@ export function FocusSessionView({
 import { CalendarClock } from 'lucide-react'
 import { showToast } from '@/components/ui/toast-store'
 import { useUpdateTask } from '@/features/tasks/hooks'
-import { rescheduleIso } from '@/utils/datetime'
+import { rescheduleIso, shiftDeadlineIso } from '@/utils/datetime'
 import type { Task } from '@/types/database.types'
 
-const OPTIONS = [
+const FROM_NOW = [
   { label: 'Mañana', days: 1, toast: 'Reprogramada para mañana' },
   { label: '+1 semana', days: 7, toast: 'Reprogramada para dentro de una semana' },
 ] as const
 
+const FROM_DEADLINE = [
+  { label: '+1 día', days: 1, toast: 'Movida un día' },
+  { label: '+1 semana', days: 7, toast: 'Movida una semana' },
+] as const
+
 // Reprogramar de un toque. Mantiene la hora original; el tono es de
 // "reagendar", no de fracaso (diseño sin culpa visual).
-export function RescheduleButtons({ task }: { task: Pick<Task, 'id' | 'deadline'> }) {
+// mode "from-now": para vencidas (a partir de hoy). "from-deadline": para
+// el calendario (a partir de la fecha que ya tiene).
+export function RescheduleButtons({
+  task,
+  mode = 'from-now',
+  label = 'Reprogramar:',
+}: {
+  task: Pick<Task, 'id' | 'deadline'>
+  mode?: 'from-now' | 'from-deadline'
+  label?: string
+}) {
   const update = useUpdateTask()
+  const options = mode === 'from-now' ? FROM_NOW : FROM_DEADLINE
 
   return (
     <div className="flex flex-wrap items-center gap-2">
       <span className="flex items-center gap-1 font-mono text-xs text-fg-muted">
-        <CalendarClock className="h-3.5 w-3.5" aria-hidden="true" /> Reprogramar:
+        <CalendarClock className="h-3.5 w-3.5" aria-hidden="true" /> {label}
       </span>
-      {OPTIONS.map((opt) => (
+      {options.map((opt) => (
         <button
           key={opt.label}
           type="button"
@@ -6815,7 +7438,12 @@ export function RescheduleButtons({ task }: { task: Pick<Task, 'id' | 'deadline'
           onClick={(e) => {
             e.stopPropagation()
             update.mutate(
-              { id: task.id, patch: { deadline: rescheduleIso(opt.days, task.deadline) } },
+              { id: task.id, patch: {
+                  deadline:
+                    mode === 'from-deadline' && task.deadline
+                      ? shiftDeadlineIso(task.deadline, opt.days)
+                      : rescheduleIso(opt.days, task.deadline),
+                } },
               { onSuccess: () => showToast({ title: opt.toast }) },
             )
           }}
@@ -6833,7 +7461,7 @@ export function RescheduleButtons({ task }: { task: Pick<Task, 'id' | 'deadline'
 
 ```tsx
 import { useEffect, useState } from 'react'
-import { X, Trash2, Swords, Check, Undo2, Link2, ChevronRight, ScrollText, Star } from 'lucide-react'
+import { ChevronDown, ChevronUp, GripVertical, X, Trash2, Swords, Check, Undo2, Link2, ChevronRight, ScrollText, Star } from 'lucide-react'
 import { addDays } from 'date-fns'
 import { useCategories, useProjects } from '@/features/projects/hooks'
 import {
@@ -6841,6 +7469,7 @@ import {
   useCreateTask,
   useDeleteTask,
   useReopenTask,
+  useReorderSubtasks,
   useSubtasks,
   useUpdateTask,
 } from '@/features/tasks/hooks'
@@ -6886,6 +7515,9 @@ export function TaskModal({
 
   // Subtareas de la misión (micro-pasos)
   const { data: subtasks } = useSubtasks(task?.id ?? null)
+  const reorderSubtasks = useReorderSubtasks(task?.id ?? '')
+  const [dragSubId, setDragSubId] = useState<string | null>(null)
+  const [overSubId, setOverSubId] = useState<string | null>(null)
 
   // Prioridad del día
   const { data: todayQuests } = useTodayQuests()
@@ -6938,7 +7570,8 @@ export function TaskModal({
 
   function handleComplete() {
     if (!task) return
-    completeTask.mutate({ id: task.id, project_id: task.project_id })
+    // La misión ya está hecha: se cierra el editor (el aviso de XP confirma el logro).
+    completeTask.mutate({ id: task.id, project_id: task.project_id }, { onSuccess: onClose })
   }
 
   function handleReopen() {
@@ -6962,6 +7595,28 @@ export function TaskModal({
     if (!task || !existingFollowUp) return
     deleteFollowUp.mutate(existingFollowUp.id)
     reopenTask.mutate({ id: task.id, project_id: task.project_id })
+  }
+
+  // Los micro-pasos son un paso a paso: el orden lo decide el usuario.
+  function moveSubtask(index: number, delta: -1 | 1) {
+    if (!subtasks || !task) return
+    const target = index + delta
+    if (target < 0 || target >= subtasks.length) return
+    const ids = subtasks.map((s) => s.id)
+    ;[ids[index], ids[target]] = [ids[target], ids[index]]
+    reorderSubtasks.mutate(ids)
+  }
+
+  // Arrastrar un micro-paso sobre otro lo deja en esa posición (arrastre nativo,
+  // solo mouse; en celular quedan las flechas).
+  function dropSubtask(targetId: string) {
+    const fromId = dragSubId
+    setDragSubId(null)
+    setOverSubId(null)
+    if (!subtasks || !task || !fromId || fromId === targetId) return
+    const ids = subtasks.map((s) => s.id)
+    ids.splice(ids.indexOf(targetId), 0, ids.splice(ids.indexOf(fromId), 1)[0])
+    reorderSubtasks.mutate(ids)
   }
 
   function handleAddSubtask() {
@@ -7286,8 +7941,38 @@ export function TaskModal({
 
               {/* Lista de Submisiones Existentes */}
               <div className="space-y-2 pt-1">
-                {subtasks?.map((st) => (
-                  <div key={st.id} className="flex items-center justify-between gap-3">
+                {subtasks?.map((st, index) => (
+                  <div
+                    key={st.id}
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.effectAllowed = 'move'
+                      e.dataTransfer.setData('text/plain', st.id)
+                      setDragSubId(st.id)
+                    }}
+                    onDragOver={(e) => {
+                      if (!dragSubId) return
+                      e.preventDefault()
+                      e.dataTransfer.dropEffect = 'move'
+                      setOverSubId(st.id)
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault()
+                      dropSubtask(st.id)
+                    }}
+                    onDragEnd={() => {
+                      setDragSubId(null)
+                      setOverSubId(null)
+                    }}
+                    className={`flex items-center justify-between gap-2 rounded ${
+                      dragSubId === st.id ? 'opacity-40' : ''
+                    } ${overSubId === st.id && dragSubId !== st.id ? 'border-t-2 border-rune' : 'border-t-2 border-transparent'}`}
+                  >
+                    <GripVertical
+                      className="h-4 w-4 shrink-0 cursor-grab text-fg-muted active:cursor-grabbing"
+                      aria-hidden="true"
+                    />
+                    <span className="w-4 shrink-0 text-right font-mono text-xs text-fg-muted">{index + 1}.</span>
                     <button
                       type="button"
                       onClick={() =>
@@ -7309,6 +7994,24 @@ export function TaskModal({
                     >
                       {st.title}
                     </span>
+                    <button
+                      type="button"
+                      onClick={() => moveSubtask(index, -1)}
+                      disabled={index === 0}
+                      aria-label={`Subir micro-paso: ${st.title}`}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded text-fg-muted transition-colors hover:text-fg disabled:opacity-25"
+                    >
+                      <ChevronUp className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveSubtask(index, 1)}
+                      disabled={index === subtasks.length - 1}
+                      aria-label={`Bajar micro-paso: ${st.title}`}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded text-fg-muted transition-colors hover:text-fg disabled:opacity-25"
+                    >
+                      <ChevronDown className="h-4 w-4" aria-hidden="true" />
+                    </button>
                     <button
                       type="button"
                       onClick={() => deleteTask.mutate(st.id)}
@@ -7632,6 +8335,8 @@ import {
   fetchInboxTasks,
   fetchInProgressTasks,
   fetchLastCompletedTask,
+  moveTaskDeadline,
+  reorderSubtasks,
   fetchQuickWinTask,
   fetchSubtasks,
   fetchTaskById,
@@ -7765,6 +8470,52 @@ export function useUpdateTask() {
   })
 }
 
+// Arrastrar una misión a otro día: la tarjeta se mueve al instante (cache del
+// calendario) y vuelve a su lugar si el guardado falla.
+export function useMoveTaskDeadline() {
+  const queryClient = useQueryClient()
+  const invalidate = useInvalidateTasks()
+  return useMutation({
+    mutationFn: ({ taskId, deadlineIso }: { taskId: string; deadlineIso: string }) =>
+      moveTaskDeadline(taskId, deadlineIso),
+    onMutate: async ({ taskId, deadlineIso }) => {
+      await queryClient.cancelQueries({ queryKey: ['tasks', 'range'] })
+      const previous = queryClient.getQueriesData<Task[]>({ queryKey: ['tasks', 'range'] })
+      queryClient.setQueriesData<Task[]>({ queryKey: ['tasks', 'range'] }, (old) =>
+        old?.map((t) => (t.id === taskId ? { ...t, deadline: deadlineIso } : t)),
+      )
+      return { previous }
+    },
+    onError: (_err, _vars, context) => {
+      context?.previous.forEach(([key, data]) => queryClient.setQueryData(key, data))
+      showToast({ title: 'No se pudo mover la misión', detail: 'Inténtalo de nuevo.' })
+    },
+    onSettled: invalidate,
+  })
+}
+
+// Reordenar micro-pasos: la lista cambia al instante y vuelve atrás si falla.
+export function useReorderSubtasks(parentTaskId: string) {
+  const queryClient = useQueryClient()
+  const key = ['tasks', 'subtasks', parentTaskId]
+  return useMutation({
+    mutationFn: (orderedIds: string[]) => reorderSubtasks(orderedIds),
+    onMutate: async (orderedIds) => {
+      await queryClient.cancelQueries({ queryKey: key })
+      const previous = queryClient.getQueryData<Task[]>(key)
+      queryClient.setQueryData<Task[]>(key, (old) =>
+        old ? orderedIds.map((id) => old.find((t) => t.id === id)).filter((t): t is Task => !!t) : old,
+      )
+      return { previous }
+    },
+    onError: (_err, _ids, context) => {
+      if (context?.previous) queryClient.setQueryData(key, context.previous)
+      showToast({ title: 'No se pudo reordenar', detail: 'Inténtalo de nuevo.' })
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: key }),
+  })
+}
+
 export function useDeleteTask() {
   const invalidate = useInvalidateTasks()
   return useMutation({
@@ -7833,6 +8584,7 @@ export function useCaptureInboxTask() {
         xp_reward: 0,
         rescue_bonus: 0,
         hud_slot: null,
+        position: null,
         created_at: new Date().toISOString(),
         completed_at: null,
       }
@@ -9861,6 +10613,7 @@ export interface Database {
           xp_reward: number
           rescue_bonus: number
           hud_slot: number | null
+          position: number | null
           created_at: string
           completed_at: string | null
         }
@@ -9877,6 +10630,7 @@ export interface Database {
           status?: TaskStatus
           size?: TaskSize | null
           hud_slot?: number | null
+          position?: number | null
           created_at?: string
           completed_at?: string | null
         }
@@ -10129,7 +10883,7 @@ export const CLASS_ICONS: Record<string, LucideIcon> = {
 ### src/utils/datetime.ts
 
 ```typescript
-import { addDays, format, isPast } from 'date-fns'
+import { addDays, format, isPast, isSameDay } from 'date-fns'
 
 export function toDatetimeLocalValue(iso: string | null): string {
   if (!iso) return ''
@@ -10150,6 +10904,21 @@ export function rescheduleIso(daysFromNow: number, previousIso: string | null): 
 
 export function isOverdue(task: { deadline: string | null; status: string }): boolean {
   return task.status !== 'done' && !!task.deadline && isPast(new Date(task.deadline))
+}
+
+// Mueve una fecha límite N días respecto a ella misma (misma hora).
+export function shiftDeadlineIso(previousIso: string, days: number): string {
+  return addDays(new Date(previousIso), days).toISOString()
+}
+
+// Misma hora que tenía (18:00 si no tenía) pero en otro día. Si cae hoy y esa
+// hora ya pasó, 23:00 para que no nazca "por rescatar".
+export function deadlineOnDay(day: Date, previousIso: string | null): string {
+  const d = new Date(day)
+  const prev = previousIso ? new Date(previousIso) : null
+  d.setHours(prev ? prev.getHours() : 18, prev ? prev.getMinutes() : 0, 0, 0)
+  if (d.getTime() <= Date.now() && isSameDay(d, new Date())) d.setHours(23, 0, 0, 0)
+  return d.toISOString()
 }
 ```
 
@@ -12527,6 +13296,75 @@ drop trigger if exists tasks_after_discard on public.tasks;
 create trigger tasks_after_discard
   after delete on public.tasks
   for each row execute function public.tasks_after_discard();
+```
+
+### supabase/migrations/20261014000001_fase9_orden_subtareas.sql
+
+```sql
+-- Fase 9: orden manual de las subtareas (micro-pasos).
+-- Hasta ahora se ordenaban por deadline y, como heredan el de su misión, el
+-- orden de los empates era arbitrario. Los micro-pasos son un paso a paso, así
+-- que el orden lo decide el usuario. Se corre completa en el SQL Editor de
+-- Supabase (ver HANDOFF, sección 1). Idempotente.
+
+alter table public.tasks
+  add column if not exists position integer;
+
+-- Subtareas existentes: orden de creación (el orden en que se escribieron).
+with ranked as (
+  select id, row_number() over (partition by parent_task_id order by created_at, id) as rn
+  from public.tasks
+  where parent_task_id is not null and position is null
+)
+update public.tasks t
+   set position = r.rn
+  from ranked r
+ where t.id = r.id;
+
+-- Subtareas nuevas: van al final de la lista de su misión.
+create or replace function public.tasks_set_subtask_position()
+returns trigger
+language plpgsql
+security invoker
+set search_path = public
+as $$
+begin
+  if new.parent_task_id is not null and new.position is null then
+    select coalesce(max(position), 0) + 1
+      into new.position
+      from public.tasks
+      where parent_task_id = new.parent_task_id;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists tasks_before_insert_position on public.tasks;
+create trigger tasks_before_insert_position
+  before insert on public.tasks
+  for each row execute function public.tasks_set_subtask_position();
+```
+
+### supabase/migrations/20261014000002_limpiar_avisos_microtareas.sql
+
+```sql
+-- Limpieza única: descarta avisos pendientes que apuntan a micro-pasos o a
+-- misiones ya hechas (los generaba el sync del cliente, que contaba subtareas).
+-- Los avisos de tipo follow_up de misiones en seguimiento se conservan.
+-- Opcional, idempotente. Correr en el SQL Editor de Supabase.
+update public.notifications n
+   set dismissed_at = now()
+ where n.dismissed_at is null
+   and exists (
+     select 1
+       from public.tasks t
+      where t.id = n.task_id
+        and (
+          t.parent_task_id is not null
+          or t.status = 'done'
+          or (t.status = 'follow_up' and n.type <> 'follow_up')
+        )
+   );
 ```
 
 ### tsconfig.app.json

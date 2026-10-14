@@ -8,6 +8,8 @@ import {
   fetchInboxTasks,
   fetchInProgressTasks,
   fetchLastCompletedTask,
+  moveTaskDeadline,
+  reorderSubtasks,
   fetchQuickWinTask,
   fetchSubtasks,
   fetchTaskById,
@@ -141,6 +143,52 @@ export function useUpdateTask() {
   })
 }
 
+// Arrastrar una misión a otro día: la tarjeta se mueve al instante (cache del
+// calendario) y vuelve a su lugar si el guardado falla.
+export function useMoveTaskDeadline() {
+  const queryClient = useQueryClient()
+  const invalidate = useInvalidateTasks()
+  return useMutation({
+    mutationFn: ({ taskId, deadlineIso }: { taskId: string; deadlineIso: string }) =>
+      moveTaskDeadline(taskId, deadlineIso),
+    onMutate: async ({ taskId, deadlineIso }) => {
+      await queryClient.cancelQueries({ queryKey: ['tasks', 'range'] })
+      const previous = queryClient.getQueriesData<Task[]>({ queryKey: ['tasks', 'range'] })
+      queryClient.setQueriesData<Task[]>({ queryKey: ['tasks', 'range'] }, (old) =>
+        old?.map((t) => (t.id === taskId ? { ...t, deadline: deadlineIso } : t)),
+      )
+      return { previous }
+    },
+    onError: (_err, _vars, context) => {
+      context?.previous.forEach(([key, data]) => queryClient.setQueryData(key, data))
+      showToast({ title: 'No se pudo mover la misión', detail: 'Inténtalo de nuevo.' })
+    },
+    onSettled: invalidate,
+  })
+}
+
+// Reordenar micro-pasos: la lista cambia al instante y vuelve atrás si falla.
+export function useReorderSubtasks(parentTaskId: string) {
+  const queryClient = useQueryClient()
+  const key = ['tasks', 'subtasks', parentTaskId]
+  return useMutation({
+    mutationFn: (orderedIds: string[]) => reorderSubtasks(orderedIds),
+    onMutate: async (orderedIds) => {
+      await queryClient.cancelQueries({ queryKey: key })
+      const previous = queryClient.getQueryData<Task[]>(key)
+      queryClient.setQueryData<Task[]>(key, (old) =>
+        old ? orderedIds.map((id) => old.find((t) => t.id === id)).filter((t): t is Task => !!t) : old,
+      )
+      return { previous }
+    },
+    onError: (_err, _ids, context) => {
+      if (context?.previous) queryClient.setQueryData(key, context.previous)
+      showToast({ title: 'No se pudo reordenar', detail: 'Inténtalo de nuevo.' })
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: key }),
+  })
+}
+
 export function useDeleteTask() {
   const invalidate = useInvalidateTasks()
   return useMutation({
@@ -209,6 +257,7 @@ export function useCaptureInboxTask() {
         xp_reward: 0,
         rescue_bonus: 0,
         hud_slot: null,
+        position: null,
         created_at: new Date().toISOString(),
         completed_at: null,
       }

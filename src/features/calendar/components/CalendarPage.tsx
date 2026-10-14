@@ -1,4 +1,4 @@
-import { Sparkles } from 'lucide-react'
+import { Sparkles, Hourglass } from 'lucide-react'
 import { useState } from 'react'
 import { addDays, endOfDay, startOfDay, subDays } from 'date-fns'
 import { useTasksInRange } from '@/features/tasks/hooks'
@@ -14,6 +14,7 @@ export function CalendarPage() {
     return (localStorage.getItem('questly_calendar_mode') as CalendarMode) || 'timeline'
   })
   const [editingTask, setEditingTask] = useState<Task | null>(null)
+  const [showDone, setShowDone] = useState(() => localStorage.getItem('questly_calendar_show_done') !== 'false')
 
   // Rango de consulta con margen: 2 días atrás (cubre deadlines de "hoy" ya
   // pasados en la hora actual y variación de zona horaria) hasta 21 días
@@ -26,6 +27,13 @@ export function CalendarPage() {
     rangeStart.toISOString(),
     rangeEnd.toISOString(),
   )
+
+  function handleShowDoneChange(next: boolean) {
+    setShowDone(next)
+    localStorage.setItem('questly_calendar_show_done', String(next))
+  }
+
+  const visibleTasks = showDone ? (tasks ?? []) : (tasks ?? []).filter((t) => t.status !== 'done')
 
   function handleModeChange(nextMode: CalendarMode) {
     setMode(nextMode)
@@ -45,6 +53,16 @@ export function CalendarPage() {
           </p>
         </div>
 
+        <label className="flex min-h-11 cursor-pointer items-center gap-2 font-mono text-xs uppercase tracking-widest text-fg-muted">
+          <input
+            type="checkbox"
+            checked={showDone}
+            onChange={(e) => handleShowDoneChange(e.target.checked)}
+            className="h-4 w-4 accent-[var(--accent)]"
+          />
+          Mostrar completadas
+        </label>
+
         {/* Toggle Dual Chrono-Stream / Mapa Astral */}
         <div className="view-mode-toggle flex items-center gap-1">
           <button
@@ -52,7 +70,7 @@ export function CalendarPage() {
             onClick={() => handleModeChange('timeline')}
             className={`view-mode-btn ${mode === 'timeline' ? 'active' : ''}`}
           >
-            ⏳ Chrono-Stream
+            <Hourglass className="mr-1.5 inline h-4 w-4" aria-hidden="true" /> Chrono-Stream
           </button>
           <button
             type="button"
@@ -72,12 +90,12 @@ export function CalendarPage() {
           </p>
         ) : mode === 'timeline' ? (
           <CalendarTimelineView
-            tasks={tasks ?? []}
+            tasks={visibleTasks}
             onOpenTask={setEditingTask}
           />
         ) : (
           <CalendarHeatmapView
-            tasks={tasks ?? []}
+            tasks={visibleTasks}
             onOpenTask={setEditingTask}
           />
         )}

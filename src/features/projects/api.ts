@@ -20,6 +20,16 @@ export async function fetchActiveProjects(): Promise<Project[]> {
   return data
 }
 
+export async function fetchArchivedProjects(): Promise<Project[]> {
+  const { data, error } = await supabase
+    .from('projects')
+    .select('*')
+    .eq('status', 'archived')
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data
+}
+
 export async function createProject(input: {
   name: string
   categoryId: string
