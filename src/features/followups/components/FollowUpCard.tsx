@@ -4,6 +4,7 @@ import { es } from 'date-fns/locale'
 import { ChevronRight, Check, Phone, ScrollText } from 'lucide-react'
 import { useFollowUpLogs, useResolveFollowUp } from '@/features/followups/hooks'
 import { LogContactModal } from '@/features/followups/components/LogContactModal'
+import { TaskModal } from '@/features/tasks/components/TaskModal'
 import type { FollowUp, Task } from '@/types/database.types'
 
 export function FollowUpCard({
@@ -21,6 +22,7 @@ export function FollowUpCard({
   const resolveFollowUp = useResolveFollowUp()
 
   const [modalOpen, setModalOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
   const [bitacoraOpen, setBitacoraOpen] = useState(false)
   const [confirmingResolve, setConfirmingResolve] = useState(false)
 
@@ -43,7 +45,16 @@ export function FollowUpCard({
       >
         <div className="flex items-start justify-between">
           <div className="min-w-0 pr-4">
-            <h2 className="truncate font-display text-xl font-bold text-fg">{task.title}</h2>
+            <h2 className="truncate font-display text-xl font-bold text-fg">
+              <button
+                type="button"
+                onClick={() => setEditOpen(true)}
+                className="max-w-full truncate text-left hover:text-accent"
+                title="Editar misión"
+              >
+                {task.title}
+              </button>
+            </h2>
             <p className="mt-1 font-mono text-xs font-bold uppercase text-rune">
               <ScrollText className="mr-1 inline h-4 w-4" aria-hidden="true" />Aliado: {followUp.stakeholder_name || 'Desconocido'}
             </p>
@@ -152,6 +163,15 @@ export function FollowUpCard({
           )}
         </footer>
       </article>
+
+      {editOpen && (
+        <TaskModal
+          task={task}
+          defaultProjectId={task.project_id}
+          defaultKanbanColumnId=""
+          onClose={() => setEditOpen(false)}
+        />
+      )}
 
       {modalOpen && (
         <LogContactModal
