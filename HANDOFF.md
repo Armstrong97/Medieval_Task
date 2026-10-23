@@ -662,3 +662,31 @@ Qué trae:
 
 ### Pulido pendiente
 - Sin pendientes de la evaluación de UX. Lo siguiente sería verificación en navegador (Fase 6, ver `pendings.md`) y los assets verdes (Fase 5).
+
+---
+
+## 19. Fase 10 — Cadenas de misiones (2026-10-15, fase A hecha en código, sin verificar en navegador)
+
+**REQUIERE MIGRACIÓN** `20261015000001_fase10_cadenas_de_misiones.sql` (SQL Editor, idempotente) **y** `npx supabase functions deploy send-notifications --project-ref dlztajgoljayfmqjdqio` (la función ahora ignora misiones dormidas). Sin la migración las consultas de tareas fallan (`locked`).
+
+Idea: las misiones siguientes existen desde el inicio pero **dormidas** (`tasks.locked`); al cumplirse el disparador de sus predecesoras se **despiertan** solas. Ramas: una misión puede desbloquear a varias y esperar a varias.
+- **Datos**: `task_links(from_task_id, to_task_id, on_event)` con `on_event` = `task_done` | `follow_up_resolved`. En `tasks`: `locked`, `unlock_mode` (`all` = todas las predecesoras, `any` = basta una), `unlock_deadline_days` (al despertar, deadline = ahora + N días; null conserva el suyo).
+- **Motor en Postgres** (funciona sin importar desde dónde se complete): `chain_refresh_task` recalcula si una misión despierta; lo invocan triggers al pasar una tarea a `done`, al resolverse un follow-up (`resolved_at`), al crear/borrar un enlace y al cambiar `unlock_mode`. Solo crear un enlace puede dormir una misión (`p_allow_lock`), así un evento posterior nunca vuelve a dormir una despertada a mano. Validación anti-ciclos y solo misiones de nivel superior (`task_links_validate`). Red de seguridad `tasks_block_locked`: una dormida no puede completarse/equiparse.
+- **Casos límite**: borrar una predecesora borra sus enlaces en cascada y despierta a la sucesora; reabrir una predecesora no vuelve a dormir; `follow_up_resolved` también se cumple si la predecesora se completa. "Despertar ahora" en el editor es la salida manual.
+- **UI**: `ChainSection` en `TaskModal` (solo misiones triadas de nivel superior): "Espera a" / "Desbloquea", alta de **siguiente paso** (crea la misión dormida heredando proyecto/clase/tamaño, con plazo en días) o enlace a una misión existente en ambas direcciones, disparador por enlace, modo todas/cualquiera y plazo al despertar. Candado en el Grimorio (sin botón de completar). Aviso "Siguiente paso desbloqueado" al completar o resolver un follow-up (`withUnlockToast`, `chains/api.ts`).
+- **Dormidas quedan fuera de** (`.eq('locked', false)`): Combate (equipables), Calendario, "Por rescatar"/barra de estado/sync de avisos (`fetchActiveTasksWithDeadline`), sugerencia rápida y Edge Function de avisos.
+- **No hecho (fases B/C)**: vista visual de la cadena completa, retraso de activación (hoy solo se ajusta el plazo), XP extra por cadena completada, equipar/mandar a follow-up automáticamente al despertar, aviso persistente (hoy solo toast).
+
+### Fase B (2026-10-15, sin verificar en navegador)
+**REQUIERE MIGRACIÓN** `20261015000002_fase10_aviso_desbloqueo.sql` (después de la 000001; idempotente).
+- **Aviso persistente**: al despertar una misión, el motor (`chain_refresh_task`) inserta una notificación `unlocked` ("Desbloqueada: …"); aparece en la campana con ícono `LockOpen`. Si la misión se duerme y despierta otra vez, se reactiva (`dismissed_at = null`). El toast de `withUnlockToast` se mantiene y ahora corre en paralelo con la acción (no suma una ida y vuelta).
+- **Vista de cadena**: `ChainFlow` (un nivel por fila, ramas lado a lado, estado Hecha/Activa/Dormida/En seguimiento, "espera a todas/cualquiera (n)"). Se muestra dentro de `ChainSection` (la cadena completa de la misión, resaltada) y en la nueva página **/cadenas** (ítem "Cadenas" del menú; activas arriba, completadas en un desplegable; tocar un nodo abre el editor). Lógica de grafo en `chains/graph.ts` (componentes y niveles, sin ciclos por la DB).
+- Fix relacionado: completar una tarea ahora refresca `['battle-hud']` y libera el slot al instante (antes seguía ocupado hasta el siguiente refetch).
+
+### Compositor de etapas (2026-10-16, sin verificar en navegador)
+**REQUIERE MIGRACIÓN** `20261016000001_fase10_evento_enlace.sql` (después de la 000002; idempotente): cambiar el disparador de un enlace recalcula si la misión despierta.
+- **Modelo de etapas** (sin tablas nuevas): la etapa N son las misiones aguas abajo a N pasos (`stages.ts`, `persistedStages`). Cada paso de una etapa se enlaza a TODOS los de la anterior (o a la misión raíz); varios pasos en una etapa van "a la vez"; la unión "A y B → C" es una etapa que espera a todos (`unlock_mode` = `all`) o a cualquiera (`any`). Ajustes por etapa (engranaje): disparador (al completar / cuando respondan), todos/cualquiera (solo si la etapa anterior tiene más de un paso) y plazo en días.
+- **UI**: `StageComposer` (presentacional) reemplaza a los formularios del `ChainSection`: escribir + Enter = etapa nueva ("Luego…"), «+ a la vez» = otro paso en la misma etapa, nombre editable en línea, ✕ quita. Lo que no cabe en etapas (esperar a una misión concreta, enlazar existentes, ver la cadena completa, ajustes propios) quedó en «Avanzado».
+- **Mesa de Estrategia**: renglón plegado «+ Y después…» (`DraftChain`) bajo la carta; las etapas viven en memoria y se crean al despachar (`createChain`). Si se despacha a Seguimiento, la primera etapa usa `follow_up_resolved`. Si falla la cadena, la misión ya despachada se conserva y sale un aviso.
+- **Quitar un paso** (`removeStep`) enlaza a sus predecesoras los sucesores que solo dependían de él: borrarlo sin esto los despertaría de golpe.
+- Limitación: el compositor solo muestra lo que cuelga AGUAS ABAJO de la misión abierta; lo que ella espera se ve en «Avanzado».
