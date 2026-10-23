@@ -5,6 +5,8 @@
 export type TaskStatus = 'pending' | 'in_progress' | 'done' | 'follow_up'
 export type ProjectStatus = 'active' | 'archived'
 export type TaskSize = 'small' | 'medium' | 'large'
+export type UnlockMode = 'all' | 'any'
+export type LinkEvent = 'task_done' | 'follow_up_resolved'
 export type QuestType = 'daily_triage' | 'daily_priority' | 'weekly_project'
 export type LootTriggerType = 'streak' | 'quest_complete' | 'level_up' | 'rank_up'
 export type NotificationType =
@@ -14,6 +16,7 @@ export type NotificationType =
   | 'due_today'
   | 'overdue'
   | 'follow_up'
+  | 'unlocked'
 
 export interface Database {
   public: {
@@ -97,6 +100,9 @@ export interface Database {
           size: TaskSize | null
           xp_reward: number
           rescue_bonus: number
+          locked: boolean
+          unlock_mode: UnlockMode
+          unlock_deadline_days: number | null
           hud_slot: number | null
           position: number | null
           created_at: string
@@ -114,12 +120,35 @@ export interface Database {
           deadline?: string | null
           status?: TaskStatus
           size?: TaskSize | null
+          locked?: boolean
+          unlock_mode?: UnlockMode
+          unlock_deadline_days?: number | null
           hud_slot?: number | null
           position?: number | null
           created_at?: string
           completed_at?: string | null
         }
         Update: Partial<Database['public']['Tables']['tasks']['Insert']>
+        Relationships: []
+      }
+      task_links: {
+        Row: {
+          id: string
+          user_id: string
+          from_task_id: string
+          to_task_id: string
+          on_event: LinkEvent
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string
+          from_task_id: string
+          to_task_id: string
+          on_event?: LinkEvent
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['task_links']['Insert']>
         Relationships: []
       }
       user_category_xp: {
@@ -336,6 +365,7 @@ export type Category = Database['public']['Tables']['categories']['Row']
 export type Project = Database['public']['Tables']['projects']['Row']
 export type KanbanColumn = Database['public']['Tables']['kanban_columns']['Row']
 export type Task = Database['public']['Tables']['tasks']['Row']
+export type TaskLink = Database['public']['Tables']['task_links']['Row']
 export type UserCategoryXp = Database['public']['Tables']['user_category_xp']['Row']
 export type Streak = Database['public']['Tables']['streaks']['Row']
 export type Quest = Database['public']['Tables']['quests']['Row']
