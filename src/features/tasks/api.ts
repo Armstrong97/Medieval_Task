@@ -12,6 +12,9 @@ export type NewTask = Pick<
   | 'kanban_column_id'
   | 'parent_task_id'
   | 'size'
+  | 'locked'
+  | 'unlock_mode'
+  | 'unlock_deadline_days'
 >
 
 export type TaskPatch = Partial<
@@ -28,6 +31,9 @@ export type TaskPatch = Partial<
     | 'size'
     | 'hud_slot'
     | 'position'
+    | 'locked'
+    | 'unlock_mode'
+    | 'unlock_deadline_days'
   >
 >
 
@@ -55,6 +61,7 @@ export async function fetchActiveTasksWithDeadline(): Promise<Task[]> {
     .is('parent_task_id', null)
     .not('status', 'in', '(done,follow_up)')
     .not('deadline', 'is', null)
+    .eq('locked', false)
   if (error) throw error
   return data
 }
@@ -147,6 +154,7 @@ export async function fetchTasksInRange(startIso: string, endIso: string): Promi
     .select('*')
     .is('parent_task_id', null)
     .neq('status', 'follow_up')
+    .eq('locked', false)
     .gte('deadline', startIso)
     .lt('deadline', endIso)
     .order('deadline', { ascending: true })
@@ -279,6 +287,7 @@ export async function fetchQuickWinTask(): Promise<Task | null> {
     .eq('size', 'small')
     .in('status', ['pending', 'in_progress'])
     .is('parent_task_id', null)
+    .eq('locked', false)
     .order('deadline', { ascending: true, nullsFirst: false })
     .limit(1)
     .maybeSingle()

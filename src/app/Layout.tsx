@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { Crosshair, Flame, FolderOpen, Inbox, Menu, ScrollText, Shield, Swords, Wand2, type LucideIcon } from 'lucide-react'
+import { Crosshair, Flame, FolderOpen, Inbox, Menu, ScrollText, Shield, Swords, Wand2, Workflow, type LucideIcon } from 'lucide-react'
 import { useInboxTasks } from '@/features/tasks/hooks'
 import { useStreak } from '@/features/gamification/hooks'
 import { NotificationBell } from '@/features/notifications/components/NotificationBell'
@@ -36,6 +36,7 @@ const navItems: NavItem[] = [
   { to: '/progreso', label: 'Progreso', hint: 'XP, clases y logros', iconKey: 'progress' },
   { to: '/follow-ups', label: 'Follow-ups', hint: 'Esperando a otros', iconKey: 'followups' },
   { to: '/proyectos', label: 'Proyectos', hint: 'Tus jefes de mazmorra', Icon: FolderOpen },
+  { to: '/cadenas', label: 'Cadenas', hint: 'Pasos que se desbloquean', Icon: Workflow },
 ]
 
 function StreakIndicator() {

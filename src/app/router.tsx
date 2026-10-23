@@ -11,6 +11,7 @@ import { CalendarPage } from '@/features/calendar/components/CalendarPage'
 import { ProgressPage } from '@/features/gamification/components/ProgressPage'
 import { ProjectsPage } from '@/features/projects/components/ProjectsPage'
 import { FocusModePage } from '@/features/tasks/components/FocusModePage'
+import { ChainsPage } from '@/features/chains/components/ChainsPage'
 import { FollowUpsPage } from '@/features/followups/components/FollowUpsPage'
 
 export const router = createBrowserRouter([
@@ -33,6 +34,7 @@ export const router = createBrowserRouter([
           { path: 'progreso', element: <ProgressPage /> },
           { path: 'follow-ups', element: <FollowUpsPage /> },
           { path: 'proyectos', element: <ProjectsPage /> },
+          { path: 'cadenas', element: <ChainsPage /> },
           { path: 'foco/:taskId', element: <FocusModePage /> },
           { path: 'projects/:projectId/boss', element: <BossEncounterPage /> },
         ],

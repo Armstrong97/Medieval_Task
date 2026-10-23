@@ -9,6 +9,7 @@ import {
   resolveFollowUp,
 } from '@/features/followups/api'
 import { sendTaskToFollowUp } from '@/features/tasks/api'
+import { withUnlockToast } from '@/features/chains/api'
 
 export function useActiveFollowUps() {
   return useQuery({ queryKey: ['follow-ups'], queryFn: fetchFollowUps })
@@ -81,7 +82,8 @@ export function useLogFollowUpContact() {
 export function useResolveFollowUp() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: resolveFollowUp,
+    mutationFn: (v: Parameters<typeof resolveFollowUp>[0]) =>
+      withUnlockToast(v.taskId, () => resolveFollowUp(v)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['follow-ups'] })
       queryClient.invalidateQueries({ queryKey: ['tasks'] })

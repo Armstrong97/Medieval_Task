@@ -22,6 +22,7 @@ import {
   useFollowUpForTask,
   useSendToFollowUp,
 } from '@/features/followups/hooks'
+import { ChainSection } from '@/features/chains/components/ChainSection'
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '@/utils/datetime'
 import { WEAPON_ICONS } from '@/utils/rpgAssets'
 import type { Task, TaskSize } from '@/types/database.types'
@@ -236,7 +237,7 @@ export function TaskModal({
                 >
                   <Undo2 className="h-3.5 w-3.5" /> Reabrir
                 </button>
-              ) : (
+              ) : task.locked ? null : (
                 <button
                   type="button"
                   onClick={handleComplete}
@@ -463,6 +464,11 @@ export function TaskModal({
             </div>
           )}
 
+          {/* Cadena de misiones (solo misiones triadas de nivel superior) */}
+          {isEditing && task && task.parent_task_id === null && task.kanban_column_id && (
+            <ChainSection task={task} />
+          )}
+
           {/* Micro-Stepping (Submisiones & Integridad HP) */}
           {isEditing && task && (
             <div className="space-y-4 rounded-2xl border border-glass/5 bg-shade/20 p-5">
@@ -632,7 +638,7 @@ export function TaskModal({
           </button>
 
           <div className="flex gap-2">
-            {isEditing && task && firstFreeSlot !== null && task.hud_slot === null && (
+            {isEditing && task && !task.locked && firstFreeSlot !== null && task.hud_slot === null && (
               <button
                 type="button"
                 onClick={() => {

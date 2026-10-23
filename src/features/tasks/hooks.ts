@@ -22,6 +22,7 @@ import {
   updateTask,
 } from '@/features/tasks/api'
 import { showToast } from '@/components/ui/toast-store'
+import { withUnlockToast } from '@/features/chains/api'
 import type { Category, Task } from '@/types/database.types'
 
 export function useTaskById(id: string | null) {
@@ -121,6 +122,9 @@ function useInvalidateTasks() {
   const queryClient = useQueryClient()
   return () => {
     queryClient.invalidateQueries({ queryKey: ['tasks'] })
+    queryClient.invalidateQueries({ queryKey: ['task-links'] })
+    // El Combate tiene su propia clave: sin esto el slot seguía ocupado hasta el próximo refetch.
+    queryClient.invalidateQueries({ queryKey: ['battle-hud'] })
     // Completar/triar tareas dispara triggers de XP, racha y quests en la DB.
     queryClient.invalidateQueries({ queryKey: ['gamification'] })
   }
@@ -201,7 +205,18 @@ export function useCompleteTask() {
   const invalidate = useInvalidateTasks()
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: completeTask,
+    mutationFn: (task: Parameters<typeof completeTask>[0]) =>
+      withUnlockToast(task.id, () => completeTask(task)),
+    // El slot se libera al instante; si falla, vuelve.
+    onMutate: async (task) => {
+      await queryClient.cancelQueries({ queryKey: ['battle-hud', 'tasks'] })
+      const previousHud = queryClient.getQueryData<Task[]>(['battle-hud', 'tasks'])
+      queryClient.setQueryData<Task[]>(['battle-hud', 'tasks'], (old) => old?.filter((t) => t.id !== task.id))
+      return { previousHud }
+    },
+    onError: (_err, _task, context) => {
+      if (context?.previousHud) queryClient.setQueryData(['battle-hud', 'tasks'], context.previousHud)
+    },
     onSuccess: (task) => {
       invalidate()
       // Recompensa inmediata: el XP real lo calcula el trigger de Postgres
@@ -256,6 +271,9 @@ export function useCaptureInboxTask() {
         size: null,
         xp_reward: 0,
         rescue_bonus: 0,
+        locked: false,
+        unlock_mode: 'all',
+        unlock_deadline_days: null,
         hud_slot: null,
         position: null,
         created_at: new Date().toISOString(),

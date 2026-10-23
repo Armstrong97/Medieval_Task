@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Bell, Calendar, Clock, LifeBuoy, Link2 } from 'lucide-react'
+import { Bell, Calendar, Clock, LifeBuoy, Link2, LockOpen } from 'lucide-react'
 import {
   useDismissAllNotifications,
   useDismissNotification,
@@ -18,6 +18,7 @@ const TYPE_ICON: Record<NotificationType, typeof Bell> = {
   due_today: Calendar,
   overdue: LifeBuoy,
   follow_up: Link2,
+  unlocked: LockOpen,
 }
 
 export function NotificationBell() {
