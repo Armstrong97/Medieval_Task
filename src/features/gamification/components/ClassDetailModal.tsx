@@ -120,8 +120,9 @@ export function ClassDetailModal({
                     </div>
                     <button
                       type="button"
+                      disabled={t.locked}
                       onClick={() => handleComplete(t.id, t.project_id)}
-                      className="rounded bg-parchment-ink p-2 text-xs font-black text-parchment transition-transform active:scale-95"
+                      className="disabled:opacity-30 rounded bg-parchment-ink p-2 text-xs font-black text-parchment transition-transform active:scale-95"
                     >
                       <Check className="h-4 w-4" />
                     </button>

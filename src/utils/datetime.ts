@@ -17,8 +17,8 @@ export function rescheduleIso(daysFromNow: number, previousIso: string | null): 
   return target.toISOString()
 }
 
-export function isOverdue(task: { deadline: string | null; status: string }): boolean {
-  return task.status !== 'done' && !!task.deadline && isPast(new Date(task.deadline))
+export function isOverdue(task: { deadline: string | null; status: string; locked?: boolean }): boolean {
+  return task.status !== 'done' && !task.locked && !!task.deadline && isPast(new Date(task.deadline))
 }
 
 // Mueve una fecha límite N días respecto a ella misma (misma hora).

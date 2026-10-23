@@ -132,7 +132,7 @@ export function BossEncounterPage() {
                 <div className="flex items-center gap-2.5">
                   <button
                     type="button"
-                    disabled={!firstFreeSlot || task.hud_slot !== null}
+                    disabled={!firstFreeSlot || task.hud_slot !== null || task.locked}
                     onClick={() =>
                       firstFreeSlot && equipToHud.mutate({ taskId: task.id, slot: firstFreeSlot })
                     }
@@ -151,10 +151,11 @@ export function BossEncounterPage() {
 
                   <button
                     type="button"
+                    disabled={task.locked}
                     onClick={() => completeTask.mutate({ id: task.id, project_id: task.project_id })}
-                    className="rounded border border-red-600/40 bg-red-600/20 px-4 py-2 font-mono text-xs font-black uppercase tracking-widest text-red-400 transition-all hover:bg-red-600 hover:text-white"
+                    className="rounded border border-red-600/40 bg-red-600/20 px-4 py-2 font-mono text-xs font-black uppercase tracking-widest text-red-400 transition-all hover:bg-red-600 hover:text-white disabled:opacity-40"
                   >
-                    Golpear
+                    {task.locked ? 'Dormida' : 'Golpear'}
                   </button>
                 </div>
               </article>

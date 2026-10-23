@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { showToast } from '@/components/ui/toast-store'
+import { useQueryClient } from '@tanstack/react-query'
 import { useDeleteTask } from '@/features/tasks/hooks'
+import { createChain } from '@/features/chains/api'
+import { DraftChain } from '@/features/chains/components/DraftChain'
+import type { DraftStage } from '@/features/chains/stages'
 import { Castle, Link2, Swords } from 'lucide-react'
 import { useCategories, useCreateProject, useProjects } from '@/features/projects/hooks'
 import { useHudTasks } from '@/features/battle-hud/hooks'
@@ -38,7 +42,9 @@ export function StrategyTablePage() {
   const { data: projects } = useProjects()
   const createProject = useCreateProject()
   const { data: hudTasks } = useHudTasks()
+  const queryClient = useQueryClient()
 
+  const [chain, setChain] = useState<DraftStage[]>([])
   const [title, setTitle] = useState('')
   const [categoryId, setCategoryId] = useState(() => readLastChoice().categoryId)
   const [projectChoice, setProjectChoice] = useState(() => readLastChoice().projectChoice)
@@ -68,6 +74,7 @@ export function StrategyTablePage() {
     setShowErrors(false)
     setConfirmingDiscard(false)
     setAnimatingOut(false)
+    setChain([])
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current?.id])
 
@@ -117,6 +124,11 @@ export function StrategyTablePage() {
     }
     const chosenCategoryId = categoryId
     const chosenSize = size as TaskSize
+    // Una misión que se manda a seguimiento espera la respuesta, no el cierre
+    // (follow_up_resolved se cumple también si la misión se completa).
+    const chosenChain = chain.map((s, i) =>
+      i === 0 && outcome === 'follow_up' ? { ...s, event: 'follow_up_resolved' as const } : s,
+    )
 
     // Iniciar física de deslizamiento
     setAnimatingOut(true)
@@ -131,7 +143,7 @@ export function StrategyTablePage() {
           projectId = projectChoice
         }
 
-        await dispatch.mutateAsync({
+        const dispatched = await dispatch.mutateAsync({
           taskId: current.id,
           title: title.trim(),
           categoryId: chosenCategoryId,
@@ -142,6 +154,18 @@ export function StrategyTablePage() {
           hudSlot: outcome === 'equip' ? firstFreeSlot : null,
         })
         persistChoice()
+        if (chosenChain.length > 0) {
+          try {
+            await createChain(dispatched, chosenChain)
+          } catch (chainErr) {
+            showToast({
+              title: 'La misión se despachó, pero no se pudo crear su cadena',
+              detail: chainErr instanceof Error ? chainErr.message : undefined,
+            })
+          }
+          queryClient.invalidateQueries({ queryKey: ['tasks'] })
+          queryClient.invalidateQueries({ queryKey: ['task-links'] })
+        }
       } catch (err) {
         setAnimatingOut(false)
         setError(err instanceof Error ? err.message : 'No se pudo despachar la carta.')
@@ -216,6 +240,8 @@ export function StrategyTablePage() {
             <WeaponSelector value={size} onChange={setSize} />
             {showErrors && problems.size && <FieldError>Elige un arma: define la dificultad y el XP.</FieldError>}
           </div>
+
+          <DraftChain rootTitle={title} stages={chain} onChange={setChain} />
 
           {/* Categoría y Proyecto */}
           <div className="grid grid-cols-2 gap-4">

@@ -26,6 +26,7 @@ export async function fetchEquippableTasks(): Promise<Task[]> {
     .is('parent_task_id', null)
     .not('kanban_column_id', 'is', null)
     .in('status', ['pending', 'in_progress'])
+    .eq('locked', false)
     .order('deadline', { ascending: true, nullsFirst: false })
   if (error) throw error
   return data

@@ -1,4 +1,4 @@
-import { Check, Landmark, Shield, Trophy, Hourglass } from 'lucide-react'
+import { Check, Landmark, Lock, Shield, Trophy, Hourglass } from 'lucide-react'
 import { CLASS_ICONS } from '@/utils/classIcons'
 import { useState } from 'react'
 import { useCategories } from '@/features/projects/hooks'
@@ -154,7 +154,10 @@ function RenderTabCard({
         onClick={() => onOpenTask(task)}
         className="min-w-0 flex-1 text-left"
       >
-        <h3 className="truncate font-display text-sm font-bold text-fg">{task.title}</h3>
+        <h3 className="truncate font-display text-sm font-bold text-fg">
+          {task.locked && <Lock className="mr-1.5 inline h-3.5 w-3.5 text-gold" aria-label="Dormida" />}
+          {task.title}
+        </h3>
         <div className="mt-1 flex items-center gap-3 font-mono text-xs">
           {category && (
             <span
@@ -172,7 +175,7 @@ function RenderTabCard({
         </div>
       </button>
 
-      {!isDone && (
+      {!isDone && !task.locked && (
         <button
           type="button"
           onClick={onComplete}

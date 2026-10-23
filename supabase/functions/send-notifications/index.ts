@@ -52,6 +52,7 @@ Deno.serve(async () => {
     .not('status', 'in', '(done,follow_up)')
     .is('parent_task_id', null)
     .not('deadline', 'is', null)
+    .eq('locked', false)
   if (tasksError) throw tasksError
 
   for (const task of tasks ?? []) {

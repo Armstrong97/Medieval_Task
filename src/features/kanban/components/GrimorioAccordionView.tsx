@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, Search, Check, Landmark, ScrollText, Swords } from 'lucide-react'
+import { ChevronDown, Search, Check, Landmark, Lock, ScrollText, Swords } from 'lucide-react'
 import { format, differenceInDays } from 'date-fns'
 import { useCategories } from '@/features/projects/hooks'
 import { useCompleteTask } from '@/features/tasks/hooks'
@@ -240,7 +240,10 @@ function RenderMissionCard({
               className="h-4 w-4 object-contain opacity-70"
             />
           )}
-          <h3 className="truncate font-display text-sm font-bold text-fg">{task.title}</h3>
+          <h3 className="truncate font-display text-sm font-bold text-fg">
+            {task.locked && <Lock className="mr-1.5 inline h-3.5 w-3.5 text-gold" aria-label="Dormida" />}
+            {task.title}
+          </h3>
         </div>
         <div className="mt-1 flex items-center gap-2 font-mono text-xs">
           {category && (
@@ -268,6 +271,7 @@ function RenderMissionCard({
             SLOT {task.hud_slot}
           </span>
         )}
+        {!task.locked && (
         <button
           type="button"
           onClick={onComplete}
@@ -275,6 +279,7 @@ function RenderMissionCard({
         >
           <Check className="h-4 w-4" aria-label="Completar" />
         </button>
+        )}
       </div>
       </div>
       {isOverdue(task) && (
