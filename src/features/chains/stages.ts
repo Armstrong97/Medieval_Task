@@ -6,9 +6,10 @@ export interface StageSettings {
   mode: UnlockMode
   event: LinkEvent
   days: number | null
+  equip: boolean
 }
 
-export const DEFAULT_STAGE: StageSettings = { mode: 'all', event: 'task_done', days: 3 }
+export const DEFAULT_STAGE: StageSettings = { mode: 'all', event: 'task_done', days: 3, equip: false }
 
 export interface DraftStage extends StageSettings {
   id: string
@@ -37,6 +38,7 @@ export function persistedStages(rootId: string, links: TaskLink[], tasks: Map<st
         mode: first?.unlock_mode ?? DEFAULT_STAGE.mode,
         event: incoming[0]?.on_event ?? DEFAULT_STAGE.event,
         days: first?.unlock_deadline_days ?? null,
+        equip: first?.unlock_equip ?? false,
       },
     }
   })

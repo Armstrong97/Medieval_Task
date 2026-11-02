@@ -15,6 +15,7 @@ export type NewTask = Pick<
   | 'locked'
   | 'unlock_mode'
   | 'unlock_deadline_days'
+  | 'unlock_equip'
 >
 
 export type TaskPatch = Partial<
@@ -34,6 +35,7 @@ export type TaskPatch = Partial<
     | 'locked'
     | 'unlock_mode'
     | 'unlock_deadline_days'
+    | 'unlock_equip'
   >
 >
 

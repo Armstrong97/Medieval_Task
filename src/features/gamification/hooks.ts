@@ -63,7 +63,7 @@ export function useXpEarnedToday() {
 
   if (!tasksToday || !todayQuests || !weeklyQuests) return undefined
 
-  const tasksXp = tasksToday.reduce((sum, t) => sum + t.xp_reward + t.rescue_bonus, 0)
+  const tasksXp = tasksToday.reduce((sum, t) => sum + t.xp_reward + t.rescue_bonus + t.chain_bonus, 0)
   const priorityXp = todayQuests
     .filter((q) => q.type === 'daily_priority' && q.completed && q.completed_at && isToday(new Date(q.completed_at)))
     .reduce((sum, q) => sum + q.xp_reward, 0)

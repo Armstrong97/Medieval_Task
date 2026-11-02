@@ -103,6 +103,8 @@ export interface Database {
           locked: boolean
           unlock_mode: UnlockMode
           unlock_deadline_days: number | null
+          unlock_equip: boolean
+          chain_bonus: number
           hud_slot: number | null
           position: number | null
           created_at: string
@@ -123,6 +125,7 @@ export interface Database {
           locked?: boolean
           unlock_mode?: UnlockMode
           unlock_deadline_days?: number | null
+          unlock_equip?: boolean
           hud_slot?: number | null
           position?: number | null
           created_at?: string

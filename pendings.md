@@ -53,4 +53,5 @@ Fases 1–4 hechas y revisadas por el usuario en pantalla (fase 3); la 4 sin rev
 ## Cadenas de misiones — ideas en parking lot
 
 - **«¿Qué sigue?» al completar**: al hacer Golpe Final a una misión sin cadena, un aviso discreto que abra el compositor para captar el siguiente paso justo al terminar. Pospuesto a propósito (es una interrupción más); decidir con uso real.
-- **Fase C pendiente**: retraso de activación, equipar al Combate / mandar a follow-up al despertar, XP extra por cadena completada, push del aviso de desbloqueo, plantillas de cadenas.
+- **Fase C hecha en código (2026-10-22), por correr y verificar**: migraciones `20261017000001_fase10c_equipar_al_despertar.sql` y `20261017000002_fase10c_bono_de_cadena.sql` (en ese orden, SQL Editor). Probar: casilla «Ponerla en el Combate al despertar» (con slot libre y con los 3 ocupados) y bono «Cadena completada +N» al cerrar una cadena (y que reabrir/recompletar no lo repita).
+- **Fase C aún pendiente**: retraso de activación, mandar a follow-up al despertar, push del aviso de desbloqueo, plantillas de cadenas.

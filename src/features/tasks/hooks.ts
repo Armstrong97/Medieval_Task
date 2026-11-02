@@ -225,13 +225,16 @@ export function useCompleteTask() {
         .getQueryData<Category[]>(['categories'])
         ?.find((c) => c.id === task.category_id)
       const bonus = task.rescue_bonus
-      const total = task.xp_reward + bonus
+      const chain = task.chain_bonus
+      const total = task.xp_reward + bonus + chain
       const where = category?.name ?? task.title
       showToast(
         total > 0
           ? {
               title: `+${total} XP`,
-              detail: bonus > 0 ? `Rescate +${bonus} · ${where}` : where,
+              detail: [chain > 0 && `Cadena completada +${chain}`, bonus > 0 && `Rescate +${bonus}`, where]
+                .filter(Boolean)
+                .join(' · '),
               tone: 'reward',
             }
           : { title: 'Misión completada', detail: task.title, tone: 'reward' },
@@ -274,6 +277,8 @@ export function useCaptureInboxTask() {
         locked: false,
         unlock_mode: 'all',
         unlock_deadline_days: null,
+        unlock_equip: false,
+        chain_bonus: 0,
         hud_slot: null,
         position: null,
         created_at: new Date().toISOString(),

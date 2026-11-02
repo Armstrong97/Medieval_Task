@@ -74,6 +74,7 @@ export async function createStep(
     locked: true,
     unlock_mode: input.mode,
     unlock_deadline_days: input.days,
+    unlock_equip: input.equip,
   })
   try {
     await createTaskLinks(
@@ -139,8 +140,9 @@ export async function updateStage(taskIds: string[], patch: Partial<StageSetting
     const { error } = await supabase.from('task_links').update({ on_event: patch.event }).in('to_task_id', taskIds)
     if (error) throw error
   }
-  const taskPatch: { unlock_mode?: UnlockMode; unlock_deadline_days?: number | null } = {}
+  const taskPatch: { unlock_mode?: UnlockMode; unlock_deadline_days?: number | null; unlock_equip?: boolean } = {}
   if (patch.mode) taskPatch.unlock_mode = patch.mode
+  if (patch.equip !== undefined) taskPatch.unlock_equip = patch.equip
   if ('days' in patch) taskPatch.unlock_deadline_days = patch.days ?? null
   if (Object.keys(taskPatch).length > 0) {
     const { error } = await supabase.from('tasks').update(taskPatch).in('id', taskIds)

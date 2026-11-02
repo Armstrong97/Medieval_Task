@@ -184,6 +184,14 @@ export function StageComposer({
                 />
                 días al despertar
               </label>
+              <label className="flex items-center gap-1.5">
+                <input
+                  type="checkbox"
+                  checked={stage.settings.equip}
+                  onChange={(e) => onSettings(i, { equip: e.target.checked })}
+                />
+                Ponerla en el Combate al despertar
+              </label>
             </div>
           )}
         </div>
