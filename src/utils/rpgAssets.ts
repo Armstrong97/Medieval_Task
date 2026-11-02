@@ -27,6 +27,8 @@ export const NAV_ICONS = {
   calendar: '/assets/rpg/nav/calendar.png',
   progress: '/assets/rpg/nav/progress.png',
   followups: '/assets/rpg/nav/followups.png',
+  projects: '/assets/rpg/nav/projects.png',
+  chains: '/assets/rpg/nav/chains.png',
 } as const
 
 export type NavIconKey = keyof typeof NAV_ICONS

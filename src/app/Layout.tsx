@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { Crosshair, Flame, FolderOpen, Inbox, Menu, ScrollText, Shield, Swords, Wand2, Workflow, type LucideIcon } from 'lucide-react'
+import { Crosshair, Flame, Inbox, Menu, ScrollText, Shield, Swords, Wand2, type LucideIcon } from 'lucide-react'
 import { useInboxTasks } from '@/features/tasks/hooks'
 import { useStreak } from '@/features/gamification/hooks'
 import { NotificationBell } from '@/features/notifications/components/NotificationBell'
@@ -35,8 +35,8 @@ const navItems: NavItem[] = [
   { to: '/calendario', label: 'Calendario', hint: 'Qué vence y cuándo', iconKey: 'calendar' },
   { to: '/progreso', label: 'Progreso', hint: 'XP, clases y logros', iconKey: 'progress' },
   { to: '/follow-ups', label: 'Follow-ups', hint: 'Esperando a otros', iconKey: 'followups' },
-  { to: '/proyectos', label: 'Proyectos', hint: 'Tus jefes de mazmorra', Icon: FolderOpen },
-  { to: '/cadenas', label: 'Cadenas', hint: 'Pasos que se desbloquean', Icon: Workflow },
+  { to: '/proyectos', label: 'Proyectos', hint: 'Tus jefes de mazmorra', iconKey: 'projects' },
+  { to: '/cadenas', label: 'Cadenas', hint: 'Pasos que se desbloquean', iconKey: 'chains' },
 ]
 
 function StreakIndicator() {
@@ -219,7 +219,7 @@ export function Layout() {
                 to={item.to}
                 end={item.end}
                 className={({ isActive }) =>
-                  `nav-item-link flex items-center gap-3.5 rounded-r-xl px-5 py-3 text-sm font-medium transition-all ${
+                  `nav-item-link flex items-center gap-3.5 rounded-r-xl px-5 py-2 text-sm font-medium transition-all ${
                     isActive ? 'active' : 'text-fg-muted'
                   }`
                 }
@@ -230,7 +230,7 @@ export function Layout() {
                 <img
                   src={NAV_ICONS[item.iconKey]}
                   alt=""
-                  className="h-6 w-6 object-contain drop-shadow-[0_0_4px_rgb(var(--shade-rgb)/0.5)]"
+                  className="h-11 w-11 shrink-0 object-contain drop-shadow-[0_0_4px_rgb(var(--shade-rgb)/0.5)]"
                 />
                 ) : null}
                 <span className="flex min-w-0 flex-col">
