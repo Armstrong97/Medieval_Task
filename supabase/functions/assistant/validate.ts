@@ -17,7 +17,8 @@ export type TriageRequest = { action: 'triage'; title: string; description: stri
 export type ChainRequest = { action: 'chain'; title: string; description: string; today: string }
 // `description` opcional: el texto que el usuario tiene en pantalla (aunque no lo haya guardado) manda sobre el guardado.
 export type MicrostepsRequest = { action: 'microsteps'; taskId: string; description?: string }
-export type AssistantRequest = TriageRequest | ChainRequest | MicrostepsRequest
+export type InsightsRequest = { action: 'insights'; tz: string }
+export type AssistantRequest = TriageRequest | ChainRequest | MicrostepsRequest | InsightsRequest
 
 export interface TriageSuggestion {
   category_id: string
@@ -40,6 +41,11 @@ export function parseRequest(body: unknown): AssistantRequest | null {
     // Fecha local del usuario (el servidor no conoce su zona horaria); sirve para entender «el viernes».
     const today = typeof body.today === 'string' && DAY.test(body.today) ? body.today : new Date().toISOString().slice(0, 10)
     return { action: body.action, title, description, today }
+  }
+  if (body.action === 'insights') {
+    // Zona horaria IANA (p. ej. America/Bogota); la base de datos la comprueba y cae a UTC si no existe.
+    const tz = typeof body.tz === 'string' && /^[A-Za-z0-9_+\-/]{1,64}$/.test(body.tz) ? body.tz : 'UTC'
+    return { action: 'insights', tz }
   }
   if (body.action === 'microsteps') {
     if (typeof body.taskId !== 'string' || !UUID.test(body.taskId)) return null
@@ -113,4 +119,40 @@ export function validateStages(raw: unknown): ChainStageSuggestion[] | null {
     if (stages.length === MAX_STAGES) break
   }
   return stages.length > 0 ? stages : null
+}
+
+export interface InsightsResult {
+  summary: string
+  observations: string[]
+  stuck: { task_id: string; advice: string }[]
+}
+
+// `stuckIds`: solo se aceptan consejos sobre misiones que de verdad venían en las estadísticas.
+export function validateInsights(raw: unknown, stuckIds: Set<string>): InsightsResult | null {
+  if (!isRecord(raw)) return null
+  const summary = typeof raw.summary === 'string' ? raw.summary.trim().slice(0, 280) : ''
+  if (!summary) return null
+  const seen = new Set<string>()
+  const observations: string[] = []
+  if (Array.isArray(raw.observations)) {
+    for (const o of raw.observations) {
+      if (typeof o !== 'string') continue
+      const text = o.trim().slice(0, 180)
+      if (!text || seen.has(text.toLowerCase())) continue
+      seen.add(text.toLowerCase())
+      observations.push(text)
+      if (observations.length === 4) break
+    }
+  }
+  const stuck: InsightsResult['stuck'] = []
+  if (Array.isArray(raw.stuck)) {
+    for (const k of raw.stuck) {
+      if (!isRecord(k) || typeof k.task_id !== 'string' || !stuckIds.has(k.task_id) || typeof k.advice !== 'string') continue
+      if (stuck.some((x) => x.task_id === k.task_id)) continue
+      const advice = k.advice.trim().slice(0, 160)
+      if (advice) stuck.push({ task_id: k.task_id, advice })
+      if (stuck.length === 3) break
+    }
+  }
+  return { summary, observations, stuck }
 }

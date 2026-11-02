@@ -12,6 +12,7 @@ import {
   MAX_DESCRIPTION,
   MAX_TITLE,
   parseRequest,
+  validateInsights,
   validateStages,
   validateSteps,
   validateTriage,
@@ -247,6 +248,46 @@ Si la misión es tan simple que no necesita pasos posteriores, devuelve una sola
   return { stages }
 }
 
+// Las estadísticas las calcula SQL (ai_user_stats, con el JWT del usuario); el modelo solo las interpreta.
+async function handleInsights(client: UserClient, req: Extract<AssistantRequest, { action: 'insights' }>, profile: string) {
+  const { data, error } = await client.rpc('ai_user_stats', { p_tz: req.tz })
+  if (error || !data) throw new Error('data')
+  const stats = data as { completed_30d: number; stuck?: { id: string; title: string; postponed: number }[] }
+
+  // Con poco historial no se llama a Gemini: no habría nada fiable que decir.
+  if (stats.completed_30d < 5) return { insufficient: true }
+
+  const stuck = stats.stuck ?? []
+  const titleById = new Map(stuck.map((s) => [s.id, s.title]))
+  const prompt = `<estadisticas>
+${clean(JSON.stringify(data), 6000)}
+</estadisticas>
+
+Son las estadísticas de los últimos 30 días de esta persona (by_weekday: 1 = lunes … 7 = domingo; by_daypart: manana, tarde, noche, madrugada; avg_days_to_complete_by_size: días reales desde que se crea hasta que se completa; overdue_open = misiones «por rescatar»; stuck = misiones abiertas movidas 3 o más veces).
+Escribe, usando SOLO estos números y sin inventar ninguno:
+- summary: 1 o 2 frases cálidas con lo más destacable (un logro o un buen hábito primero).
+- observations: de 2 a 4 observaciones concretas y útiles (cuándo rinde más, qué tamaño tarda más de lo esperado, qué clase se ha descuidado o se repite, tareas recurrentes que se podrían automatizar o agendar). Cada una acompañada de un ajuste práctico. Máximo 160 caracteres cada una.
+- stuck: por cada misión de la lista stuck (máximo 3), un consejo breve y amable (partirla en micro-pasos, moverla a su mejor momento del día, o soltarla). Usa su id exacto como task_id. Si no hay misiones en stuck, devuelve una lista vacía.
+Tono sin culpa: nada de «fallaste» ni «deberías haber»; las misiones «por rescatar» son oportunidades, no fracasos.`
+
+  const raw = await callGemini(STYLE, withProfile(profile, prompt), {
+    type: 'OBJECT',
+    properties: {
+      summary: { type: 'STRING' },
+      observations: { type: 'ARRAY', items: { type: 'STRING' } },
+      stuck: {
+        type: 'ARRAY',
+        items: { type: 'OBJECT', properties: { task_id: { type: 'STRING' }, advice: { type: 'STRING' } }, required: ['task_id', 'advice'] },
+      },
+    },
+    required: ['summary', 'observations', 'stuck'],
+  })
+  const insights = validateInsights(raw, new Set(titleById.keys()))
+  if (!insights) throw new Error('bad_output')
+  // El título sale de la base de datos, no del modelo.
+  return { ...insights, stuck: insights.stuck.map((k) => ({ ...k, title: titleById.get(k.task_id) ?? '' })) }
+}
+
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (request.method !== 'POST') return reply(405, { error: 'method' })
@@ -291,7 +332,9 @@ Deno.serve(async (request) => {
         ? await handleTriage(client, parsed, profile)
         : parsed.action === 'chain'
           ? await handleChain(parsed, profile)
-          : await handleMicrosteps(client, parsed, profile)
+          : parsed.action === 'insights'
+            ? await handleInsights(client, parsed, profile)
+            : await handleMicrosteps(client, parsed, profile)
     return reply(200, result)
   } catch (err) {
     const message = err instanceof Error ? err.message : 'server'

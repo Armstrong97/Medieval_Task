@@ -105,6 +105,7 @@ export interface Database {
           unlock_deadline_days: number | null
           unlock_equip: boolean
           chain_bonus: number
+          postponed_count: number
           hud_slot: number | null
           position: number | null
           created_at: string

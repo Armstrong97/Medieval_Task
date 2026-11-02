@@ -1,5 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { fetchAiSettings, setAiEnabled, setAiProfileContext, suggestChain, suggestMicrosteps, suggestTriage } from '@/features/ai/api'
+import { skipToken, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import type { InsightsResponse } from '@/features/ai/api'
+import { fetchAiSettings, setAiEnabled, setAiProfileContext, suggestChain, suggestInsights, suggestMicrosteps, suggestTriage } from '@/features/ai/api'
 
 export function useAiEnabled() {
   const { data } = useQuery({ queryKey: ['ai', 'settings'], queryFn: fetchAiSettings })
@@ -37,4 +38,15 @@ export function useSuggestMicrosteps() {
 
 export function useSuggestChain() {
   return useMutation({ mutationFn: suggestChain })
+}
+
+// El último análisis se guarda en la caché: volver a la página no gasta cuota; solo el botón vuelve a pedirlo.
+export function useInsights() {
+  const queryClient = useQueryClient()
+  const saved = useQuery<InsightsResponse>({ queryKey: ['ai', 'insights'], queryFn: skipToken, staleTime: Infinity })
+  const request = useMutation({
+    mutationFn: suggestInsights,
+    onSuccess: (data) => queryClient.setQueryData(['ai', 'insights'], data),
+  })
+  return { data: saved.data, request }
 }

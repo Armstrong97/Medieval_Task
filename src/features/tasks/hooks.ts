@@ -279,6 +279,7 @@ export function useCaptureInboxTask() {
         unlock_deadline_days: null,
         unlock_equip: false,
         chain_bonus: 0,
+        postponed_count: 0,
         hud_slot: null,
         position: null,
         created_at: new Date().toISOString(),

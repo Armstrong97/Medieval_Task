@@ -39,7 +39,7 @@ Cliente ──(JWT del usuario)──> Edge Function `assistant` ──> Gemini 
 0. **Base** (hecha en código): migración (`ai_settings`, `ai_usage`, `ai_consume_quota`), Edge Function `assistant`, cliente (`src/features/ai/`), interruptor en el perfil.
 1. **Triage asistido y micro-pasos** (hecha en código): «Sugerir con IA» en la Mesa de Estrategia (clase, proyecto, arma y plazo, con motivo breve, usando las últimas decisiones del usuario como ejemplos) y «Sugerir micro-pasos» en el editor de misiones.
 2. **Cadenas desde un objetivo** (hecha en código): «Sugerir etapas con IA» propone lo que viene después de una misión (2-5 etapas, 1-3 pasos cada una, plazos en días) con vista previa antes de aplicar; en la Mesa de Estrategia (borrador) y en el editor (solo si la misión aún no tiene cadena). **Captura en lenguaje natural**: descartada como función aparte, porque «Sugerir con IA» de la Mesa ya entiende fechas escritas en el título.
-3. **Patrones y recomendaciones**: tareas recurrentes, misiones reprogramadas 3+ veces («¿la partimos?»), hora de mayor rendimiento, estimación realista por tamaño (SQL) y «Elegir por mí» inteligente; resumen semanal sin culpa. Segunda ronda posible con `pgvector` para tareas parecidas.
+3. **Patrones y recomendaciones** (hecha en código, ver HANDOFF §21): estadísticas calculadas en SQL (`ai_user_stats`) e interpretadas por la IA en la tarjeta «Tu ritmo» de Progreso, con aviso de misiones atascadas («¿las partimos?»). Pendiente de esta fase: «Elegir por mí» inteligente y el resumen semanal automático; segunda ronda posible con `pgvector` para tareas parecidas.
 4. **Asistente conversacional** con herramientas, solo si lo anterior demuestra valor (cada acción de escritura pediría confirmación).
 
 ## Pasos manuales (Fase 0 y 1)

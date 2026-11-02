@@ -76,3 +76,16 @@ export async function setAiProfileContext(text: string): Promise<void> {
     .upsert({ profile_context: text.trim().slice(0, 1000), updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
   if (error) throw error
 }
+
+export interface InsightsResult {
+  summary: string
+  observations: string[]
+  stuck: { task_id: string; title: string; advice: string }[]
+}
+
+// `insufficient`: todavía no hay historial suficiente (el servidor no llama a Gemini en ese caso).
+export type InsightsResponse = ({ insufficient?: false } & InsightsResult) | { insufficient: true }
+
+export async function suggestInsights(): Promise<InsightsResponse> {
+  return callAssistant<InsightsResponse>({ action: 'insights', tz: Intl.DateTimeFormat().resolvedOptions().timeZone })
+}

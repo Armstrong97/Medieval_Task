@@ -1,7 +1,7 @@
 // Autochequeo de validate.ts. Correr con:
 //   node --experimental-strip-types supabase/functions/assistant/validate.test.ts
 import assert from 'node:assert/strict'
-import { parseRequest, validateStages, validateSteps, validateTriage } from './validate.ts'
+import { parseRequest, validateInsights, validateStages, validateSteps, validateTriage } from './validate.ts'
 
 const allowed = { categoryIds: new Set(['cat-1']), projectIds: new Set(['proj-1']) }
 const good = { category_id: 'cat-1', project_id: 'proj-1', size: 'medium', deadline_days: 3.4, reason: ' ok ' }
@@ -48,5 +48,19 @@ assert.equal(validateStages({ stages: [{ steps: ['a'], days: 999 }] })?.[0].days
 assert.equal(validateStages({ stages: [{ steps: ['a'], days: -4 }] })?.[0].days, 1)
 assert.equal(validateStages({ stages: Array.from({ length: 9 }, (_, i) => ({ steps: [`p${i}`], days: 1 })) })?.length, 5)
 assert.equal(validateStages({ stages: [{ steps: ['1', '2', '3', '4', '5', '6'], days: 1 }] })?.[0].steps.length, 4)
+
+// insights
+assert.deepEqual(parseRequest({ action: 'insights', tz: 'America/Bogota' }), { action: 'insights', tz: 'America/Bogota' })
+assert.deepEqual(parseRequest({ action: 'insights', tz: "x'; drop table tasks;--" }), { action: 'insights', tz: 'UTC' })
+assert.deepEqual(parseRequest({ action: 'insights' }), { action: 'insights', tz: 'UTC' })
+const ids = new Set(['t-1'])
+assert.equal(validateInsights({ summary: '  ', observations: [] }, ids), null)
+assert.equal(validateInsights('x', ids), null)
+assert.deepEqual(
+  validateInsights({ summary: ' Buen ritmo ', observations: ['A', 'a', 3, 'B'], stuck: [{ task_id: 't-1', advice: ' Pártela ' }, { task_id: 'inventada', advice: 'x' }, { task_id: 't-1', advice: 'otra' }] }, ids),
+  { summary: 'Buen ritmo', observations: ['A', 'B'], stuck: [{ task_id: 't-1', advice: 'Pártela' }] },
+)
+assert.equal(validateInsights({ summary: 's'.repeat(999), observations: Array.from({ length: 9 }, (_, i) => `o${i}`) }, ids)?.observations.length, 4)
+assert.equal(validateInsights({ summary: 's'.repeat(999) }, ids)?.summary.length, 280)
 
 console.log('validate.test.ts: OK')

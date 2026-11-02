@@ -10,6 +10,7 @@ import {
 import { ClassDetailModal } from '@/features/gamification/components/ClassDetailModal'
 import { LootShowcase } from '@/features/gamification/components/LootShowcase'
 import { ProjectBossCard } from '@/features/projects/components/ProjectBossCard'
+import { RhythmCard } from '@/features/ai/components/RhythmCard'
 import type { Category, QuestType } from '@/types/database.types'
 
 // useTodayQuests solo devuelve daily_triage/daily_priority (ver fetchTodayQuests) —
@@ -55,6 +56,8 @@ export function ProgressPage() {
       <main className="grid grid-cols-1 gap-8 lg:grid-cols-12">
         {/* COLUMNA IZQUIERDA (5 Cols): Azañas & Racha */}
         <div className="space-y-6 lg:col-span-5">
+          <RhythmCard />
+
           {/* Tarjeta de Racha Activa */}
           <section className="card-stone-bg streak-glow-card rounded-2xl border-2 border-accent/40 p-6">
             <div className="flex items-center justify-between">
