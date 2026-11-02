@@ -14,7 +14,9 @@ Cosas acordadas que no se hacen todavía. Revisar al retomar cada tema.
 
 ## ESTADO AL 2026-11-01 (leer primero)
 
-- **Todo commiteado** hasta `2f9731d` (Cadenas fase C). Las 12 migraciones de Supabase hasta `20261017000002` están corridas y `send-notifications` desplegada (confirmado por el usuario).
+- **Fase 11 (asistente IA, fases 0 y 1) desplegada y funcionando** (probada por el usuario): ver `docs/AI_PLAN.md` y la sección 21 del HANDOFF. Siguiente: fase 2 (captura en lenguaje natural y cadenas desde un objetivo). Pendiente: nivel de pago antes de usar datos sensibles reales.
+
+- **Todo commiteado y subido** hasta `c9602e6` (assets verdes y docs), salvo la Fase 11. Las 12 migraciones de Supabase hasta `20261017000002` están corridas y `send-notifications` desplegada (confirmado por el usuario).
 - **Fase C-1 (equipar al despertar) y C-2 (bono de cadena) probadas por el usuario y funcionando.**
 - Siguiente trabajo: resto de la **fase C de cadenas** (ver abajo).
 

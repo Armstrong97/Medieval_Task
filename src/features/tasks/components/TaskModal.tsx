@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ChevronDown, ChevronUp, GripVertical, X, Trash2, Swords, Check, Undo2, Link2, ChevronRight, ScrollText, Star } from 'lucide-react'
+import { ChevronDown, ChevronUp, GripVertical, X, Trash2, Swords, Check, Undo2, Link2, ChevronRight, ScrollText, Star, Sparkles } from 'lucide-react'
 import { addDays } from 'date-fns'
 import { useCategories, useProjects } from '@/features/projects/hooks'
 import {
@@ -23,6 +23,7 @@ import {
   useSendToFollowUp,
 } from '@/features/followups/hooks'
 import { ChainSection } from '@/features/chains/components/ChainSection'
+import { useAiEnabled, useSuggestMicrosteps } from '@/features/ai/hooks'
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '@/utils/datetime'
 import { WEAPON_ICONS } from '@/utils/rpgAssets'
 import type { Task, TaskSize } from '@/types/database.types'
@@ -82,6 +83,11 @@ export function TaskModal({
   const [deadline, setDeadline] = useState<string>(toDatetimeLocalValue(task?.deadline ?? null))
   const [description, setDescription] = useState<string>(task?.description ?? '')
   const [newSubtaskText, setNewSubtaskText] = useState('')
+  const aiEnabled = useAiEnabled()
+  const suggestSteps = useSuggestMicrosteps()
+  const [suggestedSteps, setSuggestedSteps] = useState<string[]>([])
+  const [addingSteps, setAddingSteps] = useState(false)
+  const [aiError, setAiError] = useState<string | null>(null)
   const [sealing, setSealing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -169,6 +175,28 @@ export function TaskModal({
       deadline: task.deadline,
     })
     setNewSubtaskText('')
+  }
+
+  function handleSuggestSteps() {
+    if (!task) return
+    setAiError(null)
+    suggestSteps.mutate(task.id, { onSuccess: setSuggestedSteps, onError: (e) => setAiError(e.message) })
+  }
+
+  // Uno a uno y en orden: el trigger asigna la posición al insertar, y en paralelo se desordenarían.
+  async function addSuggestedSteps() {
+    if (!task) return
+    setAddingSteps(true)
+    try {
+      for (const stepTitle of suggestedSteps) {
+        await createTask.mutateAsync({ title: stepTitle, parent_task_id: task.id, project_id: task.project_id, deadline: task.deadline })
+        setSuggestedSteps((steps) => steps.slice(1))
+      }
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : 'No se pudieron añadir los micro-pasos.')
+    } finally {
+      setAddingSteps(false)
+    }
   }
 
   function handleSubmit() {
@@ -585,6 +613,63 @@ export function TaskModal({
                   Añadir
                 </button>
               </div>
+
+              {aiEnabled && (
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={handleSuggestSteps}
+                    disabled={suggestSteps.isPending || addingSteps}
+                    className="flex items-center gap-1.5 rounded-lg border border-rune/30 px-3 py-2 font-mono text-xs font-bold text-rune transition-colors hover:bg-rune/10 disabled:opacity-50"
+                  >
+                    <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+                    {suggestSteps.isPending ? 'Pensando…' : 'Sugerir micro-pasos con IA'}
+                  </button>
+                  {aiError && (
+                    <p role="alert" className="font-mono text-xs font-medium text-warn-fg">
+                      {aiError}
+                    </p>
+                  )}
+                  {suggestedSteps.length > 0 && (
+                    <div className="space-y-2 rounded-lg border border-rune/20 bg-rune/5 p-3">
+                      <p className="font-mono text-xs uppercase tracking-widest text-fg-muted/60">Sugeridos</p>
+                      <ul className="space-y-1">
+                        {suggestedSteps.map((s) => (
+                          <li key={s} className="flex items-start justify-between gap-2 font-mono text-xs text-fg">
+                            <span>{s}</span>
+                            <button
+                              type="button"
+                              onClick={() => setSuggestedSteps((steps) => steps.filter((x) => x !== s))}
+                              aria-label={`Quitar sugerencia: ${s}`}
+                              className="shrink-0 text-fg-muted hover:text-fg"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                      <div className="flex gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => void addSuggestedSteps()}
+                          disabled={addingSteps}
+                          className="rounded-lg border border-border bg-glass/5 px-3 py-1.5 font-mono text-xs font-bold text-fg hover:bg-glass/10 disabled:opacity-50"
+                        >
+                          {addingSteps ? 'Añadiendo…' : 'Añadir todos'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSuggestedSteps([])}
+                          disabled={addingSteps}
+                          className="rounded-lg px-3 py-1.5 font-mono text-xs font-bold text-fg-muted hover:text-fg"
+                        >
+                          Descartar
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

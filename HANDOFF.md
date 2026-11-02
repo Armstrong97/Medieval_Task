@@ -706,3 +706,16 @@ Regenerados en Gemini (app, no API) y reemplazados los 13 assets morado/oro de `
 - **Íconos del menú**: recortados a su caja visible y mostrados a 44 px (`h-11 w-11`) en el Menú del Héroe; a 24 px no se entendían. La barra inferior móvil sigue con Lucide.
 - **Ideas anotadas** (no comprometidas) en `IDEAS.md`: generación de imágenes por API, menú tipo tableta rúnica, más movimiento y carácter gráfico.
 - Sin verificar en navegador.
+
+---
+
+## 21. Fase 11 — Asistente IA (2026-11-01, fases 0 y 1 hechas, desplegadas y probadas por el usuario)
+
+Plan completo, seguridad y fases 2-4 en [`docs/AI_PLAN.md`](docs/AI_PLAN.md). Resumen:
+- **Arquitectura**: cliente → Edge Function `assistant` (Deno) → Gemini API. La key vive solo como secret (`GEMINI_API_KEY`, opcional `GEMINI_MODEL`, por defecto `gemini-3.5-flash-lite`: verificar vigencia en AI Studio). La función lee con el JWT del usuario (RLS, sin `service_role`), exige `ai_settings.enabled` y descuenta cuota diaria con `ai_consume_quota` (60/día, atómica). La IA **solo sugiere**; escribir lo decide el usuario.
+- **Migración** `20261101000001_fase11_asistente_ia.sql` (`ai_settings`, `ai_usage`, `ai_consume_quota`).
+- **Función** `supabase/functions/assistant/`: `index.ts` (acciones `triage` y `microsteps`), `validate.ts` (validación pura de entrada y de la salida del modelo) y `validate.test.ts` (autochequeo: `node --experimental-strip-types supabase/functions/assistant/validate.test.ts`).
+- **Cliente** `src/features/ai/` (`api.ts`, `hooks.ts`); interruptor «Asistente IA» en `ProfileMenu`; botón «Sugerir con IA» en la Mesa de Estrategia (rellena clase, proyecto, arma y plazo con un motivo; usa las últimas 15 decisiones del usuario como ejemplos) y «Sugerir micro-pasos con IA» en `TaskModal`.
+- **Seguridad**: datos delimitados como datos en el prompt (sin `<` ni `>`), salida con esquema JSON validada en servidor (ids contra listas permitidas), errores de Gemini nunca devueltos al cliente. **Nivel gratuito de la API: Google puede usar lo enviado para mejorar sus productos; no usar datos sensibles reales hasta pasar a nivel de pago** (el interruptor lo avisa).
+- **Pasos manuales**: correr la migración; `npx supabase secrets set GEMINI_API_KEY=<key> --project-ref dlztajgoljayfmqjdqio`; `npx supabase functions deploy assistant --project-ref dlztajgoljayfmqjdqio`; activar el interruptor en el perfil.
+- **Modelo (probado 2026-11-02)**: `gemini-3.5-flash-lite` responde en < 1 s y cumple el esquema JSON. `gemini-3.8-flash` y `gemini-3.7-flash` estaban saturados/lentos (timeouts de 30-60 s, 503) y `gemini-2.5-flash` devolvía 404 («ya no disponible para usuarios nuevos»). Los modelos con razonamiento gastan segundos en tareas simples. Si vuelve a fallar: `node scripts/gemini-probe.mjs list` y comparar con `GEMINI_MODELS` (ver `scripts/gemini-probe.mjs`), luego fijar el secret `GEMINI_MODEL`. La función reintenta una vez ante 503 y corta a los 25 s por intento.

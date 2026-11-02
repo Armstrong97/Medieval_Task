@@ -353,6 +353,20 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['push_subscriptions']['Insert']>
         Relationships: []
       }
+      ai_settings: {
+        Row: {
+          user_id: string
+          enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          user_id?: string
+          enabled?: boolean
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['ai_settings']['Insert']>
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: {
@@ -379,3 +393,4 @@ export type FollowUp = Database['public']['Tables']['follow_ups']['Row']
 export type FollowUpLog = Database['public']['Tables']['follow_up_logs']['Row']
 export type AppNotification = Database['public']['Tables']['notifications']['Row']
 export type PushSubscriptionRow = Database['public']['Tables']['push_subscriptions']['Row']
+export type AiSettings = Database['public']['Tables']['ai_settings']['Row']

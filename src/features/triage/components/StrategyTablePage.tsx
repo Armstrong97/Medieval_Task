@@ -6,11 +6,13 @@ import { useDeleteTask } from '@/features/tasks/hooks'
 import { createChain } from '@/features/chains/api'
 import { DraftChain } from '@/features/chains/components/DraftChain'
 import type { DraftStage } from '@/features/chains/stages'
-import { Castle, Link2, Swords } from 'lucide-react'
+import { addDays, format } from 'date-fns'
+import { Castle, Link2, Sparkles, Swords } from 'lucide-react'
+import { useAiEnabled, useSuggestTriage } from '@/features/ai/hooks'
 import { useCategories, useCreateProject, useProjects } from '@/features/projects/hooks'
 import { useHudTasks } from '@/features/battle-hud/hooks'
 import { useTriageSession } from '@/features/triage/hooks'
-import { fromDatetimeLocalValue } from '@/utils/datetime'
+import { fromDatetimeLocalValue, toDatetimeLocalValue } from '@/utils/datetime'
 import { WeaponSelector } from '@/features/triage/components/WeaponSelector'
 import { InboxCardDeck } from '@/features/triage/components/InboxCardDeck'
 import type { TaskSize } from '@/types/database.types'
@@ -43,6 +45,8 @@ export function StrategyTablePage() {
   const createProject = useCreateProject()
   const { data: hudTasks } = useHudTasks()
   const queryClient = useQueryClient()
+  const aiEnabled = useAiEnabled()
+  const suggestTriage = useSuggestTriage()
 
   const [chain, setChain] = useState<DraftStage[]>([])
   const [title, setTitle] = useState('')
@@ -56,6 +60,7 @@ export function StrategyTablePage() {
   const [size, setSize] = useState<TaskSize | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [animatingOut, setAnimatingOut] = useState(false)
+  const [aiNote, setAiNote] = useState<string | null>(null)
 
   // "Saltar por ahora" manda la carta al final de la cola durante esta sesión.
   const pending = items.filter((i) => !skipped.includes(i.id))
@@ -75,6 +80,8 @@ export function StrategyTablePage() {
     setConfirmingDiscard(false)
     setAnimatingOut(false)
     setChain([])
+    setAiNote(null)
+    suggestTriage.reset()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current?.id])
 
@@ -102,6 +109,27 @@ export function StrategyTablePage() {
     } catch {
       // sin localStorage: solo se pierde el recuerdo.
     }
+  }
+
+  // La IA solo rellena el formulario: el usuario revisa y decide al despachar.
+  function handleSuggest() {
+    if (!title.trim()) return
+    suggestTriage.mutate(
+      { title: title.trim(), today: format(new Date(), 'yyyy-MM-dd') },
+      {
+        onSuccess: (s) => {
+          setCategoryId(s.category_id)
+          setProjectChoice(s.project_id ?? NO_PROJECT)
+          setSize(s.size)
+          const due = addDays(new Date(), s.deadline_days)
+          due.setHours(18, 0, 0, 0)
+          // Misma regla que el Calendario: si las 18:00 de hoy ya pasaron, 23:00 (no nace «por rescatar»).
+          if (due.getTime() < Date.now()) due.setHours(23, 0, 0, 0)
+          setDeadline(toDatetimeLocalValue(due.toISOString()))
+          setAiNote(s.reason)
+        },
+      },
+    )
   }
 
   function handleSkip() {
@@ -233,6 +261,29 @@ export function StrategyTablePage() {
             />
             {showErrors && problems.title && <FieldError>Ponle un título a la misión.</FieldError>}
             {showErrors && problems.deadline && <FieldError>Elige una fecha límite.</FieldError>}
+            {aiEnabled && (
+              <div className="mt-3 space-y-1.5">
+                <button
+                  type="button"
+                  onClick={handleSuggest}
+                  disabled={suggestTriage.isPending || !title.trim()}
+                  className="flex items-center gap-1.5 rounded-lg border border-rune/30 px-3 py-2 font-mono text-xs font-bold uppercase tracking-wider text-rune transition-colors hover:bg-rune/10 disabled:opacity-50"
+                >
+                  <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+                  {suggestTriage.isPending ? 'Pensando…' : 'Sugerir con IA'}
+                </button>
+                {aiNote && !suggestTriage.isPending && (
+                  <p className="font-mono text-xs text-fg-muted">
+                    Sugerencia: {aiNote} Revísala y ajusta lo que quieras.
+                  </p>
+                )}
+                {suggestTriage.isError && (
+                  <p role="alert" className="font-mono text-xs font-medium text-warn-fg">
+                    {suggestTriage.error.message}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Selector de Armas / Dificultad */}
