@@ -696,3 +696,13 @@ Idea: las misiones siguientes existen desde el inicio pero **dormidas** (`tasks.
 - **Equipar al despertar** (decisión: opcional, por etapa, no automático): `tasks.unlock_equip` (default false). `chain_refresh_task` busca el primer slot libre del Combate (1-3); si hay, la misión despierta ya equipada (`hud_slot` + `in_progress`); si no, despierta normal y queda en el cajón. El aviso de la campana no menciona que no cupo (sin culpa); nunca se expulsa una misión equipada. UI: casilla «Ponerla en el Combate al despertar» en el engranaje de cada etapa (`StageSettings.equip`; también en el borrador de Estrategia). «Mandar a Seguimiento al despertar» queda fuera (necesita datos del aliado).
 - **Bono por cadena completada** (decisión: 25 % del XP base de la cadena, mínimo 10): `tasks.chain_bonus`. Cadena = componente conexo por `task_links` (≥ 2 misiones); completa cuando todas están `done`. Trigger BEFORE `tasks_set_chain_bonus` lo fija en la misión que cierra la cadena (así el RETURNING del cliente ya lo trae); trigger AFTER `tasks_pay_chain_bonus` lo suma a la categoría de esa misión (sin categoría no se suma). **Anti-explotación**: `chain_bonus > 0` en cualquier misión de la cadena la marca como pagada; reabrir y recompletar no repite. Mismo patrón que `rescue_bonus` (columna, no fila en `quests`). El toast muestra «Cadena completada +N»; `useXpEarnedToday` lo incluye.
 - Limitación: agregar pasos a una cadena ya pagada no paga otro bono. Quedan para después: push del aviso de desbloqueo, plantillas de cadenas, retraso de activación.
+
+---
+
+## 20. Fase 9 · Fase 5 — Assets verdes (2026-11-01)
+
+Regenerados en Gemini (app, no API) y reemplazados los 13 assets morado/oro de `public/assets/rpg/` por versiones verde/rúnica; se añadieron `nav/projects.png` y `nav/chains.png` (claves `projects` y `chains` en `NAV_ICONS`, usadas por `Layout.tsx` en lugar de `FolderOpen`/`Workflow`).
+- **Proceso**: prompts en `docs/ASSET_PROMPTS.md`; originales JPEG de 2048 px en `assets-raw/` (gitignored). Cada imagen se reescaló (256 px; jefes 512 px) y se le quitó el fondo con relleno por inundación desde los bordes sobre el color mediano del borde (tolerancia 34; 14 para dragón, liche y cofre, que tienen zonas oscuras internas). Ese script no está en el repo (vivió en un directorio temporal): si se generan más assets (avatares de clase), conviene guardarlo en `scripts/`.
+- **Íconos del menú**: recortados a su caja visible y mostrados a 44 px (`h-11 w-11`) en el Menú del Héroe; a 24 px no se entendían. La barra inferior móvil sigue con Lucide.
+- **Ideas anotadas** (no comprometidas) en `IDEAS.md`: generación de imágenes por API, menú tipo tableta rúnica, más movimiento y carácter gráfico.
+- Sin verificar en navegador.

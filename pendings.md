@@ -2,14 +2,13 @@
 
 Cosas acordadas que no se hacen todavía. Revisar al retomar cada tema.
 
-## Rediseño "Hyrule" (BotW/TotK) — Fase 5: assets verdes
+## Rediseño "Hyrule" (BotW/TotK) — Fase 5: assets verdes (hecha 2026-11-01)
 
-- **Bloqueado hasta el jueves**: el usuario no puede generar imágenes nuevas hasta entonces (Gemini/Imagen).
-- Regenerar en paleta verde/Sheikah (hoy son morado/oro): armas (`public/assets/rpg/weapons/`), jefes (`bosses/`), cofre (`loot/`) e íconos del menú (`nav/`, 7 íconos).
-- Después de generarlos: `node scripts/optimize-rpg-assets.mjs` (ajustar `TARGETS`) antes de integrarlos. Los originales de Imagen pesan MB y rompen el límite de 2 MB del precache.
+- Regenerados en Gemini y integrados los 15 assets (armas, jefes, cofre y 9 íconos del menú, incluidos `projects` y `chains`). Prompts y guía de estilo en `docs/ASSET_PROMPTS.md`; originales de 2048 px en `assets-raw/` (gitignored). Sin verificar en navegador (menú lateral, Combate, Sala del Jefe).
+- La barra inferior móvil sigue con íconos Lucide (24 px); decidir si se le pone el arte ilustrado.
 - Mientras tanto, la UI mezcla assets morados con el fondo verde (transitorio, aceptado).
 
-## Avatares de clase ilustrados (depende de la Fase 5)
+## Avatares de clase ilustrados (desbloqueado: la Fase 5 ya está hecha)
 
 - Hoy el avatar del héroe en el Battle HUD es un ícono vectorial de la clase dominante (`src/utils/classIcons.ts`). Cuando existan los assets nuevos: 6 avatares (uno por clase, idealmente con 4 variantes por rango) y reemplazar `HeroIcon` en `BattleHudPage.tsx`.
 
