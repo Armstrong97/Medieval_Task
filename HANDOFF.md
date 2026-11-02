@@ -665,7 +665,7 @@ Qué trae:
 
 ---
 
-## 19. Fase 10 — Cadenas de misiones (2026-10-15; fases A, B y compositor probados por el usuario; fase C-1 y C-2 sin verificar)
+## 19. Fase 10 — Cadenas de misiones (2026-10-15; fases A, B, compositor y C-1/C-2 probados por el usuario)
 
 **REQUIERE MIGRACIÓN** `20261015000001_fase10_cadenas_de_misiones.sql` (SQL Editor, idempotente) **y** `npx supabase functions deploy send-notifications --project-ref dlztajgoljayfmqjdqio` (la función ahora ignora misiones dormidas). Sin la migración las consultas de tareas fallan (`locked`).
 
@@ -691,8 +691,8 @@ Idea: las misiones siguientes existen desde el inicio pero **dormidas** (`tasks.
 - **Quitar un paso** (`removeStep`) enlaza a sus predecesoras los sucesores que solo dependían de él: borrarlo sin esto los despertaría de golpe.
 - Limitación: el compositor solo muestra lo que cuelga AGUAS ABAJO de la misión abierta; lo que ella espera se ve en «Avanzado».
 
-### Fase C (2026-10-22, hecha en código, sin verificar en navegador)
-**REQUIERE 2 MIGRACIONES**, en orden (idempotentes): `20261017000001_fase10c_equipar_al_despertar.sql` y `20261017000002_fase10c_bono_de_cadena.sql`. Sin ellas, las consultas de tareas fallan (`unlock_equip`, `chain_bonus`).
+### Fase C (2026-10-22, hecha y verificada por el usuario el 2026-11-01)
+**Migraciones ya corridas por el usuario**, en orden (idempotentes): `20261017000001_fase10c_equipar_al_despertar.sql` y `20261017000002_fase10c_bono_de_cadena.sql`. Sin ellas, las consultas de tareas fallan (`unlock_equip`, `chain_bonus`).
 - **Equipar al despertar** (decisión: opcional, por etapa, no automático): `tasks.unlock_equip` (default false). `chain_refresh_task` busca el primer slot libre del Combate (1-3); si hay, la misión despierta ya equipada (`hud_slot` + `in_progress`); si no, despierta normal y queda en el cajón. El aviso de la campana no menciona que no cupo (sin culpa); nunca se expulsa una misión equipada. UI: casilla «Ponerla en el Combate al despertar» en el engranaje de cada etapa (`StageSettings.equip`; también en el borrador de Estrategia). «Mandar a Seguimiento al despertar» queda fuera (necesita datos del aliado).
 - **Bono por cadena completada** (decisión: 25 % del XP base de la cadena, mínimo 10): `tasks.chain_bonus`. Cadena = componente conexo por `task_links` (≥ 2 misiones); completa cuando todas están `done`. Trigger BEFORE `tasks_set_chain_bonus` lo fija en la misión que cierra la cadena (así el RETURNING del cliente ya lo trae); trigger AFTER `tasks_pay_chain_bonus` lo suma a la categoría de esa misión (sin categoría no se suma). **Anti-explotación**: `chain_bonus > 0` en cualquier misión de la cadena la marca como pagada; reabrir y recompletar no repite. Mismo patrón que `rescue_bonus` (columna, no fila en `quests`). El toast muestra «Cadena completada +N»; `useXpEarnedToday` lo incluye.
 - Limitación: agregar pasos a una cadena ya pagada no paga otro bono. Quedan para después: push del aviso de desbloqueo, plantillas de cadenas, retraso de activación.
