@@ -7,13 +7,17 @@ export const MAX_DESCRIPTION = 1000
 const MAX_REASON = 160
 const MAX_STEP = 120
 const MAX_STEPS = 7
+const MAX_STAGES = 5
+const MAX_STAGE_STEPS = 4
 const SIZES = ['small', 'medium', 'large'] as const
 const DAY = /^\d{4}-\d{2}-\d{2}$/
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export type TriageRequest = { action: 'triage'; title: string; description: string; today: string }
-export type MicrostepsRequest = { action: 'microsteps'; taskId: string }
-export type AssistantRequest = TriageRequest | MicrostepsRequest
+export type ChainRequest = { action: 'chain'; title: string; description: string; today: string }
+// `description` opcional: el texto que el usuario tiene en pantalla (aunque no lo haya guardado) manda sobre el guardado.
+export type MicrostepsRequest = { action: 'microsteps'; taskId: string; description?: string }
+export type AssistantRequest = TriageRequest | ChainRequest | MicrostepsRequest
 
 export interface TriageSuggestion {
   category_id: string
@@ -29,17 +33,19 @@ function isRecord(v: unknown): v is Record<string, unknown> {
 
 export function parseRequest(body: unknown): AssistantRequest | null {
   if (!isRecord(body)) return null
-  if (body.action === 'triage') {
+  if (body.action === 'triage' || body.action === 'chain') {
     const title = typeof body.title === 'string' ? body.title.trim() : ''
     const description = typeof body.description === 'string' ? body.description.trim() : ''
     if (!title || title.length > MAX_TITLE || description.length > MAX_DESCRIPTION) return null
     // Fecha local del usuario (el servidor no conoce su zona horaria); sirve para entender «el viernes».
     const today = typeof body.today === 'string' && DAY.test(body.today) ? body.today : new Date().toISOString().slice(0, 10)
-    return { action: 'triage', title, description, today }
+    return { action: body.action, title, description, today }
   }
   if (body.action === 'microsteps') {
     if (typeof body.taskId !== 'string' || !UUID.test(body.taskId)) return null
-    return { action: 'microsteps', taskId: body.taskId }
+    const description = typeof body.description === 'string' ? body.description.trim() : undefined
+    if (description !== undefined && description.length > MAX_DESCRIPTION) return null
+    return { action: 'microsteps', taskId: body.taskId, ...(description !== undefined && { description }) }
   }
   return null
 }
@@ -77,4 +83,34 @@ export function validateSteps(raw: unknown): string[] | null {
     if (steps.length === MAX_STEPS) break
   }
   return steps.length > 0 ? steps : null
+}
+
+export interface ChainStageSuggestion {
+  steps: string[]
+  days: number
+}
+
+// Etapas de una cadena: cada una con 1-4 pasos (se hacen a la vez) y los días
+// que tarda tras despertar. Se descartan vacíos y repetidos, sin invalidar el resto.
+export function validateStages(raw: unknown): ChainStageSuggestion[] | null {
+  if (!isRecord(raw) || !Array.isArray(raw.stages)) return null
+  const seen = new Set<string>()
+  const stages: ChainStageSuggestion[] = []
+  for (const st of raw.stages) {
+    if (!isRecord(st) || !Array.isArray(st.steps)) continue
+    const steps: string[] = []
+    for (const s of st.steps) {
+      if (typeof s !== 'string') continue
+      const step = s.trim().slice(0, MAX_STEP)
+      if (!step || seen.has(step.toLowerCase())) continue
+      seen.add(step.toLowerCase())
+      steps.push(step)
+      if (steps.length === MAX_STAGE_STEPS) break
+    }
+    if (steps.length === 0) continue
+    const days = typeof st.days === 'number' && Number.isFinite(st.days) ? Math.min(60, Math.max(1, Math.round(st.days))) : 3
+    stages.push({ steps, days })
+    if (stages.length === MAX_STAGES) break
+  }
+  return stages.length > 0 ? stages : null
 }

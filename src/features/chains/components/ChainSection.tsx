@@ -4,7 +4,8 @@ import { ChainFlow } from '@/features/chains/components/ChainFlow'
 import { StageComposer, type ComposerStage } from '@/features/chains/components/StageComposer'
 import { chainComponent } from '@/features/chains/graph'
 import { DEFAULT_STAGE, persistedStages, type StageSettings } from '@/features/chains/stages'
-import { createStep, removeStep, updateStage } from '@/features/chains/api'
+import { createChain, createStep, removeStep, updateStage } from '@/features/chains/api'
+import { SuggestStages } from '@/features/chains/components/SuggestStages'
 import {
   useChainEdit,
   useChainGraph,
@@ -75,6 +76,18 @@ export function ChainSection({ task }: { task: Task }) {
             <LockOpen className="h-3.5 w-3.5" aria-hidden="true" /> Despertar ahora
           </button>
         </div>
+      )}
+
+      {graph && stages.length === 0 && (
+        <SuggestStages
+          rootTitle={task.title}
+          rootDescription={task.description}
+          onApply={(drafts) => {
+            // Misma regla que al añadir a mano: tras una misión en seguimiento, la primera etapa espera la respuesta.
+            const first = task.status === 'follow_up' ? [{ ...drafts[0], event: 'follow_up_resolved' as const }, ...drafts.slice(1)] : drafts
+            edit.mutate(() => createChain(task, first))
+          }}
+        />
       )}
 
       <StageComposer

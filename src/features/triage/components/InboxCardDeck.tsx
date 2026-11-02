@@ -1,4 +1,5 @@
 import { addDays, format, nextSaturday } from 'date-fns'
+import { ContextField } from '@/features/ai/components/ContextField'
 
 function toLocalValue(d: Date): string {
   d.setHours(18, 0, 0, 0)
@@ -17,12 +18,16 @@ export function InboxCardDeck({
   onTitleChange,
   deadline,
   onDeadlineChange,
+  context,
+  onContextChange,
 }: {
   remainingCount: number
   title: string
   onTitleChange: (title: string) => void
   deadline: string
   onDeadlineChange: (deadline: string) => void
+  context: string
+  onContextChange: (context: string) => void
 }) {
   return (
     <div className="space-y-4">
@@ -33,6 +38,15 @@ export function InboxCardDeck({
         onChange={(e) => onTitleChange(e.target.value)}
         placeholder="Título de la misión..."
         className="w-full border-b border-glass/10 bg-transparent pb-2 font-display text-2xl font-bold text-accent outline-none transition-colors focus:border-accent"
+      />
+
+      {/* Contexto: son las notas de la misión y además alimenta a la IA */}
+      <ContextField
+        value={context}
+        onChange={onContextChange}
+        label="Contexto de la misión"
+        rows={2}
+        placeholder="Cuenta de qué va: quién, por qué, qué falta… Con más contexto, la IA sugiere mejor."
       />
 
       {/* Shortcuts de Fecha / Deadline */}

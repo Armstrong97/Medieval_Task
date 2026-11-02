@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Workflow } from 'lucide-react'
 import { StageComposer, type ComposerStage } from '@/features/chains/components/StageComposer'
+import { SuggestStages } from '@/features/chains/components/SuggestStages'
 import { DEFAULT_STAGE, type DraftStage } from '@/features/chains/stages'
 
 // Borrador de cadena para la Mesa de Estrategia: la misión aún no está
@@ -8,10 +9,12 @@ import { DEFAULT_STAGE, type DraftStage } from '@/features/chains/stages'
 // Plegado por defecto: no todas las misiones lo necesitan.
 export function DraftChain({
   rootTitle,
+  rootDescription,
   stages,
   onChange,
 }: {
   rootTitle: string
+  rootDescription?: string
   stages: DraftStage[]
   onChange: (stages: DraftStage[]) => void
 }) {
@@ -25,13 +28,16 @@ export function DraftChain({
 
   if (!open && stages.length === 0) {
     return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 self-start rounded-lg px-1 py-2 font-mono text-xs font-bold uppercase tracking-widest text-fg-muted transition-colors hover:text-fg"
-      >
-        <Workflow className="h-3.5 w-3.5" aria-hidden="true" /> + Y después…
-      </button>
+      <div className="flex flex-col items-start gap-1">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="flex items-center gap-1.5 rounded-lg px-1 py-2 font-mono text-xs font-bold uppercase tracking-widest text-fg-muted transition-colors hover:text-fg"
+        >
+          <Workflow className="h-3.5 w-3.5" aria-hidden="true" /> + Y después…
+        </button>
+        <SuggestStages rootTitle={rootTitle} rootDescription={rootDescription} onApply={(s) => { onChange(s); setOpen(true) }} />
+      </div>
     )
   }
 
@@ -40,6 +46,7 @@ export function DraftChain({
       <p className="flex items-center gap-1.5 font-mono text-xs uppercase tracking-widest text-fg-muted/60">
         <Workflow className="h-3.5 w-3.5" aria-hidden="true" /> ¿Qué viene después?
       </p>
+      <SuggestStages rootTitle={rootTitle} rootDescription={rootDescription} onApply={(s) => onChange([...stages, ...s])} />
       <StageComposer
         rootTitle={rootTitle}
         stages={composerStages}

@@ -1,13 +1,18 @@
 import { useState } from 'react'
 import { CircleUserRound, LogOut } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthProvider'
-import { useAiEnabled, useSetAiEnabled } from '@/features/ai/hooks'
+import { useAiEnabled, useAiProfileContext, useSetAiEnabled, useSetAiProfileContext } from '@/features/ai/hooks'
+import { ContextField } from '@/features/ai/components/ContextField'
 
 export function ProfileMenu() {
   const { session, signOut } = useAuth()
   const [open, setOpen] = useState(false)
   const aiEnabled = useAiEnabled()
   const setAi = useSetAiEnabled()
+  const savedProfile = useAiProfileContext()
+  const setProfile = useSetAiProfileContext()
+  const [profileDraft, setProfileDraft] = useState<string | null>(null)
+  const profileText = profileDraft ?? savedProfile
 
   return (
     <div className="relative">
@@ -44,11 +49,34 @@ export function ProfileMenu() {
               <span className="text-sm text-fg">
                 Asistente IA
                 <span className="mt-0.5 block text-xs leading-snug text-fg-muted">
-                  Envía a Google (Gemini) el título, la clase, el tamaño y las fechas de tus misiones para sugerirte cosas. No envía tu email. En modo de prueba (nivel gratuito) Google puede usar estos datos para mejorar sus productos.
+                  Envía a Google (Gemini) el título, las notas o contexto, la clase, el tamaño y las fechas de tus misiones (y tu «Sobre mí», si lo escribes) para sugerirte cosas. No envía tu email. En modo de prueba (nivel gratuito) Google puede usar estos datos para mejorar sus productos.
                 </span>
                 {setAi.isError && <span className="mt-0.5 block text-xs text-warn-fg">No se pudo guardar el cambio.</span>}
               </span>
             </label>
+            {aiEnabled && (
+              <details className="mt-1 rounded-md px-2 py-1.5">
+                <summary className="cursor-pointer select-none text-sm text-fg">Sobre mí (para el asistente)</summary>
+                <div className="mt-2 space-y-1.5">
+                  <ContextField
+                    value={profileText}
+                    onChange={setProfileDraft}
+                    label="Sobre mí"
+                    rows={4}
+                    placeholder="Tu rutina y situación: horarios, estudios, cuándo tienes energía… No incluyas datos sensibles."
+                  />
+                  <button
+                    type="button"
+                    disabled={profileDraft === null || setProfile.isPending}
+                    onClick={() => setProfile.mutate(profileText, { onSuccess: () => setProfileDraft(null) })}
+                    className="rounded-lg border border-border bg-glass/5 px-3 py-1.5 font-mono text-xs font-bold text-fg hover:bg-glass/10 disabled:opacity-50"
+                  >
+                    {setProfile.isPending ? 'Guardando…' : profileDraft === null ? 'Guardado' : 'Guardar'}
+                  </button>
+                  {setProfile.isError && <p className="text-xs text-warn-fg">No se pudo guardar.</p>}
+                </div>
+              </details>
+            )}
             <button
               type="button"
               onClick={() => void signOut()}

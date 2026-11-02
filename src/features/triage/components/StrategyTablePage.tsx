@@ -50,6 +50,7 @@ export function StrategyTablePage() {
 
   const [chain, setChain] = useState<DraftStage[]>([])
   const [title, setTitle] = useState('')
+  const [context, setContext] = useState('')
   const [categoryId, setCategoryId] = useState(() => readLastChoice().categoryId)
   const [projectChoice, setProjectChoice] = useState(() => readLastChoice().projectChoice)
   const [skipped, setSkipped] = useState<string[]>([])
@@ -72,6 +73,7 @@ export function StrategyTablePage() {
   // decisiones propias de cada misión.
   useEffect(() => {
     setTitle(current?.title ?? '')
+    setContext(current?.description ?? '')
     setNewProjectName('')
     setDeadline('')
     setSize(null)
@@ -115,7 +117,7 @@ export function StrategyTablePage() {
   function handleSuggest() {
     if (!title.trim()) return
     suggestTriage.mutate(
-      { title: title.trim(), today: format(new Date(), 'yyyy-MM-dd') },
+      { title: title.trim(), description: context.trim() || undefined, today: format(new Date(), 'yyyy-MM-dd') },
       {
         onSuccess: (s) => {
           setCategoryId(s.category_id)
@@ -178,6 +180,7 @@ export function StrategyTablePage() {
           projectId,
           deadlineIso: fromDatetimeLocalValue(deadline),
           size: chosenSize,
+          description: context.trim() || null,
           outcome,
           hudSlot: outcome === 'equip' ? firstFreeSlot : null,
         })
@@ -258,6 +261,8 @@ export function StrategyTablePage() {
               onTitleChange={setTitle}
               deadline={deadline}
               onDeadlineChange={setDeadline}
+              context={context}
+              onContextChange={setContext}
             />
             {showErrors && problems.title && <FieldError>Ponle un título a la misión.</FieldError>}
             {showErrors && problems.deadline && <FieldError>Elige una fecha límite.</FieldError>}
@@ -292,7 +297,7 @@ export function StrategyTablePage() {
             {showErrors && problems.size && <FieldError>Elige un arma: define la dificultad y el XP.</FieldError>}
           </div>
 
-          <DraftChain rootTitle={title} stages={chain} onChange={setChain} />
+          <DraftChain rootTitle={title} rootDescription={context.trim() || undefined} stages={chain} onChange={setChain} />
 
           {/* Categoría y Proyecto */}
           <div className="grid grid-cols-2 gap-4">

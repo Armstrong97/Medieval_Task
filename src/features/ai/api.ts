@@ -42,8 +42,8 @@ export async function suggestTriage(input: { title: string; description?: string
   return res.suggestion
 }
 
-export async function suggestMicrosteps(taskId: string): Promise<string[]> {
-  const res = await callAssistant<{ steps: string[] }>({ action: 'microsteps', taskId })
+export async function suggestMicrosteps(input: { taskId: string; description?: string }): Promise<string[]> {
+  const res = await callAssistant<{ steps: string[] }>({ action: 'microsteps', ...input })
   return res.steps
 }
 
@@ -57,5 +57,22 @@ export async function setAiEnabled(enabled: boolean): Promise<void> {
   const { error } = await supabase
     .from('ai_settings')
     .upsert({ enabled, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+  if (error) throw error
+}
+
+export interface ChainStageSuggestion {
+  steps: string[]
+  days: number
+}
+
+export async function suggestChain(input: { title: string; description?: string; today: string }): Promise<ChainStageSuggestion[]> {
+  const res = await callAssistant<{ stages: ChainStageSuggestion[] }>({ action: 'chain', ...input })
+  return res.stages
+}
+
+export async function setAiProfileContext(text: string): Promise<void> {
+  const { error } = await supabase
+    .from('ai_settings')
+    .upsert({ profile_context: text.trim().slice(0, 1000), updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
   if (error) throw error
 }

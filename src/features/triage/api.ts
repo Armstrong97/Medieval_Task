@@ -14,6 +14,7 @@ export interface DispatchInput {
   projectId: string | null
   deadlineIso: string
   size: TaskSize
+  description: string | null
   outcome: DispatchOutcome
   hudSlot: number | null
 }
@@ -34,6 +35,7 @@ export async function dispatchTriagedTask(input: DispatchInput): Promise<Task> {
     kanban_column_id: kanbanColumnId,
     deadline: input.deadlineIso,
     size: input.size,
+    description: input.description,
     // "Equipar en Combate" también pasa a in_progress, igual que
     // equipTaskToSlot del Battle HUD (Módulo 1) — mismo mecanismo, un solo
     // camino para pasar a esa combinación de estado en toda la app.

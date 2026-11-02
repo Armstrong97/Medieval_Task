@@ -357,11 +357,13 @@ export interface Database {
         Row: {
           user_id: string
           enabled: boolean
+          profile_context: string
           updated_at: string
         }
         Insert: {
           user_id?: string
           enabled?: boolean
+          profile_context?: string
           updated_at?: string
         }
         Update: Partial<Database['public']['Tables']['ai_settings']['Insert']>

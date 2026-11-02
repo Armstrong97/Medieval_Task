@@ -24,6 +24,7 @@ import {
 } from '@/features/followups/hooks'
 import { ChainSection } from '@/features/chains/components/ChainSection'
 import { useAiEnabled, useSuggestMicrosteps } from '@/features/ai/hooks'
+import { ContextField } from '@/features/ai/components/ContextField'
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from '@/utils/datetime'
 import { WEAPON_ICONS } from '@/utils/rpgAssets'
 import type { Task, TaskSize } from '@/types/database.types'
@@ -180,7 +181,7 @@ export function TaskModal({
   function handleSuggestSteps() {
     if (!task) return
     setAiError(null)
-    suggestSteps.mutate(task.id, { onSuccess: setSuggestedSteps, onError: (e) => setAiError(e.message) })
+    suggestSteps.mutate({ taskId: task.id, description: description.trim() }, { onSuccess: setSuggestedSteps, onError: (e) => setAiError(e.message) })
   }
 
   // Uno a uno y en orden: el trigger asigna la posición al insertar, y en paralelo se desordenarían.
@@ -297,6 +298,20 @@ export function TaskModal({
               onChange={(e) => setTitle(e.target.value)}
               placeholder="¿Cuál es la nueva misión?"
               className="w-full border-none bg-transparent p-0 font-display text-2xl font-bold text-fg outline-none placeholder:text-fg-muted/30 md:text-3xl"
+            />
+          </div>
+
+          {/* Contexto: son las notas de la misión y además alimenta a la IA */}
+          <div className="space-y-1.5">
+            <label className="font-mono text-xs font-bold uppercase tracking-[0.3em] text-accent/70">
+              Contexto y notas
+            </label>
+            <ContextField
+              value={description}
+              onChange={setDescription}
+              label="Contexto y notas de la misión"
+              rows={3}
+              placeholder="Cuenta de qué va: quién, por qué, qué falta… Con más contexto, la IA sugiere mejor."
             />
           </div>
 
@@ -676,7 +691,7 @@ export function TaskModal({
           {/* Acordeón Oculto de Notas y Proyecto Complejo */}
           <details className="group">
             <summary className="flex cursor-pointer items-center gap-2 font-mono text-xs uppercase tracking-widest text-fg-muted/40 transition-all hover:text-fg group-open:text-accent">
-              <ChevronRight className="h-3.5 w-3.5 transition-transform group-open:rotate-90" aria-hidden="true" /> Notas y Detalles Arcanos
+              <ChevronRight className="h-3.5 w-3.5 transition-transform group-open:rotate-90" aria-hidden="true" /> Proyecto
             </summary>
             <div className="space-y-4 pt-4">
               {/* Selección de Proyecto */}
@@ -697,14 +712,6 @@ export function TaskModal({
                   ))}
                 </select>
               </div>
-
-              {/* Textarea de Notas */}
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Escribe aquí los detalles del hechizo, links o instrucciones..."
-                className="h-24 w-full resize-none rounded-xl border border-glass/5 bg-shade/30 p-4 text-sm text-fg outline-none focus:border-accent/30"
-              />
             </div>
           </details>
 
