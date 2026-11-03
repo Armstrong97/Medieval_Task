@@ -13,6 +13,7 @@ import { ProfileMenu } from '@/features/auth/components/ProfileMenu'
 import { AmbientBackground } from '@/components/ui/AmbientBackground'
 import { BrandMark } from '@/components/ui/BrandMark'
 import { VineBackdrop } from '@/components/ui/Vine'
+import { WorldLayer } from '@/features/world/WorldLayer'
 import { StatusRail, StatusSummaryCard } from '@/app/StatusRail'
 import { Toaster } from '@/components/ui/Toaster'
 import { QuickCaptureFab } from '@/features/inbox/components/QuickCaptureFab'
@@ -153,6 +154,7 @@ export function Layout() {
         style={{ '--rail-w': railPinned ? '14rem' : '4rem' } as React.CSSProperties}
       >
         <AmbientBackground />
+        <WorldLayer />
         <AchievementWatcher />
         <Toaster />
         <QuickCaptureFab />

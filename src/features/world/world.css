@@ -1,0 +1,305 @@
+/* «Mundo vivo»: una escena de fondo por pantalla (ver WorldLayer.tsx). Constante y muy sutil,
+   detrás del contenido y sin interacción. Solo transform/opacity. «Efectos» apagado y
+   prefers-reduced-motion la dejan quieta (las partículas en movimiento se ocultan). */
+
+.world-scene {
+  animation: world-in 0.5s ease-out;
+}
+/* Las capas ilustradas están pensadas para el tema oscuro: en claro se ocultan y quedan las partículas. */
+@media (prefers-color-scheme: light) {
+  .world-art-wrap {
+    display: none;
+  }
+}
+
+/* Capas ilustradas (SceneArt.tsx): el contenedor sigue al puntero (parallax); la imagen se desplaza muy
+   despacio por su cuenta y aparece con un fundido al cargar. */
+.world-art-wrap {
+  position: absolute;
+  inset: -3%;
+  transform: translate3d(calc(var(--px, 0) * var(--k) * 1px), calc(var(--py, 0) * var(--k) * 1px), 0);
+  transition: transform 0.3s ease-out;
+}
+.world-art-back {
+  --k: -8;
+}
+.world-art-front {
+  --k: -24;
+}
+.world-art {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 1.4s ease-out;
+  animation: world-drift 70s ease-in-out infinite alternate;
+}
+.world-art-back .world-art.is-loaded {
+  opacity: 0.28; /* paisaje completo: oscuro y misterioso, sin restar contraste al contenido */
+}
+.world-art-front .world-art.is-loaded {
+  opacity: 0.6; /* marco con transparencia real (el negro ya es alfa) */
+}
+@keyframes world-drift {
+  from {
+    transform: scale(1.04) translate3d(-1%, 0, 0);
+  }
+  to {
+    transform: scale(1.1) translate3d(1%, -1%, 0);
+  }
+}
+@keyframes world-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Partículas: la forma la da la clase (.world-leaf, .world-wisp, .world-feather); posición, tamaño,
+   duración y vaivén vienen de variables por partícula (ver Particles.tsx). */
+.world-p {
+  position: absolute;
+  top: 0;
+  left: var(--x);
+  width: var(--s);
+  height: var(--s);
+  opacity: 0;
+  animation-duration: var(--dur);
+  animation-delay: var(--delay);
+  animation-iteration-count: infinite;
+  animation-timing-function: linear;
+}
+.world-leaf {
+  height: calc(var(--s) * 0.6);
+  background: var(--accent);
+  border-radius: 0 100% 0 100%;
+  animation-name: world-fall;
+  --rot: 380deg;
+}
+.world-feather {
+  width: calc(var(--s) * 0.3);
+  background: linear-gradient(to bottom, rgb(var(--glass-rgb) / 0.55), rgb(var(--glass-rgb) / 0.1));
+  border-radius: 50%;
+  animation-name: world-fall;
+  --rot: 50deg;
+}
+.world-ember {
+  background: rgb(var(--gold-rgb));
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgb(var(--gold-rgb) / 0.9);
+  animation-name: world-rise;
+}
+.world-wisp {
+  width: calc(var(--s) * 2);
+  height: calc(var(--s) * 2);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(var(--rune-rgb) / 0.9), rgb(var(--rune-rgb) / 0) 70%);
+  animation-name: world-rise;
+}
+@keyframes world-fall {
+  0% {
+    transform: translate3d(0, -8vh, 0) rotate(0deg);
+    opacity: 0;
+  }
+  8% {
+    opacity: 0.4;
+  }
+  50% {
+    transform: translate3d(var(--sw), 55vh, 0) rotate(calc(var(--rot) * 0.55));
+  }
+  92% {
+    opacity: 0.3;
+  }
+  100% {
+    transform: translate3d(0, 108vh, 0) rotate(var(--rot));
+    opacity: 0;
+  }
+}
+@keyframes world-rise {
+  0% {
+    transform: translate3d(0, 106vh, 0) scale(0.6);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.45;
+  }
+  50% {
+    transform: translate3d(var(--sw), 50vh, 0) scale(1);
+  }
+  88% {
+    opacity: 0.35;
+  }
+  100% {
+    transform: translate3d(0, -8vh, 0) scale(0.7);
+    opacity: 0;
+  }
+}
+
+/* Luz de antorcha / vela: resplandor dorado que titila. */
+.world-torch {
+  background: radial-gradient(circle, rgb(var(--gold-rgb) / 0.2), transparent 65%);
+  opacity: 0.55;
+  animation: world-flicker 5s linear infinite;
+}
+.world-torch-b {
+  animation-duration: 6.3s;
+  animation-delay: -2.1s;
+}
+@keyframes world-flicker {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  12% {
+    opacity: 0.8;
+    transform: scale(1.03);
+  }
+  27% {
+    opacity: 0.5;
+    transform: scale(0.99);
+  }
+  41% {
+    opacity: 0.9;
+    transform: scale(1.05);
+  }
+  58% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  73% {
+    opacity: 0.85;
+    transform: scale(1.04);
+  }
+}
+
+/* Niebla baja que rueda de lado a lado. */
+.world-mist {
+  position: absolute;
+  left: -20%;
+  right: -20%;
+  bottom: 0;
+  height: 34vh;
+  background:
+    radial-gradient(ellipse at 30% 100%, rgb(var(--glass-rgb) / 0.09), transparent 70%),
+    linear-gradient(to top, rgb(var(--rune-rgb) / 0.07), transparent);
+  animation: world-mist 42s ease-in-out infinite alternate;
+}
+.world-mist-b {
+  height: 26vh;
+  opacity: 0.8;
+  animation-duration: 57s;
+  animation-direction: alternate-reverse;
+}
+@keyframes world-mist {
+  from {
+    transform: translateX(-7%);
+  }
+  to {
+    transform: translateX(7%);
+  }
+}
+
+/* Destello de acero lejano: casi siempre invisible, un par de parpadeos de vez en cuando. */
+.world-spark {
+  position: absolute;
+  width: 46px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #fff, rgb(var(--gold-rgb)), transparent);
+  box-shadow: 0 0 12px rgb(var(--gold-rgb) / 0.9);
+  opacity: 0;
+  transform: rotate(-35deg);
+  animation: world-clash var(--dur) linear var(--delay) infinite;
+}
+@keyframes world-clash {
+  0%,
+  93% {
+    opacity: 0;
+  }
+  94% {
+    opacity: 1;
+  }
+  95.5% {
+    opacity: 0.15;
+  }
+  97% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Constelación (Estrategia): las líneas se dibujan, se sostienen y se desvanecen; las estrellas titilan. */
+.world-line {
+  stroke: var(--rune);
+  stroke-width: 1;
+  stroke-dasharray: 1;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.25;
+  animation: world-draw 13s ease-in-out var(--delay) infinite;
+}
+@keyframes world-draw {
+  0% {
+    stroke-dashoffset: 1;
+    opacity: 0;
+  }
+  22% {
+    stroke-dashoffset: 0;
+    opacity: 0.35;
+  }
+  68% {
+    stroke-dashoffset: 0;
+    opacity: 0.35;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+.world-star {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--rune);
+  box-shadow: 0 0 8px var(--rune);
+  opacity: 0.5;
+  animation: world-twinkle var(--dur) ease-in-out var(--delay) infinite alternate;
+}
+@keyframes world-twinkle {
+  from {
+    opacity: 0.15;
+  }
+  to {
+    opacity: 0.7;
+  }
+}
+
+html[data-fx='off'] .world-p,
+html[data-fx='off'] .world-spark {
+  display: none;
+}
+html[data-fx='off'] .world-scene,
+html[data-fx='off'] .world-art,
+html[data-fx='off'] .world-torch,
+html[data-fx='off'] .world-mist,
+html[data-fx='off'] .world-line,
+html[data-fx='off'] .world-star {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .world-p,
+  .world-spark {
+    display: none;
+  }
+  .world-scene,
+  .world-art,
+  .world-torch,
+  .world-mist,
+  .world-line,
+  .world-star {
+    animation: none;
+  }
+}

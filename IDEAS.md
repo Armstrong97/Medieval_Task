@@ -22,6 +22,19 @@ Menú con aspecto de dispositivo de pantalla cian con runas (inspirado en la tab
 - **Nivel C (medio-alto)**: escaneo al abrir, sonidos, registro de misiones.
 - **Ojo TDAH**: Combate/Inbox/Estrategia/Grimorio siguen a un toque; la tableta es el hub del resto, no la única puerta.
 
+## Movimiento con propósito: catálogo conceptual (2026-11-04)
+
+Qué más podría moverse en la app, agrupado por el papel que cumple. Criterio: el movimiento que más sirve comunica **progreso** (lo decorativo constante cansa con TDAH); todo respeta «Efectos» y `prefers-reduced-motion`, y nada retrasa una acción rápida (capturar, completar).
+
+- **Recompensa (por evento)**: orbe de XP que vuela a la barra o rango; subida de nivel/rango con más teatro (ya existe `AchievementCelebration`); cofre de loot que se abre y suelta el objeto; fases del jefe (75/50/25 %) con sacudida del cofre y grieta en la barra.
+- **Progreso hecho mundo**: enredadera de la racha que crece un poco por día (se marchita sin culpa si se pierde y rebrota; reusa `growVine`); cadenas con eslabones que se encienden en secuencia y una chispa que viaja por el enlace; jefes de proyecto que respiran y se tambalean al bajar su vida.
+- **Mundo vivo (constante, muy sutil)**: brisa en las hojas, luz de antorcha / runas que laten, rayos de luz y motas. **Empezado en el fondo de Combate (`CombatWorld`)**; falta extenderlo a Progreso e Inbox vacío si gusta.
+- **Interacción y transición**: sello de lacre al despachar una carta en Estrategia; pergamino que se desenrolla al abrir el modal de misión; mazo con inercia y rebote; marcar una submisión como encender una runa; captura rápida que se «absorbe» en el Inbox.
+- **Tiempo y urgencia**: reloj de arena o anillo rúnico en Modo Foco; brasas/llama que se acercan al plazo; misión vencida («Rescate») agrietada que se «repara» al reprogramarla.
+- **Personajes**: héroe con respiración (idle) en Combate; compañero (brote/espíritu) que crece con el nivel y celebra; escena de duelo en el inicio (lo más caro: el arte).
+- **Orden sugerido**: orbe de XP + enredadera de la racha → cadenas que se encienden + fases del jefe → sello de lacre → compañero.
+- **Evitar**: animar fondos y listas largas de forma continua (cansa y gasta batería) y cualquier cosa que retrase una acción rápida.
+
 ## Más carácter gráfico y movimiento (2026-11-01)
 
 **Estado (2026-11-04)**: hechos enredaderas del menú, transiciones, combate reactivo e interruptor «Efectos» (ver HANDOFF §24). Faltan enredaderas en marcos/login, tableta rúnica y personajes peleando.
