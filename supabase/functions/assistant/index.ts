@@ -19,7 +19,8 @@ import {
   type AssistantRequest,
 } from './validate.ts'
 
-const DAILY_LIMIT = 60
+// La Mesa de Estrategia pide una sugerencia por carta al abrirla: con un inbox grande hacen falta más de 60.
+const DAILY_LIMIT = 120
 const MODEL = Deno.env.get('GEMINI_MODEL') ?? 'gemini-3.5-flash-lite'
 const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY')
 
@@ -150,22 +151,44 @@ Notas: ${clean(req.description, MAX_DESCRIPTION) || '(ninguna)'}
 </tarea>
 
 Sugiere cómo triar esta misión. Usa los ejemplos para imitar los criterios de esta persona.
+- title: el título limpio de la misión. Quita lo que ya extraes en «when» y lo que indica la clase (fechas, horas, «para Hogar»…) y las muletillas, sin cambiar el sentido ni inventar nada; si es natural, que empiece con un verbo en infinitivo. Máximo 80 caracteres. Si el título ya está limpio, devuélvelo igual.
 - category_id: una de las clases del catálogo.
 - project_id: un proyecto activo si la misión claramente le pertenece; si no, null.
 - size: small (hasta ~15 min), medium (hasta ~1 hora), large (más de una hora o varias sesiones).
 - deadline_days: días desde hoy (0 = hoy). Si el texto menciona un día o fecha, respétalo; si no, elige un plazo realista, no apresurado.
+- when: SOLO lo que la persona escribió sobre cuándo, tal cual, sin interpretar ni inventar. No calcules fechas. Cada campo va en null si no lo mencionó:
+  - relative_days: «hoy» = 0, «mañana» = 1, «pasado mañana» = 2, «en 3 días» = 3, «en dos semanas» = 14.
+  - weekday: día de la semana nombrado (1 = lunes … 7 = domingo).
+  - day_of_month: número de día del mes nombrado («el 20», «viernes 20» → 20).
+  - month: mes nombrado, 1 a 12 («20 de diciembre» → 12).
+  - hour: la hora tal como la escribió («a las 8» → 8, «3 pm» → 3, «15:30» → 15). minute: los minutos (0 si dijo la hora sin minutos).
+  - period: «am» o «pm» SOLO si la persona lo dijo («de la mañana», «de la madrugada» → am; «de la tarde», «de la noche», «pm» → pm). Si no lo dijo, o usó formato de 24 horas (13 a 23), null.
 - reason: una frase corta y amable (máx. 120 caracteres) que explique la sugerencia.`
 
   const raw = await callGemini(STYLE, withProfile(profile, prompt), {
     type: 'OBJECT',
     properties: {
+      title: { type: 'STRING' },
+      when: {
+        type: 'OBJECT',
+        properties: {
+          relative_days: { type: 'INTEGER', nullable: true },
+          weekday: { type: 'INTEGER', nullable: true },
+          day_of_month: { type: 'INTEGER', nullable: true },
+          month: { type: 'INTEGER', nullable: true },
+          hour: { type: 'INTEGER', nullable: true },
+          minute: { type: 'INTEGER', nullable: true },
+          period: { type: 'STRING', nullable: true },
+        },
+        required: ['relative_days', 'weekday', 'day_of_month', 'month', 'hour', 'minute', 'period'],
+      },
       category_id: { type: 'STRING', enum: categories.map((c) => c.id) },
       project_id: { type: 'STRING', nullable: true },
       size: { type: 'STRING', enum: ['small', 'medium', 'large'] },
       deadline_days: { type: 'INTEGER' },
       reason: { type: 'STRING' },
     },
-    required: ['category_id', 'project_id', 'size', 'deadline_days', 'reason'],
+    required: ['title', 'when', 'category_id', 'project_id', 'size', 'deadline_days', 'reason'],
   })
   const suggestion = validateTriage(raw, {
     categoryIds: new Set(categories.map((c) => c.id)),

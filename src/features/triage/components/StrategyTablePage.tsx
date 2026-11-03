@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { showToast } from '@/components/ui/toast-store'
 import { useQueryClient } from '@tanstack/react-query'
@@ -6,9 +6,10 @@ import { useDeleteTask } from '@/features/tasks/hooks'
 import { createChain } from '@/features/chains/api'
 import { DraftChain } from '@/features/chains/components/DraftChain'
 import type { DraftStage } from '@/features/chains/stages'
-import { addDays, format } from 'date-fns'
+import { format } from 'date-fns'
 import { Castle, Link2, Sparkles, Swords } from 'lucide-react'
 import { useAiEnabled, useSuggestTriage } from '@/features/ai/hooks'
+import { resolveWhen } from '@/features/ai/resolveWhen'
 import { useCategories, useCreateProject, useProjects } from '@/features/projects/hooks'
 import { useHudTasks } from '@/features/battle-hud/hooks'
 import { useTriageSession } from '@/features/triage/hooks'
@@ -62,6 +63,10 @@ export function StrategyTablePage() {
   const [error, setError] = useState<string | null>(null)
   const [animatingOut, setAnimatingOut] = useState(false)
   const [aiNote, setAiNote] = useState<string | null>(null)
+  // La IA se pide sola una vez por carta (al abrirla); saltar y volver no repite la llamada.
+  const autoAsked = useRef(new Set<string>())
+  const currentIdRef = useRef<string | undefined>(undefined)
+  const titleRef = useRef('')
 
   // "Saltar por ahora" manda la carta al final de la cola durante esta sesión.
   const pending = items.filter((i) => !skipped.includes(i.id))
@@ -84,8 +89,21 @@ export function StrategyTablePage() {
     setChain([])
     setAiNote(null)
     suggestTriage.reset()
+    currentIdRef.current = current?.id
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current?.id])
+
+  useEffect(() => {
+    titleRef.current = title
+  }, [title])
+
+  // Al abrir una carta con la IA activada, se rellena sola: el usuario revisa y ajusta.
+  useEffect(() => {
+    if (!aiEnabled || !current || autoAsked.current.has(current.id) || !navigator.onLine) return
+    autoAsked.current.add(current.id)
+    runSuggest(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current?.id, aiEnabled])
 
   const occupiedSlots = new Set((hudTasks ?? []).map((t) => t.hud_slot))
   const firstFreeSlot = [1, 2, 3].find((s) => !occupiedSlots.has(s)) ?? null
@@ -114,24 +132,38 @@ export function StrategyTablePage() {
   }
 
   // La IA solo rellena el formulario: el usuario revisa y decide al despachar.
-  function handleSuggest() {
-    if (!title.trim()) return
+  // auto = la pidió la app al abrir la carta (parte del texto tal como se capturó y no pisa lo que
+  // el usuario ya haya editado); manual = la pidió con el botón (usa lo que hay en pantalla).
+  function runSuggest(auto: boolean) {
+    const card = current
+    if (!card) return
+    const sentTitle = auto ? card.title : title
+    const sentContext = auto ? (card.description ?? '') : context
+    if (!sentTitle.trim()) return
     suggestTriage.mutate(
-      { title: title.trim(), description: context.trim() || undefined, today: format(new Date(), 'yyyy-MM-dd') },
+      { title: sentTitle.trim(), description: sentContext.trim() || undefined, today: format(new Date(), 'yyyy-MM-dd') },
       {
         onSuccess: (s) => {
+          if (card.id !== currentIdRef.current) return // la carta cambió mientras se esperaba
           setCategoryId(s.category_id)
           setProjectChoice(s.project_id ?? NO_PROJECT)
           setSize(s.size)
-          const due = addDays(new Date(), s.deadline_days)
-          due.setHours(18, 0, 0, 0)
-          // Misma regla que el Calendario: si las 18:00 de hoy ya pasaron, 23:00 (no nace «por rescatar»).
-          if (due.getTime() < Date.now()) due.setHours(23, 0, 0, 0)
-          setDeadline(toDatetimeLocalValue(due.toISOString()))
+          // La fecha la calculan reglas fijas (la más cercana) a partir de lo que el usuario escribió.
+          setDeadline(toDatetimeLocalValue(resolveWhen(s.when, new Date(), s.deadline_days).toISOString()))
+          const cleaned = s.title?.trim()
+          if (cleaned && cleaned !== card.title.trim() && (!auto || titleRef.current === card.title)) {
+            setTitle(cleaned)
+            // Lo que se quitó del título no se pierde: el texto original queda en el contexto.
+            setContext((c) => (c.includes(card.title) ? c : `${c ? `${c}\n` : ''}Captura original: «${card.title}»`))
+          }
           setAiNote(s.reason)
         },
       },
     )
+  }
+
+  function handleSuggest() {
+    runSuggest(false)
   }
 
   function handleSkip() {

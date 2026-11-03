@@ -1,7 +1,7 @@
 // Autochequeo de validate.ts. Correr con:
 //   node --experimental-strip-types supabase/functions/assistant/validate.test.ts
 import assert from 'node:assert/strict'
-import { parseRequest, validateInsights, validateStages, validateSteps, validateTriage } from './validate.ts'
+import { parseRequest, validateInsights, validateWhen, validateStages, validateSteps, validateTriage } from './validate.ts'
 
 const allowed = { categoryIds: new Set(['cat-1']), projectIds: new Set(['proj-1']) }
 const good = { category_id: 'cat-1', project_id: 'proj-1', size: 'medium', deadline_days: 3.4, reason: ' ok ' }
@@ -20,7 +20,12 @@ assert.equal(parseRequest({ action: 'microsteps', taskId: '123e4567-e89b-12d3-a4
 assert.equal('description' in (parseRequest({ action: 'microsteps', taskId: '123e4567-e89b-12d3-a456-426614174000' }) as object), false)
 
 // validateTriage
-assert.deepEqual(validateTriage(good, allowed), { category_id: 'cat-1', project_id: 'proj-1', size: 'medium', deadline_days: 3, reason: 'ok' })
+const noWhen = { relative_days: null, weekday: null, day_of_month: null, month: null, hour: null, minute: null, period: null }
+assert.deepEqual(validateTriage(good, allowed), { title: null, when: noWhen, category_id: 'cat-1', project_id: 'proj-1', size: 'medium', deadline_days: 3, reason: 'ok' })
+assert.equal(validateTriage({ ...good, title: '  Llamar a Juan  ' }, allowed)?.title, 'Llamar a Juan')
+assert.equal(validateTriage({ ...good, title: '   ' }, allowed)?.title, null)
+assert.equal(validateTriage({ ...good, title: 't'.repeat(500) }, allowed)?.title?.length, 120)
+assert.deepEqual(validateTriage({ ...good, when: { weekday: 5, day_of_month: 20, hour: 8, minute: 30, period: 'pm' } }, allowed)?.when, { relative_days: null, weekday: 5, day_of_month: 20, month: null, hour: 8, minute: 30, period: 'pm' })
 assert.equal(validateTriage({ ...good, category_id: 'inventada' }, allowed), null)
 assert.equal(validateTriage({ ...good, size: 'huge' }, allowed), null)
 assert.equal(validateTriage({ ...good, deadline_days: 'mañana' }, allowed), null)
@@ -28,6 +33,15 @@ assert.equal(validateTriage({ ...good, project_id: 'ajeno' }, allowed)?.project_
 assert.equal(validateTriage({ ...good, deadline_days: 9999 }, allowed)?.deadline_days, 365)
 assert.equal(validateTriage({ ...good, deadline_days: -5 }, allowed)?.deadline_days, 0)
 assert.equal(validateTriage({ ...good, reason: 'r'.repeat(500) }, allowed)?.reason.length, 160)
+
+// validateWhen
+assert.deepEqual(validateWhen(null), noWhen)
+assert.deepEqual(validateWhen({ weekday: 9, day_of_month: 0, month: 13, hour: 25, relative_days: -1 }), noWhen)
+assert.equal(validateWhen({ minute: 30, period: 'pm' }).minute, null)
+assert.equal(validateWhen({ minute: 30, period: 'pm' }).period, null)
+assert.equal(validateWhen({ hour: 8 }).minute, 0)
+assert.equal(validateWhen({ hour: 8, period: 'tarde' }).period, null)
+assert.equal(validateWhen({ relative_days: 1.4 }).relative_days, 1)
 
 // validateSteps
 assert.equal(validateSteps({ steps: [] }), null)

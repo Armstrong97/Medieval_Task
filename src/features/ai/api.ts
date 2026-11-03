@@ -1,7 +1,12 @@
 import { supabase } from '@/lib/supabase'
 import type { AiSettings, TaskSize } from '@/types/database.types'
+import type { When } from '@/features/ai/resolveWhen'
 
 export interface TriageSuggestion {
+  // Título sin la fecha, la hora ni la clase que ya se extrajeron (null: dejar el original).
+  title: string | null
+  // Lo que el usuario escribió sobre cuándo; la fecha la calcula resolveWhen.
+  when: When
   category_id: string
   project_id: string | null
   size: TaskSize

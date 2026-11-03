@@ -5,6 +5,7 @@
 export const MAX_TITLE = 200
 export const MAX_DESCRIPTION = 1000
 const MAX_REASON = 160
+const MAX_CLEAN_TITLE = 120
 const MAX_STEP = 120
 const MAX_STEPS = 7
 const MAX_STAGES = 5
@@ -20,11 +21,25 @@ export type MicrostepsRequest = { action: 'microsteps'; taskId: string; descript
 export type InsightsRequest = { action: 'insights'; tz: string }
 export type AssistantRequest = TriageRequest | ChainRequest | MicrostepsRequest | InsightsRequest
 
+// Lo que la persona ESCRIBIÓ sobre cuándo, sin interpretar. La fecha real la calcula el cliente
+// con reglas fijas (la más cercana), no el modelo.
+export interface When {
+  relative_days: number | null
+  weekday: number | null
+  day_of_month: number | null
+  month: number | null
+  hour: number | null
+  minute: number | null
+  period: 'am' | 'pm' | null
+}
+
 export interface TriageSuggestion {
+  title: string | null
   category_id: string
   project_id: string | null
   size: (typeof SIZES)[number]
   deadline_days: number
+  when: When
   reason: string
 }
 
@@ -56,18 +71,42 @@ export function parseRequest(body: unknown): AssistantRequest | null {
   return null
 }
 
+function intIn(v: unknown, min: number, max: number): number | null {
+  if (typeof v !== 'number' || !Number.isFinite(v)) return null
+  const n = Math.round(v)
+  return n >= min && n <= max ? n : null
+}
+
+export function validateWhen(raw: unknown): When {
+  const r = isRecord(raw) ? raw : {}
+  const hour = intIn(r.hour, 0, 23)
+  return {
+    relative_days: intIn(r.relative_days, 0, 365),
+    weekday: intIn(r.weekday, 1, 7),
+    day_of_month: intIn(r.day_of_month, 1, 31),
+    month: intIn(r.month, 1, 12),
+    hour,
+    // Minutos y am/pm solo tienen sentido si hay hora.
+    minute: hour === null ? null : (intIn(r.minute, 0, 59) ?? 0),
+    period: hour !== null && (r.period === 'am' || r.period === 'pm') ? r.period : null,
+  }
+}
+
 export function validateTriage(
   raw: unknown,
   allowed: { categoryIds: Set<string>; projectIds: Set<string> },
 ): TriageSuggestion | null {
   if (!isRecord(raw)) return null
-  const { category_id, project_id, size, deadline_days, reason } = raw
+  const { category_id, project_id, size, deadline_days, reason, title } = raw
   if (typeof category_id !== 'string' || !allowed.categoryIds.has(category_id)) return null
   // Un proyecto inventado o ajeno se descarta (null = misión suelta), no invalida el resto.
   const safeProject = typeof project_id === 'string' && allowed.projectIds.has(project_id) ? project_id : null
   if (!SIZES.includes(size as (typeof SIZES)[number])) return null
   if (typeof deadline_days !== 'number' || !Number.isFinite(deadline_days)) return null
+  const cleanTitle = typeof title === 'string' ? title.trim().slice(0, MAX_CLEAN_TITLE) : ''
   return {
+    title: cleanTitle || null,
+    when: validateWhen(raw.when),
     category_id,
     project_id: safeProject,
     size: size as (typeof SIZES)[number],
