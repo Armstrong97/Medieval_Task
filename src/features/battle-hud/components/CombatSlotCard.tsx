@@ -9,7 +9,7 @@ import { RescheduleButtons } from '@/features/tasks/components/RescheduleButtons
 import { isOverdue } from '@/utils/datetime'
 import { useUnequipHudSlot } from '@/features/battle-hud/hooks'
 import { WEAPON_ICONS } from '@/utils/rpgAssets'
-import { effectsEnabled } from '@/utils/effects'
+import { groupOff } from '@/utils/effects'
 import type { Task, TaskSize } from '@/types/database.types'
 
 const DIFFICULTY_LABEL: Record<TaskSize, { label: string; xp: number }> = {
@@ -68,7 +68,7 @@ export function CombatSlotCard({
   function handleGolpeFinal() {
     if (striking) return
     const finish = () => completeTask.mutate({ id: task.id, project_id: task.project_id })
-    if (!effectsEnabled() || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (groupOff('game') || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       finish()
       return
     }

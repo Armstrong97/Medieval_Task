@@ -4,7 +4,7 @@ import { CircleUserRound, KeyRound, LogOut } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useAiEnabled, useAiProfileContext, useSetAiEnabled, useSetAiProfileContext } from '@/features/ai/hooks'
 import { ContextField } from '@/features/ai/components/ContextField'
-import { effectsEnabled, setEffects } from '@/utils/effects'
+import { FX_GROUPS, disabledGroups, setDisabledGroups, type FxGroup } from '@/utils/effects'
 
 export function ProfileMenu() {
   const { session, signOut } = useAuth()
@@ -15,7 +15,12 @@ export function ProfileMenu() {
   const setProfile = useSetAiProfileContext()
   const [profileDraft, setProfileDraft] = useState<string | null>(null)
   const profileText = profileDraft ?? savedProfile
-  const [fx, setFx] = useState(effectsEnabled)
+  const [fxOff, setFxOff] = useState<FxGroup[]>(disabledGroups)
+
+  function updateFx(next: FxGroup[]) {
+    setFxOff(next)
+    setDisabledGroups(next)
+  }
 
   return (
     <div className="relative">
@@ -41,23 +46,35 @@ export function ProfileMenu() {
                 </p>
               )}
             </div>
-            <label className="mt-1 flex cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 hover:bg-surface-2">
-              <input
-                type="checkbox"
-                checked={fx}
-                onChange={(e) => {
-                  setFx(e.target.checked)
-                  setEffects(e.target.checked)
-                }}
-                className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent)]"
-              />
-              <span className="text-sm text-fg">
-                Efectos
-                <span className="mt-0.5 block text-xs leading-snug text-fg-muted">
-                  Enredaderas, transiciones y movimiento decorativo. Apágalo si te distrae.
-                </span>
-              </span>
-            </label>
+            <details className="mt-1 rounded-md px-2 py-1.5">
+              <summary className="cursor-pointer select-none text-sm text-fg">
+                Efectos · {FX_GROUPS.length - fxOff.length} de {FX_GROUPS.length} activos
+              </summary>
+              <div className="mt-2 space-y-1">
+                {FX_GROUPS.map((g) => (
+                  <label key={g.key} className="flex cursor-pointer items-start gap-2 rounded-md py-1 hover:bg-surface-2">
+                    <input
+                      type="checkbox"
+                      checked={!fxOff.includes(g.key)}
+                      onChange={(e) => updateFx(e.target.checked ? fxOff.filter((k) => k !== g.key) : [...fxOff, g.key])}
+                      className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent)]"
+                    />
+                    <span className="text-sm text-fg">
+                      {g.label}
+                      <span className="block text-xs leading-snug text-fg-muted">{g.hint}</span>
+                    </span>
+                  </label>
+                ))}
+                <div className="flex gap-3 pt-1 font-mono text-xs">
+                  <button type="button" onClick={() => updateFx([])} className="text-accent underline underline-offset-2">
+                    Todos
+                  </button>
+                  <button type="button" onClick={() => updateFx(FX_GROUPS.map((g) => g.key))} className="text-fg-muted underline underline-offset-2">
+                    Ninguno
+                  </button>
+                </div>
+              </div>
+            </details>
             <label className="mt-1 flex cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 hover:bg-surface-2">
               <input
                 type="checkbox"

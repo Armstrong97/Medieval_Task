@@ -20,6 +20,16 @@
   transform: translate3d(calc(var(--px, 0) * var(--k) * 1px), calc(var(--py, 0) * var(--k) * 1px), 0);
   transition: transform 0.3s ease-out;
 }
+/* Versión fija y centrada: sin desborde, sin parallax y sin deriva. */
+.world-art-wrap.world-art-still {
+  inset: 0;
+  transform: none;
+  transition: none;
+}
+.world-art-still .world-art {
+  animation: none;
+  object-position: 50% 50%;
+}
 .world-art-back {
   --k: -8;
 }
@@ -38,7 +48,8 @@
   opacity: 0.28; /* paisaje completo: oscuro y misterioso, sin restar contraste al contenido */
 }
 .world-art-front .world-art.is-loaded {
-  opacity: 0.6; /* marco con transparencia real (el negro ya es alfa) */
+  opacity: 0.9; /* marco sólido (opaco): lo oscuro es oscuro, no se mezcla con el paisaje; el tono se regula con brightness */
+  filter: brightness(0.55);
 }
 @keyframes world-drift {
   from {
@@ -277,16 +288,16 @@
   }
 }
 
-html[data-fx='off'] .world-p,
-html[data-fx='off'] .world-spark {
+html[data-fx-off~='world'] .world-p,
+html[data-fx-off~='world'] .world-spark {
   display: none;
 }
-html[data-fx='off'] .world-scene,
-html[data-fx='off'] .world-art,
-html[data-fx='off'] .world-torch,
-html[data-fx='off'] .world-mist,
-html[data-fx='off'] .world-line,
-html[data-fx='off'] .world-star {
+html[data-fx-off~='world'] .world-scene,
+html[data-fx-off~='art'] .world-art,
+html[data-fx-off~='world'] .world-torch,
+html[data-fx-off~='world'] .world-mist,
+html[data-fx-off~='world'] .world-line,
+html[data-fx-off~='world'] .world-star {
   animation: none;
 }
 @media (prefers-reduced-motion: reduce) {

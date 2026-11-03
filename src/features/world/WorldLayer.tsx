@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import { CombatScene, InboxScene, StrategyScene } from '@/features/world/scenes'
+import { groupOff } from '@/utils/effects'
 import './world.css'
 
 // Escena de fondo según la pantalla (fija, detrás del contenido; ver world.css). Las pantallas sin
@@ -25,7 +26,7 @@ export function WorldLayer() {
       cancelAnimationFrame(raf)
       raf = requestAnimationFrame(() => {
         const el = ref.current
-        if (!el || document.documentElement.dataset.fx === 'off') return
+        if (!el || groupOff('art')) return
         el.style.setProperty('--px', String((e.clientX / window.innerWidth) * 2 - 1))
         el.style.setProperty('--py', String((e.clientY / window.innerHeight) * 2 - 1))
       })
