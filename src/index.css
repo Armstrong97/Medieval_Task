@@ -467,17 +467,17 @@ body {
 }
 
 /* Interruptor «Efectos» del perfil y preferencia del sistema. */
-html[data-fx='off'] .page-enter {
+html[data-fx-off~='transitions'] .page-enter {
   animation: none;
 }
-html[data-fx='off'] .vine-branch,
-html[data-fx='off'] .vine-leaf,
-html[data-fx='off'] .vine-flower {
+html[data-fx-off~='vine'] .vine-branch,
+html[data-fx-off~='vine'] .vine-leaf,
+html[data-fx-off~='vine'] .vine-flower {
   transition: none;
 }
-html[data-fx='off'] .ambient-aurora,
-html[data-fx='off'] .ambient-rays,
-html[data-fx='off'] .ambient-mote {
+html[data-fx-off~='world'] .ambient-aurora,
+html[data-fx-off~='world'] .ambient-rays,
+html[data-fx-off~='world'] .ambient-mote {
   animation: none;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -708,8 +708,8 @@ html[data-fx='off'] .ambient-mote {
     shake-effect 0.35s ease-in-out,
     hit-flash 0.5s ease-out;
 }
-html[data-fx='off'] .boss-hit,
-html[data-fx='off'] .hp-lost {
+html[data-fx-off~='game'] .boss-hit,
+html[data-fx-off~='game'] .hp-lost {
   animation: none;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1398,5 +1398,190 @@ html[data-fx='off'] .hp-lost {
 @media (prefers-reduced-motion: reduce) {
   .toast-pop {
     animation: none;
+  }
+}
+
+/* Pantalla de acceso (ver LoginPage.tsx): detalles breves de entrada. */
+.brand-draw path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1.02;
+  animation: brand-draw 1.1s cubic-bezier(0.3, 0.6, 0.3, 1) calc(var(--i, 0) * 0.25s) forwards;
+}
+@keyframes brand-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+/* Excepción puntual a «solo transform/opacity»: letter-spacing en un único título, una sola vez. */
+.login-title {
+  animation: login-title 1.3s cubic-bezier(0.2, 0.7, 0.2, 1) 0.35s both;
+}
+@keyframes login-title {
+  from {
+    opacity: 0;
+    letter-spacing: 0.32em;
+  }
+}
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 11rem;
+  margin: 0.9rem auto 0;
+}
+.login-divider::before,
+.login-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  animation: login-line 0.9s ease-out 0.9s both;
+}
+.login-divider::before {
+  background: linear-gradient(90deg, transparent, rgb(var(--rune-rgb) / 0.6));
+  transform-origin: right;
+}
+.login-divider::after {
+  background: linear-gradient(90deg, rgb(var(--rune-rgb) / 0.6), transparent);
+  transform-origin: left;
+}
+@keyframes login-line {
+  from {
+    transform: scaleX(0);
+  }
+}
+.login-diamond {
+  width: 6px;
+  height: 6px;
+  background: var(--rune);
+  transform: rotate(45deg);
+  box-shadow: 0 0 10px rgb(var(--rune-rgb) / 0.8);
+  animation: login-in 0.6s ease-out 0.8s both;
+}
+.login-fade {
+  animation: login-in 0.8s ease-out 1.1s both;
+}
+@keyframes login-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+/* Pestañas: una línea dorada se desliza entre ellas (3 pestañas = un tercio cada una). */
+.login-tab {
+  border-bottom: 2px solid transparent;
+}
+.login-tab.tab-active {
+  border-bottom-color: transparent;
+}
+.login-tab-ind {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 33.3333%;
+  height: 2px;
+  background: var(--gold);
+  box-shadow: 0 0 8px var(--gold);
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s;
+}
+
+/* Las esquinas de la tarjeta y el campo se encienden en cian con el foco. */
+.login-card:focus-within::before,
+.login-card:focus-within::after {
+  border-color: var(--rune);
+  width: 28px;
+  height: 28px;
+  filter: drop-shadow(0 0 5px rgb(var(--rune-rgb) / 0.7));
+}
+.login-card .input-parchment:focus {
+  border-color: var(--rune);
+  box-shadow: 0 0 0 1px rgb(var(--rune-rgb) / 0.45), 0 0 14px rgb(var(--rune-rgb) / 0.22);
+}
+
+/* Botón: barrido de luz al pasar el cursor; mientras envía, la marca late. */
+.login-submit {
+  position: relative;
+  overflow: hidden;
+}
+.login-submit::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.28) 50%, transparent 65%);
+  transform: translateX(-120%);
+  pointer-events: none;
+}
+.login-submit:hover:not(:disabled)::after {
+  transform: translateX(120%);
+  transition: transform 0.8s ease;
+}
+.login-spin {
+  animation: login-spin 1.4s ease-in-out infinite;
+}
+@keyframes login-spin {
+  0%,
+  100% {
+    transform: scale(0.85);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.1) rotate(90deg);
+    opacity: 1;
+  }
+}
+
+/* Al enviar el enlace mágico, un pergamino luminoso sube desde la tarjeta y se desvanece. */
+.login-sent {
+  filter: drop-shadow(0 0 10px var(--gold));
+  animation: login-sent 2s ease-out forwards;
+}
+@keyframes login-sent {
+  0% {
+    opacity: 0;
+    transform: translateY(24px) scale(0.6);
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-170px) scale(1.15);
+  }
+}
+
+html[data-fx-off~='transitions'] .brand-draw path,
+html[data-fx-off~='transitions'] .login-title,
+html[data-fx-off~='transitions'] .login-divider::before,
+html[data-fx-off~='transitions'] .login-divider::after,
+html[data-fx-off~='transitions'] .login-diamond,
+html[data-fx-off~='transitions'] .login-fade,
+html[data-fx-off~='transitions'] .login-spin {
+  animation: none;
+  stroke-dashoffset: 0;
+}
+html[data-fx-off~='transitions'] .login-sent {
+  display: none;
+}
+html[data-fx-off~='transitions'] .login-tab-ind,
+html[data-fx-off~='transitions'] .login-submit::after {
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .brand-draw path,
+  .login-title,
+  .login-divider::before,
+  .login-divider::after,
+  .login-diamond,
+  .login-fade,
+  .login-spin {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+  .login-sent {
+    display: none;
+  }
+  .login-tab-ind,
+  .login-submit::after {
+    transition: none;
   }
 }

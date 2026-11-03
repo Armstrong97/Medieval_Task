@@ -48,3 +48,13 @@ NO uses: Trifuerza, Espada Maestra, símbolos o diseños reconocibles de Nintend
 |---|---|
 | `strategy-back.png` | `Una sala de estrategia antigua vista en ligero picado: una mesa circular de piedra con un mapa de un valle grabado en relieve, fichas con runas cian dispuestas sobre el mapa, líneas de constelaciones doradas y cian flotando en el aire sobre la mesa, velas cálidas en los bordes, anillos de astrolabio girando muy tenues al fondo. Todo con luz propia sobre negro puro. Centro despejado.` |
 | `strategy-front.png` | `Marco de primer plano: arcos de astrolabio y anillos de runas flotando en las esquinas, pergaminos de mapa colgando del borde superior, velas con luz dorada en las esquinas inferiores, todo con luz de borde verde y cian. El centro completamente negro y vacío.` |
+
+## Pantalla de acceso — el portón (`login-back`)
+
+Una sola capa (`back`), sin marco. Se muestra muy tenue (~28 %) detrás de la tarjeta de login. La tarjeta hace de «sello de la puerta», así que el portón va **en el centro y simétrico**: en móvil (vertical) la imagen se recorta por los lados y el arco tiene que seguir leyéndose.
+
+| Archivo | Prompt |
+|---|---|
+| `login-back.png` | `Un portón de piedra antiguo y monumental, simétrico y centrado, visto de frente en un valle al amanecer: un gran arco cubierto de musgo y enredaderas con runas cian grabadas en el contorno, la puerta cerrada con una runa-cerradura circular que brilla en cian en el centro y finas líneas de luz dorada filtrándose por las rendijas. A los lados, columnas bajas rotas y helechos con luz de borde verde, bruma luminosa en el suelo y unas pocas luciérnagas doradas. Ambiente sereno, misterioso y sobrio, poco cargado. El portón ocupa el centro (~45 % del ancho) y los bordes se desvanecen a negro.` |
+
+Guárdala como `new_assets/world/login-back.png` y avísame: yo la convierto a `.webp` en `public/assets/world/` (el código ya la busca ahí y no muestra nada mientras no exista).

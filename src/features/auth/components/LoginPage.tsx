@@ -1,11 +1,27 @@
 import { useState, type FormEvent } from 'react'
+import { ScrollText } from 'lucide-react'
 import { Navigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { BrandMark } from '@/components/ui/BrandMark'
 import { AmbientBackground } from '@/components/ui/AmbientBackground'
+import { Particles } from '@/features/world/Particles'
+import { SceneArt } from '@/features/world/SceneArt'
+import '@/features/world/world.css'
 
 type Mode = 'magic' | 'password' | 'signup' | 'reset'
+
+const TABS = [
+  { key: 'magic', label: 'Enlace Mágico' },
+  { key: 'password', label: 'Contraseña' },
+  { key: 'signup', label: 'Crear Cuenta' },
+] as const
+
+// Saludo según la hora local del dispositivo (sin datos ni conexión).
+function greeting() {
+  const h = new Date().getHours()
+  return h < 6 ? 'Buenas noches, héroe' : h < 12 ? 'Buenos días, héroe' : h < 19 ? 'Buenas tardes, héroe' : 'Buenas noches, héroe'
+}
 
 export function LoginPage() {
   const { session, loading: sessionLoading } = useAuth()
@@ -15,6 +31,7 @@ export function LoginPage() {
   const [heroName, setHeroName] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState<{ kind: 'info' | 'error'; text: string } | null>(null)
+  const [sentKey, setSentKey] = useState(0) // sube cada vez que se envía el enlace mágico (dispara el destello)
 
   if (!sessionLoading && session) {
     return <Navigate to="/" replace />
@@ -33,6 +50,7 @@ export function LoginPage() {
         })
         if (error) throw error
         setMessage({ kind: 'info', text: '¡Enlace de acceso enviado al pergamino de correo!' })
+        setSentKey((k) => k + 1)
       } else if (mode === 'password') {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
@@ -68,37 +86,47 @@ export function LoginPage() {
     }
   }
 
+  const tabIndex = TABS.findIndex((t) => t.key === mode)
+
   return (
     <div className="relative flex min-h-dvh w-full flex-col items-center justify-center overflow-hidden bg-bg px-4 py-8 text-fg">
       <AmbientBackground />
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+        <SceneArt scene="login" layer="back" still />
+        <Particles kind="ember" count={16} size={[2, 4]} dur={[9, 16]} sway={30} />
+      </div>
 
       <main className="relative z-10 flex w-full max-w-md flex-col items-center">
         {/* Header Identidad Questly */}
         <header className="mb-8 text-center">
           <div className="mb-3 flex justify-center">
             <div className="h-16 w-16">
-              <BrandMark className="glyph-glow h-full w-full text-accent" />
+              <BrandMark draw className="glyph-glow h-full w-full text-accent" />
             </div>
           </div>
-          <h1 className="font-display text-4xl font-black tracking-tight text-accent drop-shadow-[0_0_10px_rgb(var(--accent-rgb)/0.35)] sm:text-5xl">
+          <h1 className="login-title font-display text-4xl font-black tracking-tight text-accent drop-shadow-[0_0_10px_rgb(var(--accent-rgb)/0.35)] sm:text-5xl">
             QUESTLY
           </h1>
-          <p className="mt-1 font-display text-xs font-semibold uppercase tracking-[0.2em] text-fg-muted">
+          <div className="login-divider" aria-hidden="true">
+            <span className="login-diamond" />
+          </div>
+          <p className="login-fade mt-3 font-display text-xs font-semibold uppercase tracking-[0.2em] text-fg-muted">
             Maneja tus misiones. Conquista el caos.
           </p>
+          <p className="login-fade mt-1 font-mono text-xs text-fg-muted">{greeting()}</p>
         </header>
 
         {/* Grimoire Card Container */}
-        <section className="grimoire-card w-full overflow-hidden rounded-xl border border-border bg-surface">
+        <div className="relative w-full">
+        <section className="grimoire-card rune-frame login-card w-full overflow-hidden rounded-xl border border-border bg-surface">
           {/* Tabs Selector */}
-          <nav className="flex border-b border-border">
-            {(
-              [
-                { key: 'magic', label: 'Enlace Mágico' },
-                { key: 'password', label: 'Contraseña' },
-                { key: 'signup', label: 'Crear Cuenta' },
-              ] as const
-            ).map((tab) => (
+          <nav className="relative flex border-b border-border">
+            <span
+              aria-hidden="true"
+              className="login-tab-ind"
+              style={{ transform: `translateX(${Math.max(tabIndex, 0) * 100}%)`, opacity: tabIndex < 0 ? 0 : 1 }}
+            />
+            {TABS.map((tab) => (
               <button
                 key={tab.key}
                 type="button"
@@ -106,10 +134,10 @@ export function LoginPage() {
                   setMode(tab.key)
                   setMessage(null)
                 }}
-                className={`flex-1 py-3.5 font-mono text-xs uppercase tracking-widest transition-all ${
+                className={`login-tab flex-1 py-3.5 font-mono text-xs uppercase tracking-widest transition-all ${
                   mode === tab.key
                     ? 'tab-active font-semibold'
-                    : 'text-fg-muted/60 hover:text-fg'
+                    : 'text-fg-muted hover:text-fg'
                 }`}
               >
                 {tab.label}
@@ -170,10 +198,14 @@ export function LoginPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="btn-prime mt-2 w-full rounded-md py-3.5 font-display text-base tracking-wider disabled:opacity-60"
+                className="btn-prime login-submit mt-2 w-full rounded-md py-3.5 font-display text-base tracking-wider disabled:opacity-60"
               >
                 {submitting
-                  ? 'Invocando…'
+                  ? (
+                    <span className="inline-flex items-center justify-center gap-2">
+                      <BrandMark className="login-spin h-5 w-5" /> Invocando…
+                    </span>
+                  )
                   : mode === 'magic'
                     ? 'Enviar Enlace'
                     : mode === 'password'
@@ -209,7 +241,7 @@ export function LoginPage() {
               )}
 
               {mode === 'magic' && (
-                <p className="text-center font-mono text-xs uppercase tracking-wider text-fg-muted/50">
+                <p className="text-center font-mono text-xs uppercase tracking-wider text-fg-muted">
                   Sin contraseñas, solo magia.
                 </p>
               )}
@@ -228,6 +260,12 @@ export function LoginPage() {
             )}
           </div>
         </section>
+        {sentKey > 0 && (
+          <span key={sentKey} aria-hidden="true" className="login-sent pointer-events-none absolute left-[calc(50%-1.25rem)] top-24 text-gold">
+            <ScrollText className="h-10 w-10" />
+          </span>
+        )}
+        </div>
 
         {/* Footer info */}
         <footer className="mt-8 text-center opacity-40 transition-opacity hover:opacity-100">
