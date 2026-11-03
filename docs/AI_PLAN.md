@@ -53,3 +53,18 @@ Cliente ──(JWT del usuario)──> Edge Function `assistant` ──> Gemini 
 
 - Pasar a nivel de pago antes de usar datos reales sensibles.
 - Cuota diaria fija (60 llamadas por usuario) definida en `index.ts`; ajustar con uso real.
+
+## Costo estimado por usuario (2026-11-04)
+
+Modelo `gemini-3.5-flash-lite`, nivel de pago, estándar: **US$ 0.30 por 1M tokens de entrada y US$ 2.50 por 1M de salida** (página oficial de precios de AI Studio; verificar antes de decidir precios, cambian). Descuentos que no aplican: lotes (-50%, no sirve para llamadas interactivas) y caché de contexto (nuestro prefijo fijo es de unos 500 tokens, demasiado corto para compensar el almacenamiento).
+
+Tokens medidos sobre los prompts reales (entrada / salida, usuario con «Sobre mí» de ~300 caracteres, 6 clases, 4 proyectos y 15 ejemplos): triage 1 641 / 190, micro-pasos 581 / 120, etapas de cadena 610 / 200, «Tu ritmo» 1 253 / 330.
+
+| Perfil | Llamadas/mes | Costo/mes |
+|---|---|---|
+| Ligero (~2 capturas/día) | ~41 | US$ 0.04 |
+| **Promedio (~5 capturas/día)** | **~120** | **US$ 0.11** |
+| Intenso (~12 capturas/día) | ~336 | US$ 0.31 |
+| Tope diario (120 triages cada día) | 3 600 | US$ 3.48 |
+
+Referencia: ~US$ 0.93 por cada 1 000 llamadas; la mitad del costo es salida. **El perfil de uso es un supuesto**: medirlo con `select avg(calls), max(calls) from ai_usage` tras unas semanas de uso real. No incluye Supabase, correo ni hosting. El triage automático por carta es ~70 % de las llamadas.
