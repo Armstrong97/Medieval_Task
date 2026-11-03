@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { format, isToday, startOfWeek } from 'date-fns'
 import {
@@ -9,12 +10,28 @@ import {
   fetchTodayQuests,
   fetchUnlockedLoot,
   fetchWeeklyQuests,
+  setStreakTimezone,
   setTodayPriorityTask,
 } from '@/features/gamification/api'
 import { useTasksCompletedToday } from '@/features/tasks/hooks'
 
 export function useStreak() {
   return useQuery({ queryKey: ['gamification', 'streak'], queryFn: fetchStreak })
+}
+
+// La racha cambia de día en la zona horaria del usuario (no en UTC): se guarda al abrir la app.
+export function useSyncStreakTimezone() {
+  const { data: streak } = useStreak()
+  const queryClient = useQueryClient()
+  useEffect(() => {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+    if (!streak || !tz || streak.tz === tz) return
+    setStreakTimezone(streak.user_id, tz)
+      .then(() => queryClient.invalidateQueries({ queryKey: ['gamification', 'streak'] }))
+      .catch(() => {
+        // sin conexión o sin permiso: se reintenta en la próxima apertura.
+      })
+  }, [streak, queryClient])
 }
 
 export function useClassRanks() {

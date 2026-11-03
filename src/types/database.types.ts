@@ -222,6 +222,7 @@ export interface Database {
           longest_streak: number
           shields_available: number
           last_active_date: string | null
+          tz: string
           created_at: string
         }
         Insert: {
@@ -231,6 +232,7 @@ export interface Database {
           longest_streak?: number
           shields_available?: number
           last_active_date?: string | null
+          tz?: string
           created_at?: string
         }
         Update: Partial<Database['public']['Tables']['streaks']['Insert']>

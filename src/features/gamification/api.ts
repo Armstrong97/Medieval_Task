@@ -11,6 +11,11 @@ export async function fetchStreak(): Promise<Streak | null> {
   return data
 }
 
+export async function setStreakTimezone(userId: string, tz: string): Promise<void> {
+  const { error } = await supabase.from('streaks').update({ tz }).eq('user_id', userId)
+  if (error) throw error
+}
+
 export async function fetchCategoryXp(): Promise<UserCategoryXp[]> {
   const { data, error } = await supabase.from('user_category_xp').select('*')
   if (error) throw error

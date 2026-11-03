@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { Crosshair, Flame, Inbox, Menu, ScrollText, Shield, Swords, Wand2, type LucideIcon } from 'lucide-react'
 import { useInboxTasks } from '@/features/tasks/hooks'
-import { useStreak } from '@/features/gamification/hooks'
+import { useStreak, useSyncStreakTimezone } from '@/features/gamification/hooks'
 import { NotificationBell } from '@/features/notifications/components/NotificationBell'
 import { FocusFloatButton } from '@/features/tasks/components/FocusFloat'
 import { FocusFloatProvider } from '@/features/tasks/FocusFloatContext'
@@ -102,6 +102,7 @@ function CountBadge({ count }: { count: number }) {
 }
 
 export function Layout() {
+  useSyncStreakTimezone()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [railPinned, setRailPinned] = useState(() => {
     try {
