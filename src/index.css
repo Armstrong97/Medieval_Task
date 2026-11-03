@@ -425,18 +425,20 @@ body {
   transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Enredadera del menú (ver Vine.tsx): crece al abrir, se retrae rápido al cerrar. */
-.vine-stem,
+/* Enredadera de fondo del menú (ver Vine.tsx): cada rama crece con su retraso (--d) y duración (--t);
+   al cerrar se retrae rápido. Borrosa, tenue y quieta (repintar una capa con blur cada cuadro es caro). */
+.vine-bg {
+  filter: blur(2.5px) brightness(0.8);
+  opacity: 0.26;
+}
 .vine-branch {
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
-  opacity: 0.55;
-  transition: stroke-dashoffset 0.2s ease-in;
+  transition: stroke-dashoffset 0.25s ease-in;
 }
-.is-open .vine-stem,
 .is-open .vine-branch {
   stroke-dashoffset: 0;
-  transition: stroke-dashoffset 1.6s cubic-bezier(0.3, 0.6, 0.3, 1) 0.15s;
+  transition: stroke-dashoffset var(--t, 1s) linear var(--d, 0s);
 }
 .vine-leaf,
 .vine-flower {
@@ -448,17 +450,9 @@ body {
 }
 .is-open .vine-leaf,
 .is-open .vine-flower {
-  opacity: 0.7;
+  opacity: 0.9;
   transform: scale(1);
-  transition: opacity 0.5s, transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.is-open .vine-leaf {
-  animation: vine-sway 4s ease-in-out 2s infinite alternate;
-}
-@keyframes vine-sway {
-  to {
-    transform: scale(1) rotate(8deg);
-  }
+  transition: opacity 0.5s var(--d, 0s), transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) var(--d, 0s);
 }
 
 /* Transición suave al cambiar de pantalla (solo opacity/transform). */
@@ -473,11 +467,9 @@ body {
 }
 
 /* Interruptor «Efectos» del perfil y preferencia del sistema. */
-html[data-fx='off'] .page-enter,
-html[data-fx='off'] .vine-leaf {
+html[data-fx='off'] .page-enter {
   animation: none;
 }
-html[data-fx='off'] .vine-stem,
 html[data-fx='off'] .vine-branch,
 html[data-fx='off'] .vine-leaf,
 html[data-fx='off'] .vine-flower {
@@ -489,11 +481,9 @@ html[data-fx='off'] .ambient-mote {
   animation: none;
 }
 @media (prefers-reduced-motion: reduce) {
-  .page-enter,
-  .vine-leaf {
+  .page-enter {
     animation: none;
   }
-  .vine-stem,
   .vine-branch,
   .vine-leaf,
   .vine-flower {
@@ -514,6 +504,8 @@ html[data-fx='off'] .ambient-mote {
 /* Items de Navegación */
 .nav-item-link {
   position: relative;
+  /* Halo del color de fondo: separa las letras de la enredadera que pasa por detrás. */
+  text-shadow: 0 1px 4px rgb(var(--bg-rgb) / 0.95), 0 0 2px rgb(var(--bg-rgb) / 0.8);
   transition: all 0.2s ease;
   border-left: 3px solid transparent;
 }

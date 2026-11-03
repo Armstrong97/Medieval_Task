@@ -12,7 +12,7 @@ import { formatClock, useFocusClock } from '@/features/tasks/useFocusClock'
 import { ProfileMenu } from '@/features/auth/components/ProfileMenu'
 import { AmbientBackground } from '@/components/ui/AmbientBackground'
 import { BrandMark } from '@/components/ui/BrandMark'
-import { Vine } from '@/components/ui/Vine'
+import { VineBackdrop } from '@/components/ui/Vine'
 import { StatusRail, StatusSummaryCard } from '@/app/StatusRail'
 import { Toaster } from '@/components/ui/Toaster'
 import { QuickCaptureFab } from '@/features/inbox/components/QuickCaptureFab'
@@ -207,7 +207,7 @@ export function Layout() {
             sidebarOpen ? 'is-open translate-x-0' : '-translate-x-full'
           }`}
         >
-          <Vine className="absolute right-0 top-16 h-[calc(100%-4rem)] w-16" />
+          <VineBackdrop className="absolute inset-0 -z-10 h-full w-full" />
           <div className="mb-6 flex items-center gap-3 px-6">
             <BrandMark className="h-7 w-7 shrink-0 text-accent" />
             <p className="font-display text-xs uppercase tracking-[0.25em] text-accent">
@@ -223,7 +223,7 @@ export function Layout() {
                 end={item.end}
                 className={({ isActive }) =>
                   `nav-item-link flex items-center gap-3.5 rounded-r-xl px-5 py-2 text-sm font-medium transition-all ${
-                    isActive ? 'active' : 'text-fg-muted'
+                    isActive ? 'active' : 'text-fg'
                   }`
                 }
               >
@@ -240,7 +240,7 @@ export function Layout() {
                   <span className="nav-label font-display text-xs tracking-wider uppercase">
                     {item.label}
                   </span>
-                  <span className="font-mono text-xs font-normal normal-case tracking-normal text-fg-muted">
+                  <span className="font-mono text-xs font-normal normal-case tracking-normal text-fg/75">
                     {item.hint}
                   </span>
                 </span>

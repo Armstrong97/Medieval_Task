@@ -1,13 +1,16 @@
-// Geometría de la enredadera del menú (ver Vine.tsx). Determinista: misma semilla, mismo dibujo.
-// Tallo sinuoso con ramas que se arquean, terminan en zarcillo o flor, y hojas con nervadura.
-export const VINE_W = 64
-export const VINE_H = 1000
-const SX = 44 // eje del tallo (pegado al borde derecho del panel)
-const DUR = 1.6 // segundos que tarda el tallo en bajar; las ramas brotan al pasar por su altura
+// Geometría de la enredadera de fondo del menú (ver Vine.tsx). Una sola planta que nace abajo y se
+// va ramificando por todo el panel: tronco → ramas → ramitas, con hojas, zarcillos y flores.
+// Determinista (misma semilla, mismo dibujo) y con tiempos: cada rama empieza a crecer cuando la
+// rama madre llega a ese punto, así que la planta se «dispersa» en el tiempo.
+export const BG_W = 280
+export const BG_H = 900
+const SPEED = 200 // unidades que crece una rama por segundo
 
 export interface VineBranch {
   d: string
   delay: number
+  dur: number
+  w: number
 }
 export interface VineLeaf {
   x: number
@@ -23,7 +26,6 @@ export interface VineFlower {
   delay: number
 }
 export interface VineData {
-  stem: string
   branches: VineBranch[]
   leaves: VineLeaf[]
   flowers: VineFlower[]
@@ -39,83 +41,97 @@ function mulberry32(seed: number) {
   }
 }
 
-const stemX = (y: number) => SX + 5 * Math.sin(y / 46) + 2 * Math.sin(y / 17)
 const r1 = (n: number) => Math.round(n * 10) / 10
 const deg = (rad: number) => (rad * 180) / Math.PI
 
-export function buildVine(): VineData {
-  const rnd = mulberry32(7)
-  const branches: VineBranch[] = []
-  const leaves: VineLeaf[] = []
-  const flowers: VineFlower[] = []
+// Por generación (0 = tronco): grosor y cada cuántas unidades sale una hoja / una rama hija.
+const GEN = [
+  { w: 3.6, leafEvery: 40, childEvery: 62 },
+  { w: 2.6, leafEvery: 36, childEvery: 48 },
+  { w: 1.8, leafEvery: 30, childEvery: 40 },
+  { w: 1.2, leafEvery: 18, childEvery: 0 },
+]
 
-  let stem = `M${r1(stemX(0))} 0`
-  for (let y = 6; y <= VINE_H; y += 6) stem += `L${r1(stemX(y))} ${y}`
+export function growVine(seed = 3): VineData {
+  const rnd = mulberry32(seed)
+  const out: VineData = { branches: [], leaves: [], flowers: [] }
+  const STEP = 7
 
-  const count = 16
-  for (let i = 0; i < count; i++) {
-    const y0 = 34 + i * 62 + rnd() * 10
-    const side = i % 3 === 2 ? 1 : -1 // casi todo crece hacia dentro del panel
-    const len = side < 0 ? 24 + rnd() * 14 : 8 + rnd() * 5
-    const x0 = stemX(y0)
-    const delay = (y0 / VINE_H) * DUR + 0.1
+  function branch(x: number, y: number, heading: number, len: number, gen: number, t0: number) {
+    const g = GEN[gen]
+    const amp = (gen === 0 ? 0.1 : 0.35) + rnd() * 0.3 // cuánto serpentea (el tronco casi recto)
+    const per = 26 + rnd() * 30
+    const ph = rnd() * Math.PI * 2
+    const bias = (rnd() - 0.5) * (gen === 0 ? 0.0008 : 0.003) // deriva lenta: cada rama se curva hacia un lado
+    const n = Math.max(2, Math.round(len / STEP))
+    const dur = len / SPEED
 
-    const p0 = [x0, y0]
-    const p1 = [x0 + side * len * 0.35, y0 - 10 - rnd() * 6]
-    const p2 = [x0 + side * len * 0.8, y0 - 2 + rnd() * 6]
-    const p3 = [x0 + side * len, y0 + 8 + rnd() * 10]
-    const bez = (t: number) => {
-      const u = 1 - t
-      return [0, 1].map(
-        (k) => u * u * u * p0[k] + 3 * u * u * t * p1[k] + 3 * u * t * t * p2[k] + t * t * t * p3[k],
-      )
+    const pts: { x: number; y: number; h: number }[] = [{ x, y, h: heading }]
+    let px = x
+    let py = y
+    for (let i = 1; i <= n; i++) {
+      const s = i * STEP
+      const base = heading + amp * 0.5 * Math.sin(s / per + ph) + bias * s
+      // Las ramas se curvan poco a poco hacia arriba, como buscando la luz.
+      const h = gen === 0 ? base : base + (-Math.PI / 2 - base) * Math.min(0.45, s * 0.0012)
+      px += Math.cos(h) * STEP
+      py += Math.sin(h) * STEP
+      pts.push({ x: px, y: py, h })
     }
-    const tan = (t: number) => {
-      const u = 1 - t
-      const dx = 3 * u * u * (p1[0] - p0[0]) + 6 * u * t * (p2[0] - p1[0]) + 3 * t * t * (p3[0] - p2[0])
-      const dy = 3 * u * u * (p1[1] - p0[1]) + 6 * u * t * (p2[1] - p1[1]) + 3 * t * t * (p3[1] - p2[1])
-      return Math.atan2(dy, dx)
-    }
+    const tip = pts[n]
 
-    let d = `M${r1(p0[0])} ${r1(p0[1])}C${r1(p1[0])} ${r1(p1[1])} ${r1(p2[0])} ${r1(p2[1])} ${r1(p3[0])} ${r1(p3[1])}`
-
-    // Remate: flor en una de cada 4 ramas largas; zarcillo en espiral en las demás.
-    if (side < 0 && i % 4 === 1) {
-      flowers.push({ x: r1(p3[0]), y: r1(p3[1]), size: 5 + rnd() * 1.5, delay: delay + 0.9 })
-    } else {
-      const r0 = side < 0 ? 5.5 : 3.5
-      const cx = p3[0]
-      const cy = p3[1] + r0
+    // Remate: zarcillo en espiral (parte del trazo), flor dorada o nada (la hoja del extremo la pone el final).
+    let curl = ''
+    const end = rnd()
+    if (gen >= 2 && end < 0.5) {
+      const cs = rnd() < 0.5 ? 1 : -1
+      const r0 = 6 + rnd() * 3
+      const c = Math.PI / 2
+      const cx = tip.x + r0 * Math.cos(tip.h + cs * c)
+      const cy = tip.y + r0 * Math.sin(tip.h + cs * c)
+      const a0 = tip.h - cs * c
       const sweep = 3 * Math.PI
       for (let s = 0.4; s <= sweep; s += 0.4) {
         const r = r0 * (1 - (s / sweep) * 0.85)
-        const a = -Math.PI / 2 - (side < 0 ? s : -s)
-        d += `L${r1(cx + r * Math.cos(a))} ${r1(cy + r * Math.sin(a))}`
+        curl += `L${r1(cx + r * Math.cos(a0 + cs * s))} ${r1(cy + r * Math.sin(a0 + cs * s))}`
+      }
+    } else if (gen >= 2 && end < 0.7) {
+      out.flowers.push({ x: r1(tip.x), y: r1(tip.y), size: 7 + rnd() * 3, delay: t0 + dur + 0.2 })
+    }
+    out.branches.push({
+      d: `M${r1(x)} ${r1(y)}${pts.slice(1).map((p) => `L${r1(p.x)} ${r1(p.y)}`).join('')}${curl}`,
+      delay: t0,
+      dur,
+      w: g.w,
+    })
+
+    // Hojas (alternando lados) y ramas hijas a lo largo de la rama.
+    const leafEvery = Math.round(g.leafEvery / STEP)
+    const childEvery = g.childEvery ? Math.round(g.childEvery / STEP) : 0
+    let side = rnd() < 0.5 ? 1 : -1
+    for (let i = 2; i <= n; i++) {
+      const p = pts[i]
+      const t = t0 + (i / n) * dur
+      if (i % leafEvery === 0 && rnd() < 0.85) {
+        side = -side
+        out.leaves.push({
+          x: r1(p.x),
+          y: r1(p.y),
+          rot: r1(deg(p.h) + side * (42 + rnd() * 22)),
+          size: r1((gen <= 1 ? 15 : 10) + rnd() * 8),
+          delay: t + 0.3,
+        })
+      }
+      if (childEvery && i >= 5 && i % childEvery === 0 && (gen < 2 || rnd() < 0.6)) {
+        side = -side
+        const childLen = gen === 0 ? 170 + rnd() * 90 : len * (0.38 + rnd() * 0.17)
+        branch(p.x, p.y, p.h + side * (gen === 0 ? 0.55 + rnd() * 0.35 : 0.6 + rnd() * 0.5), childLen, gen + 1, t)
       }
     }
-    branches.push({ d, delay })
-
-    // Hojas sobre la rama (alternando lados) y una en el tallo.
-    const tList = side < 0 ? [0.35, 0.68] : [0.6]
-    tList.forEach((t, k) => {
-      const [bx, by] = bez(t)
-      const flip = (i + k) % 2 === 0 ? -1 : 1
-      leaves.push({
-        x: r1(bx),
-        y: r1(by),
-        rot: r1(deg(tan(t)) + flip * (42 + rnd() * 14)),
-        size: r1(10 + rnd() * 5),
-        delay: delay + 0.35 + t * 0.6 + k * 0.1,
-      })
-    })
-    const sy = y0 + 31
-    leaves.push({
-      x: r1(stemX(sy)),
-      y: sy,
-      rot: r1(side < 0 ? 200 + rnd() * 20 : -20 - rnd() * 20),
-      size: r1(8 + rnd() * 3),
-      delay: (sy / VINE_H) * DUR + 0.25,
-    })
+    // Hoja en la punta.
+    out.leaves.push({ x: r1(tip.x), y: r1(tip.y), rot: r1(deg(tip.h) - 20 + rnd() * 40), size: r1(9 + rnd() * 6), delay: t0 + dur + 0.2 })
   }
-  return { stem, branches, leaves, flowers }
+
+  branch(BG_W / 2, BG_H + 10, -Math.PI / 2 - 0.05, BG_H + 160, 0, 0)
+  return out
 }
