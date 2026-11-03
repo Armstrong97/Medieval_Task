@@ -749,3 +749,9 @@ Plan completo, seguridad y fases 2-4 en [`docs/AI_PLAN.md`](docs/AI_PLAN.md). Re
 - **Pruebas**: `node --experimental-strip-types scripts/resolve-when.test.ts` (reglas de fecha) y `supabase/functions/assistant/validate.test.ts`.
 - **Cuota diaria subió de 60 a 120** por usuario (`DAILY_LIMIT`): con una llamada por carta, un inbox grande agotaba 60. Ojo con los límites globales de la API gratuita (15 RPM, 1500 RPD).
 - **Lección**: `tsc` no revisa la Edge Function (es Deno); un backtick dentro de la plantilla del prompt la rompió y solo lo detectó `oxlint`. Correr `npx oxlint` tras tocar `supabase/functions/`.
+
+## 22. Recuperación de contraseña (2026-11-03, en código, sin probar)
+- **Flujo**: login → pestaña «Contraseña» → «¿Olvidaste tu contraseña?» → `resetPasswordForEmail(email, { redirectTo: <origen>/restablecer })` → el enlace del correo abre `/restablecer` (`ResetPasswordPage`, fuera de `ProtectedRoute`), Supabase abre una sesión temporal desde la URL y se elige la contraseña nueva con `updateUser({ password })` (mínimo 8 caracteres, confirmación). Mensaje neutro exista o no la cuenta (no revela qué correos están registrados). Enlace vencido/inválido: aviso y vuelta al login.
+- **«Cambiar contraseña»** en el menú de perfil abre la misma pantalla: sirve también para fijar una contraseña a quien entra solo por enlace mágico.
+- **Pasos manuales en Supabase** (Authentication → URL Configuration): la *Site URL* debe ser la URL real de la app, y `https://<tu-dominio>/restablecer` (y `http://localhost:5173/restablecer` para desarrollo) debe estar en *Redirect URLs*; si no, el correo redirige al Site URL y el flujo falla. Lo mismo vale para el enlace mágico (`emailRedirectTo` usa el origen actual). El correo de «Reset Password» usa la plantilla por defecto de Supabase (editable en Authentication → Email Templates).
+- **Límite**: el SMTP integrado de Supabase envía muy pocos correos por hora; si se agota, configurar un SMTP propio.

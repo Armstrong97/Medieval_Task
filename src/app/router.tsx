@@ -2,6 +2,7 @@ import { createBrowserRouter } from 'react-router-dom'
 import { Layout } from '@/app/Layout'
 import { ProtectedRoute } from '@/app/ProtectedRoute'
 import { LoginPage } from '@/features/auth/components/LoginPage'
+import { ResetPasswordPage } from '@/features/auth/components/ResetPasswordPage'
 import { BattleHudPage } from '@/features/battle-hud/components/BattleHudPage'
 import { BossEncounterPage } from '@/features/projects/components/BossEncounterPage'
 import { InboxPage } from '@/features/inbox/components/InboxPage'
@@ -18,6 +19,11 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <LoginPage />,
+  },
+  // Fuera de ProtectedRoute: el enlace del correo llega aquí y Supabase abre la sesión desde la URL.
+  {
+    path: '/restablecer',
+    element: <ResetPasswordPage />,
   },
   {
     element: <ProtectedRoute />,

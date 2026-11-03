@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { CircleUserRound, LogOut } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { CircleUserRound, KeyRound, LogOut } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useAiEnabled, useAiProfileContext, useSetAiEnabled, useSetAiProfileContext } from '@/features/ai/hooks'
 import { ContextField } from '@/features/ai/components/ContextField'
@@ -77,6 +78,13 @@ export function ProfileMenu() {
                 </div>
               </details>
             )}
+            <Link
+              to="/restablecer"
+              onClick={() => setOpen(false)}
+              className="mt-1 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-fg-muted transition-colors hover:bg-surface-2 hover:text-fg"
+            >
+              <KeyRound className="h-4 w-4" /> Cambiar contraseña
+            </Link>
             <button
               type="button"
               onClick={() => void signOut()}

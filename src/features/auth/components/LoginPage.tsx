@@ -5,7 +5,7 @@ import { useAuth } from '@/features/auth/AuthProvider'
 import { BrandMark } from '@/components/ui/BrandMark'
 import { AmbientBackground } from '@/components/ui/AmbientBackground'
 
-type Mode = 'magic' | 'password' | 'signup'
+type Mode = 'magic' | 'password' | 'signup' | 'reset'
 
 export function LoginPage() {
   const { session, loading: sessionLoading } = useAuth()
@@ -36,6 +36,16 @@ export function LoginPage() {
       } else if (mode === 'password') {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
+      } else if (mode === 'reset') {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/restablecer`,
+        })
+        if (error) throw error
+        // Mismo mensaje exista o no la cuenta: no revela qué correos están registrados.
+        setMessage({
+          kind: 'info',
+          text: 'Si ese correo tiene cuenta, te enviamos un enlace para crear una contraseña nueva. Revisa también el spam.',
+        })
       } else {
         const { error } = await supabase.auth.signUp({
           email,
@@ -51,7 +61,7 @@ export function LoginPage() {
     } catch (err) {
       setMessage({
         kind: 'error',
-        text: err instanceof Error ? err.message : 'Algo no salió bien en el hechizo, probá de nuevo.',
+        text: err instanceof Error ? err.message : 'Algo no salió bien en el hechizo, prueba de nuevo.',
       })
     } finally {
       setSubmitting(false)
@@ -140,7 +150,7 @@ export function LoginPage() {
                 />
               </div>
 
-              {mode !== 'magic' && (
+              {(mode === 'password' || mode === 'signup') && (
                 <div className="flex flex-col gap-1.5">
                   <label className="font-mono text-xs font-bold uppercase tracking-widest text-accent/90">
                     Palabra Secreta
@@ -168,8 +178,35 @@ export function LoginPage() {
                     ? 'Enviar Enlace'
                     : mode === 'password'
                       ? 'Entrar a la Taberna'
-                      : 'Forjar Destino'}
+                      : mode === 'reset'
+                        ? 'Enviar enlace de recuperación'
+                        : 'Forjar Destino'}
               </button>
+
+              {mode === 'password' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('reset')
+                    setMessage(null)
+                  }}
+                  className="text-center font-mono text-xs uppercase tracking-wider text-fg-muted underline-offset-4 hover:text-fg hover:underline"
+                >
+                  ¿Olvidaste tu contraseña?
+                </button>
+              )}
+              {mode === 'reset' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('password')
+                    setMessage(null)
+                  }}
+                  className="text-center font-mono text-xs uppercase tracking-wider text-fg-muted underline-offset-4 hover:text-fg hover:underline"
+                >
+                  Volver a iniciar sesión
+                </button>
+              )}
 
               {mode === 'magic' && (
                 <p className="text-center font-mono text-xs uppercase tracking-wider text-fg-muted/50">
