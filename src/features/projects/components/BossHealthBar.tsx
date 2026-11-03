@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { BOSS_PHASES } from '@/features/projects/api'
 import { LOOT_ICONS } from '@/utils/rpgAssets'
 
@@ -12,6 +13,14 @@ export function BossHealthBar({
   percentRemaining: number
   phasesClaimed: number[]
 }) {
+  // Si la vida baja mientras se mira la pantalla, la barra recibe el golpe (destello + sacudida).
+  const [prevHp, setPrevHp] = useState(currentHp)
+  const [hitKey, setHitKey] = useState(0)
+  if (currentHp !== prevHp) {
+    setPrevHp(currentHp)
+    if (currentHp < prevHp) setHitKey((k) => k + 1)
+  }
+
   return (
     <div className="space-y-4">
       {/* Indicadores Numéricos */}
@@ -25,7 +34,7 @@ export function BossHealthBar({
       </div>
 
       {/* Barra de Salud Masiva */}
-      <div className="boss-hp-container relative h-10 w-full overflow-hidden rounded-xl bg-shade/60">
+      <div key={hitKey} className={`boss-hp-container relative h-10 w-full overflow-hidden rounded-xl bg-shade/60 ${hitKey ? 'boss-hit' : ''}`}>
         <div
           className="boss-hp-fill h-full"
           style={{ width: `${Math.max(0, Math.min(100, percentRemaining))}%` }}

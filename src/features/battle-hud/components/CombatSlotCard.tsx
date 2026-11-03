@@ -9,6 +9,7 @@ import { RescheduleButtons } from '@/features/tasks/components/RescheduleButtons
 import { isOverdue } from '@/utils/datetime'
 import { useUnequipHudSlot } from '@/features/battle-hud/hooks'
 import { WEAPON_ICONS } from '@/utils/rpgAssets'
+import { effectsEnabled } from '@/utils/effects'
 import type { Task, TaskSize } from '@/types/database.types'
 
 const DIFFICULTY_LABEL: Record<TaskSize, { label: string; xp: number }> = {
@@ -18,6 +19,9 @@ const DIFFICULTY_LABEL: Record<TaskSize, { label: string; xp: number }> = {
 }
 
 const DEFAULT_FOLLOW_UP_INTERVAL_DAYS = 7
+
+// Chispas del impacto: ángulo y distancia fijos (no aleatorios) para que sea estable entre renders.
+const SPARKS = Array.from({ length: 10 }, (_, i) => ({ a: i * 36 + (i % 2) * 12, d: 46 + (i % 3) * 16 }))
 
 export function CombatSlotCard({
   task,
@@ -39,7 +43,8 @@ export function CombatSlotCard({
 
   const [menuOpen, setMenuOpen] = useState(false)
   const [animatingKill, setAnimatingKill] = useState(false)
-  const [shaking, setShaking] = useState(false)
+  const [hit, setHit] = useState(false)
+  const [striking, setStriking] = useState(false)
 
   const category = categories?.find((c) => c.id === task.category_id)
   const difficulty = task.size ? DIFFICULTY_LABEL[task.size] : null
@@ -49,16 +54,31 @@ export function CombatSlotCard({
   const hpCurrent = hasSubtasks ? subtasks!.filter((s) => s.status !== 'done').length : 1
   const hpPercent = Math.round((hpCurrent / hpTotal) * 100)
 
-  // Secuencia de animación táctil TDAH al asestar golpe final
+  // Un segmento de HP que se acaba de perder (p. ej. al terminar una submisión) destella una vez.
+  const hpNow = subtasks ? hpCurrent : null
+  const [prevHp, setPrevHp] = useState(hpNow)
+  const [lostIdx, setLostIdx] = useState<number | null>(null)
+  if (hpNow !== prevHp) {
+    setPrevHp(hpNow)
+    setLostIdx(hpNow !== null && prevHp !== null && hpNow < prevHp ? hpNow : null)
+  }
+
+  // Golpe final: el arma embiste (0-200 ms), impacto con destello, sacudida y chispas (200-520 ms),
+  // la carta cae (520-1070 ms) y recién entonces se completa. Sin efectos, se completa al instante.
   function handleGolpeFinal() {
-    setShaking(true)
+    if (striking) return
+    const finish = () => completeTask.mutate({ id: task.id, project_id: task.project_id })
+    if (!effectsEnabled() || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      finish()
+      return
+    }
+    setStriking(true)
+    setTimeout(() => setHit(true), 200)
     setTimeout(() => {
-      setShaking(false)
+      setHit(false)
       setAnimatingKill(true)
-      setTimeout(() => {
-        completeTask.mutate({ id: task.id, project_id: task.project_id })
-      }, 550)
-    }, 280)
+    }, 520)
+    setTimeout(finish, 1070)
   }
 
   const categoryColor = category?.color_hex ?? '#7ccf6a'
@@ -66,7 +86,7 @@ export function CombatSlotCard({
   return (
     <article
       className={`combat-card group flex h-[420px] flex-col rounded-2xl p-6 ${
-        shaking ? 'shake-anim' : ''
+        hit ? 'hit-anim' : ''
       } ${animatingKill ? 'animate-kill' : ''}`}
       style={
         {
@@ -75,6 +95,22 @@ export function CombatSlotCard({
         } as React.CSSProperties
       }
     >
+      {striking && (
+        <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden rounded-2xl" aria-hidden="true">
+          {task.size && <img src={WEAPON_ICONS[task.size]} alt="" className="strike-weapon absolute left-[14%] top-[10%] h-20 w-20 object-contain" />}
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 h-full w-full">
+            <path className="strike-slash" pathLength={1} d="M12 14L90 88" stroke="var(--gold)" strokeWidth="3" vectorEffect="non-scaling-stroke" strokeLinecap="round" />
+          </svg>
+          {SPARKS.map((s, i) => (
+            <span
+              key={i}
+              className="strike-spark absolute left-1/2 top-1/2 h-1.5 w-1.5 rounded-full bg-gold"
+              style={{ '--a': `${s.a}deg`, '--d': `${s.d}px` } as React.CSSProperties}
+            />
+          ))}
+        </div>
+      )}
+
       {/* Header de Categoria e Insignia de Arma */}
       <div className="mb-4 flex items-start justify-between">
         <span
@@ -151,7 +187,8 @@ export function CombatSlotCard({
             {Array.from({ length: hpTotal }).map((_, i) => (
               <div
                 key={i}
-                className={`hp-segment ${i < hpCurrent ? 'active' : ''}`}
+                className={`hp-segment ${i < hpCurrent ? 'active' : ''} ${striking ? 'hp-break' : ''} ${i === lostIdx ? 'hp-lost' : ''}`}
+                style={striking ? { animationDelay: `${0.2 + i * 0.05}s` } : undefined}
               />
             ))}
           </div>
