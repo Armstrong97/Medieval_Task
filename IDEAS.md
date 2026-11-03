@@ -24,11 +24,13 @@ Menú con aspecto de dispositivo de pantalla cian con runas (inspirado en la tab
 
 ## Más carácter gráfico y movimiento (2026-11-01)
 
+**Estado (2026-11-04)**: hechos enredaderas del menú, transiciones, combate reactivo e interruptor «Efectos» (ver HANDOFF §24). Faltan enredaderas en marcos/login, tableta rúnica y personajes peleando.
+
 Que la app se sienta viva, como un juego: personajes animados, enredaderas, transiciones.
 
-- **Enredaderas** en menús y marcos: SVG con trazo que crece (`stroke-dashoffset`) y hojas que se mecen. Esfuerzo bajo.
-- **Transiciones entre pantallas**: CSS o View Transitions API, sin librería. Bajo-medio.
-- **Combate reactivo** en el Battle HUD: el héroe embiste al completar una misión, el jefe parpadea al recibir daño, destello en el golpe final. Reusa arte existente. Medio. El movimiento refleja progreso real (gamificación, no decoración).
+- **Enredaderas** en menús y marcos: SVG con trazo que crece (`stroke-dashoffset`) y hojas que se mecen. Esfuerzo bajo. **Hecho en el menú; faltan marcos de tarjetas y login.**
+- **Transiciones entre pantallas**: CSS o View Transitions API, sin librería. Bajo-medio. **Hecho (CSS).**
+- **Combate reactivo** en el Battle HUD: el héroe embiste al completar una misión, el jefe parpadea al recibir daño, destello en el golpe final. Reusa arte existente. Medio. El movimiento refleja progreso real (gamificación, no decoración). **Hecho con el arma como protagonista; el héroe como personaje queda para cuando haya arte.**
 - **Dos personajes peleando en el inicio**: lo caro es el arte (poses consistentes), no el código. Opciones: siluetas vectoriales animadas con CSS, Rive/Lottie, o spritesheets ilustrados. Alto; dejar para el final.
-- **Límites**: interruptor de «Efectos» en el perfil además de `prefers-reduced-motion`; animar solo `transform`/`opacity`; precache ≤ 2 MB por archivo.
+- **Límites**: interruptor de «Efectos» en el perfil (hecho) además de `prefers-reduced-motion`; animar solo `transform`/`opacity`; precache ≤ 2 MB por archivo.
 - **Orden sugerido**: enredaderas y transiciones → combate reactivo → tableta (A y luego B) → personajes peleando.
