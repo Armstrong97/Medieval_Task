@@ -12,6 +12,7 @@ import { formatClock, useFocusClock } from '@/features/tasks/useFocusClock'
 import { ProfileMenu } from '@/features/auth/components/ProfileMenu'
 import { AmbientBackground } from '@/components/ui/AmbientBackground'
 import { BrandMark } from '@/components/ui/BrandMark'
+import { Vine } from '@/components/ui/Vine'
 import { StatusRail, StatusSummaryCard } from '@/app/StatusRail'
 import { Toaster } from '@/components/ui/Toaster'
 import { QuickCaptureFab } from '@/features/inbox/components/QuickCaptureFab'
@@ -203,9 +204,10 @@ export function Layout() {
         {/* Sidebar Lateral Flotante */}
         <aside
           className={`sidebar-panel fixed top-0 left-0 z-50 flex h-full flex-col overflow-y-auto pt-20 pb-6 transition-transform duration-300 ${
-            sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+            sidebarOpen ? 'is-open translate-x-0' : '-translate-x-full'
           }`}
         >
+          <Vine className="absolute right-0 top-16 h-[calc(100%-4rem)] w-16" />
           <div className="mb-6 flex items-center gap-3 px-6">
             <BrandMark className="h-7 w-7 shrink-0 text-accent" />
             <p className="font-display text-xs uppercase tracking-[0.25em] text-accent">
@@ -260,7 +262,9 @@ export function Layout() {
         <StatusRail pinned={railPinned} onTogglePinned={toggleRailPinned} />
 
         <main className="pb-24 pt-16 transition-[padding] duration-150 motion-reduce:transition-none md:pb-0 lg:pr-[var(--rail-w)]">
-          <Outlet />
+          <div key={location.pathname} className="page-enter">
+            <Outlet />
+          </div>
         </main>
 
         {/* Barra inferior (solo móvil) */}

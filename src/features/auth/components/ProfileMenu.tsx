@@ -4,6 +4,7 @@ import { CircleUserRound, KeyRound, LogOut } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { useAiEnabled, useAiProfileContext, useSetAiEnabled, useSetAiProfileContext } from '@/features/ai/hooks'
 import { ContextField } from '@/features/ai/components/ContextField'
+import { effectsEnabled, setEffects } from '@/utils/effects'
 
 export function ProfileMenu() {
   const { session, signOut } = useAuth()
@@ -14,6 +15,7 @@ export function ProfileMenu() {
   const setProfile = useSetAiProfileContext()
   const [profileDraft, setProfileDraft] = useState<string | null>(null)
   const profileText = profileDraft ?? savedProfile
+  const [fx, setFx] = useState(effectsEnabled)
 
   return (
     <div className="relative">
@@ -39,6 +41,23 @@ export function ProfileMenu() {
                 </p>
               )}
             </div>
+            <label className="mt-1 flex cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 hover:bg-surface-2">
+              <input
+                type="checkbox"
+                checked={fx}
+                onChange={(e) => {
+                  setFx(e.target.checked)
+                  setEffects(e.target.checked)
+                }}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent)]"
+              />
+              <span className="text-sm text-fg">
+                Efectos
+                <span className="mt-0.5 block text-xs leading-snug text-fg-muted">
+                  Enredaderas, transiciones y movimiento decorativo. Apágalo si te distrae.
+                </span>
+              </span>
+            </label>
             <label className="mt-1 flex cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 hover:bg-surface-2">
               <input
                 type="checkbox"
