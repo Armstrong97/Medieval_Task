@@ -775,8 +775,16 @@ html[data-fx='off'] .hp-lost {
 }
 
 /* Input Pergamino de Captura Rápida (ver InboxPage.tsx) */
+/* Panel casi opaco para contenido sobre las escenas del «mundo vivo»: el arte de fondo no debe
+   mezclarse con el texto (contraste). Regla: sobre una escena, superficies sólidas y texto en fg / fg-muted
+   sin atenuar con opacidad. */
+.panel-solid {
+  background: rgb(var(--surface-rgb) / 0.94);
+  border: 2px solid var(--border);
+}
+
 .input-parchment-inbox {
-  background: rgb(var(--surface-rgb) / 0.6);
+  background: rgb(var(--surface-rgb) / 0.94);
   border: 2px solid var(--border);
   box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
